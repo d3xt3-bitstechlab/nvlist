@@ -1,0 +1,293 @@
+<!-- Apache Ant Build Config -->
+<project name="Game">
+
+<!-- Properties -->
+
+  <property name="build.sysclasspath" value="ignore"/>
+  <property name="gamedata.dir" value="." />
+
+  <property name="src.dir" value="src" />
+  <property name="bin.dir" value="bin" />
+  <property name="tools.dir" value="tools" />
+  <property name="launch4j.dir" location="${tools.dir}/launch4j" />
+  <property name="res.dir" value="${gamedata.dir}/res" />
+  <property name="build-res.dir" value="${gamedata.dir}/build-res" />
+  <property name="docs.dir" location="${gamedata.dir}/docs" />
+  <property name="dist.dir" value="${gamedata.dir}/dist" />
+
+  <property file="${build-res.dir}/build.properties"/>
+
+  <!-- Ensure required properties exist -->
+  <fail>
+    <condition>
+	  <or>
+        <not><isset property="project-name"/></not>
+        <not><isset property="main-class"/></not>
+        <not><isset property="exclude-libs"/></not>
+        <not><isset property="exclude-installer-cd"/></not>
+        <not><isset property="program-args"/></not>
+      </or>
+    </condition>
+  </fail>
+
+  <script language="javascript">
+    <![CDATA[
+        importPackage(java.io);
+    
+        project.setProperty("project-name-url", escape(project.getProperty("project-name")));
+        var basedir = project.getProperty("basedir");
+        project.setProperty("library.name", basedir.substring(basedir.lastIndexOf(File.separator)+1).toLowerCase());
+    ]]>
+  </script>
+  
+  <path id="classpath">
+    <fileset dir="." includes="lib/**/*.jar" />
+  </path>
+  
+  <condition property="jar-lib-basedir" value="" else="/${basedir}/">
+    <equals arg1="${gamedata.dir}" arg2="." />
+  </condition>
+  
+  <!-- Absolute paths to JARs -->
+  <pathconvert property="jar-classpath" targetos="unix" pathsep=" " dirsep="/" refid="classpath">
+    <map from="${basedir}/" to="${jar-lib-basedir}" />
+  </pathconvert>
+  
+  <!-- Relative paths to JARs -->
+  <pathconvert property="jar-classpath-local" pathsep=" " dirsep="/" refid="classpath">
+    <map from="${basedir}/" to="" />
+  </pathconvert>
+  
+  <!-- Operating system family detection -->
+  <condition property="os.family" value="windows">
+    <os family="windows"/>
+  </condition>
+  <condition property="os.family" value="linux">
+    <os family="unix"/>
+  </condition>
+  <condition property="os.family" value="mac">
+    <os family="mac"/>
+  </condition>
+
+<!-- Imports -->
+  
+<!-- Tasks -->
+
+  <taskdef name="launch4j"
+           classname="net.sf.launch4j.ant.Launch4jTask"
+           classpath="${launch4j.dir}/launch4j.jar;${launch4j.dir}/lib/xstream.jar" />
+  
+  <macrodef name="create-exe">
+    <attribute name="dir"/>
+    <attribute name="exename" default="${project-name}" />
+    <attribute name="jarname" default="${project-name}" />
+    <attribute name="icon"/>
+    <attribute name="args" default=" "/>
+    <attribute name="jvm-args" default=" "/>
+    <attribute name="dontWrapJar" default="true"/>
+
+    <sequential>
+      <launch4j bindir="${launch4j.dir}/bin/${os.family}">
+        <config headerType="gui" outfile="@{dir}/@{exename}.exe" dontWrapJar="@{dontWrapJar}"
+                jarPath="@{jarname}.jar" icon="@{icon}" cmdLine="@{args}">
+          <jre minVersion="1.6.0">
+            <!-- Need to use a macro variable, opt element doesn't support variable expansion -->
+            <opt>@{jvm-args}</opt>
+          </jre>
+        </config>
+      </launch4j>
+    </sequential>
+  </macrodef>
+
+  <macrodef name="create-launchers">
+    <attribute name="dir" default="." />
+
+    <sequential>
+      <copy todir="@{dir}" overwrite="true">
+        <fileset dir="build-res/launcher" />
+        <filterChain>
+          <expandProperties />
+        </filterChain>
+      </copy>
+            
+      <chmod dir="${gamedata.dir}" includes="*.sh" perm="ugo+rx"/>
+        
+      <!-- Create a win32 executable -->
+      <create-exe dir="@{dir}" icon="${res.dir}/icon.ico" jvm-args="${jvm-args} ${jvm-args-win32}"
+            args="-id &quot;${project-name}&quot; ${program-args}" />
+          
+      <!-- Create a win64 executable -->
+      <create-exe dir="@{dir}" icon="${res.dir}/icon.ico" jvm-args="${jvm-args} ${jvm-args-win64}"
+            exename="${project-name}-64" args="-id &quot;${project-name}&quot; ${program-args}" />
+    </sequential>    
+  </macrodef>
+
+  <taskdef name="p200"
+    classname="de.matthiasmann.p200ant.P200AntTask"
+    classpath="${tools.dir}/p200ant/p200ant.jar" />  
+
+<!-- Targets -->
+
+  <target name="main" depends="jar" />
+  
+<!-- ====================================================================== -->
+<!-- === Basic Targets ==================================================== -->
+<!-- ====================================================================== -->
+
+  <target name="init">    
+    <condition property="exclude-dist-src" value="*.exe,*.lzma">
+      <istrue value="${exclude-installer-cd}"/>
+    </condition>
+    
+    <tstamp />
+  </target>
+
+  <!-- Remove all generated resources -->
+  <target name="clean" depends="init">
+    <delete dir="${dist.dir}" />
+    <delete dir="${bin.dir}" />
+    <delete file="${gamedata.dir}/${project-name}.exe" quiet="true" />
+    <delete file="${gamedata.dir}/${project-name}-64.exe" quiet="true" />
+    <delete file="${gamedata.dir}/${project-name}.jar" />
+    <delete dir="${gamedata.dir}" includes="run*.bat,run*.sh,run*.jnlp" />
+  </target>
+
+<!-- ====================================================================== -->
+<!-- === Compile Targets ================================================== -->
+<!-- ====================================================================== -->
+  
+  <!-- Compile source files -->
+  <target name="compile" depends="init">
+    <mkdir dir="${bin.dir}"/>
+        
+    <javac srcdir="${src.dir}" destdir="${bin.dir}" encoding="UTF-8" debug="true">
+	  <classpath refid="classpath" />
+	</javac>
+
+	<!-- Copy resources (embedded images, etc.) to bin dir -->
+    <copy todir="${bin.dir}">
+      <fileset dir="${src.dir}" excludes="**/*.java" />
+    </copy>
+  </target>
+
+  <!-- Do a clean compile and generate the main jar -->
+  <target name="jar" depends="compile">
+  	<delete file="${gamedata.dir}/${project-name}.jar" quiet="true" />
+  	
+    <jar destfile="${gamedata.dir}/${project-name}.jar" basedir="${bin.dir}" includes="**">
+    	
+      <manifest>
+        <attribute name="Class-Path" value="${jar-classpath}"/>
+        <attribute name="Main-Class" value="${main-class}"/>
+        <attribute name="Implementation-Version" value="${DSTAMP}"/>
+      </manifest>
+      
+      <fileset file="license.txt" />
+    </jar> 
+  	
+    <create-launchers dir="${gamedata.dir}" />  	
+  </target>
+
+<!-- ====================================================================== -->
+<!-- === Javadoc Targets ================================================== -->
+<!-- ====================================================================== -->
+  
+  <target name="doc" depends="compile">
+    <javadoc destdir="${docs.dir}" sourcepath="${src.dir}" classpathref="classpath">
+      <link href="http://java.sun.com/javase/6/docs/api/" />
+    </javadoc>
+  </target>
+  
+<!-- ====================================================================== -->
+<!-- === Dist Targets ===================================================== -->
+<!-- ====================================================================== -->
+  
+  <!-- Shared behavior between dist and dist-src -->
+  <target name="dist-common" depends="clean,compile">
+    <delete dir="${dist.dir}" />
+    <mkdir dir="${dist.dir}" />
+
+    <copy todir="${dist.dir}/lib">
+      <fileset dir="lib" excludes="${exclude-libs}" />
+    </copy>
+    <copy todir="${dist.dir}/res">
+      <fileset dir="${res.dir}" />
+    </copy>
+  </target>
+
+  <!-- Prepare the dist folder for source code distribution -->
+  <target name="dist-src" depends="dist-common">
+    <copy todir="${dist.dir}/build-res">
+      <fileset dir="build-res" excludes="${exclude-dist-src}" />
+    </copy>
+    <copy todir="${dist.dir}/tools">
+      <fileset dir="${tools.dir}" />
+    </copy>    
+    <copy todir="${dist.dir}/src">
+      <fileset dir="src" />
+    </copy>
+    <copy todir="${dist.dir}">
+      <fileset dir="." includes="build*.xml,*license.txt" />
+    </copy>
+  </target>
+
+  <!-- Prepare the dist folder for library distribution -->
+  <target name="dist-lib" depends="dist-src">
+    <!-- ZIP source code -->
+    <zip basedir="src" destfile="${dist.dir}/lib/${library.name}-src.zip" />
+    <delete dir="${dist.dir}/src" />
+    <mkdir dir="${dist.dir}/src" />
+    
+    <!-- Move Build.jar to the main folder -->
+    <move todir="${dist.dir}">
+      <fileset dir="${dist.dir}/tools" includes="Build*.*" />
+    </move>
+    
+    <!-- Create library JAR file -->
+    <jar destfile="${dist.dir}/lib/${library.name}.jar" basedir="${bin.dir}" includes="**">    	
+      <manifest>
+        <attribute name="Implementation-Version" value="${DSTAMP}"/>
+      </manifest>
+      <fileset file="license.txt" />
+    </jar>
+  </target>
+  
+  <!-- Prepare the dist folder for end-user distribution -->
+  <target name="dist" depends="dist-common">
+    <!-- ZIP source code -->
+    <zip basedir="src" destfile="${dist.dir}/${project-name}-src.zip" />
+    <delete file="${dist.dir}/src" />
+  
+    <path id="zippableFiles">
+      <dirset dir="${dist.dir}/res" />
+      <fileset dir="${dist.dir}/res" excludes="video" />
+      
+      <!-- Include Theora video in the resource ZIP -->
+      <fileset dir="${dist.dir}/res/video" includes="*.ogv,*.ogg" />
+    </path>
+  
+    <!-- Compress res folder to res.zip, excluding video files -->
+    <!-- There's a bug in ant that causes a "Warning: skipping zip archive ??? because no files were included." -->
+    <zip destfile="${dist.dir}/res.zip" compress="false" encoding="UTF-8">
+      <path refid="zippableFiles" />
+    </zip>
+        
+    <delete includeemptydirs="true">
+      <path refid="zippableFiles" />
+    </delete>
+    <delete file="${dist.dir}/res" />
+    
+    <!-- Create JAR and launchers in dist folder -->
+    <jar destfile="${dist.dir}/${project-name}.jar" basedir="${bin.dir}" includes="**">    	
+      <manifest>
+        <attribute name="Class-Path" value="${jar-classpath-local}"/>
+        <attribute name="Main-Class" value="${main-class}"/>
+        <attribute name="Implementation-Version" value="${DSTAMP}"/>
+      </manifest>
+      <fileset file="license.txt" />
+    </jar>
+  	
+    <create-launchers dir="${dist.dir}" />    
+  </target>
+  
+</project>

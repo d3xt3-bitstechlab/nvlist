@@ -1,0 +1,94 @@
+<!-- Apache Ant Build Config -->
+<project name="Game-Installer">
+
+<!-- Properties -->
+  <fail>
+    <condition>
+	  <or>
+        <not><isset property="project-name"/></not>
+        <not><isset property="main-class"/></not>
+        <not><isset property="dist.dir"/></not>
+        <not><isset property="gamedata.dir"/></not>
+        <not><isset property="tools.dir"/></not>
+      </or>
+    </condition>
+  </fail>
+
+  <property name="releases.dir" value="${gamedata.dir}/releases" />
+  
+<!-- Imports -->
+  
+<!-- Tasks -->
+
+<!-- Targets -->
+
+  <target name="clean-installer">
+    <delete dir="${build-res.dir}" includes="installer.ini" />
+  </target>
+
+  <target name="clean-releases">
+    <delete>
+      <fileset dir="${releases.dir}">
+        <include name="${project-name}-install-*.jar" />
+        <include name="${project-name}-*.zip" />
+      </fileset>
+    </delete>
+  </target>
+  
+  <target name="make-installer-common">
+    <copy tofile="${build-res.dir}/installer.ini" file="${build-res.dir}/installer-config.ini">
+      <filterChain>
+        <expandProperties />
+      </filterChain>
+    </copy>
+  </target>
+  
+  <!-- Creates a no-installer ZIP archive from the releases folder -->
+  <!-- Doesn't depend on dist as either 'dist-src' or 'dist' may be used. -->
+  <target name="make-installer-zip" depends="make-installer-common">  
+    <echo>Creating no-installer ZIP archive (may take a long time)...</echo>
+    
+    <tstamp />
+
+    <zip destfile="${releases.dir}/${project-name}-${DSTAMP}.zip" basedir="${dist.dir}"
+            compress="false" encoding="UTF-8" />
+            
+    <delete file="${build-res.dir}/installer.ini" />
+  </target>
+  
+  <!-- Create an installer from the dist folder -->
+  <!-- Doesn't depend on dist as either 'dist-src' or 'dist' may be used. -->
+  <target name="make-installer" depends="make-installer-common">  
+    <echo>Creating installer (may take a long time)...</echo>
+    
+    <tstamp />
+
+    <java jar="${tools.dir}/MakeInstaller.jar" fork="true">
+      <arg value="${dist.dir}" />
+      <arg value="${releases.dir}/${project-name}-install-${DSTAMP}.jar" />
+      <arg value="${build-res.dir}/installer.ini" />
+    </java>
+
+    <delete file="${build-res.dir}/installer.ini" />
+  </target>
+
+  <target name="make-installer-cd" depends="make-installer-common">
+    <echo>Creating installer (may take a long time)...</echo>
+
+    <tstamp />
+    
+    <java jar="${tools.dir}/MakeInstaller.jar" fork="true">
+      <arg value="-pack-disk" />
+      <arg value="${dist.dir}" />
+      <arg value="${dist.dir}/CDROOT" />
+      <arg value="${build-res.dir}/installer.ini" />
+    </java>
+    
+    <zip destfile="${releases.dir}/${project-name}-CD-${DSTAMP}.zip" basedir="${dist.dir}/CDROOT"
+            compress="false" encoding="UTF-8" />
+            
+    <delete dir="${dist.dir}/CDROOT" />
+    <delete file="${build-res.dir}/installer.ini" />
+  </target>
+
+</project>

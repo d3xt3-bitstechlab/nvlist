@@ -1,0 +1,42 @@
+<!-- Apache Ant Build Config -->
+<project name="NVList" basedir="." default="main">
+
+<!-- Properties -->
+  
+  <property name="gamedata.dir" value="." />
+  <property name="build-res.dir" value="${gamedata.dir}/build-res" />
+  
+<!-- Imports -->
+
+  <import file="build-res/build-game.xml" />
+  <import file="build-res/build-installer.xml" />
+  <import file="build-res/build-applet.xml" />
+  
+<!-- Tasks -->
+  <macrodef name="obfuscate">
+    <attribute name="src" default="${dist.dir}/res.zip" />
+    <attribute name="dst" default="${dist.dir}/${project-name}.nvl" />
+
+    <sequential>
+      <java classname="nl.weeaboo.obfuscator.ObfuscatorUtil" fork="true">
+        <classpath refid="classpath" />
+        
+        <arg value="nl.weeaboo.vn.impl.base.Obfuscator" />
+        <arg value="-e" />
+        <arg value="@{src}" />
+        <arg value="@{dst}" />
+      </java>
+
+      <delete file="@{src}" />
+    </sequential>
+  </macrodef>
+
+<!-- Targets -->
+  <target name="dist" depends="Game.dist">
+    <echo>Obfuscating resources (this may take a while)...</echo>
+    <obfuscate />
+    
+    <delete file="${dist.dir}/${project-name}-src.zip" />
+  </target>
+    
+</project>
