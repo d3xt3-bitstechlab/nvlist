@@ -10,14 +10,17 @@ import static nl.weeaboo.nvlist.NovelPrefs.EFFECT_SPEED;
 import static nl.weeaboo.nvlist.NovelPrefs.ENGINE_MIN_VERSION;
 import static nl.weeaboo.nvlist.NovelPrefs.TEXT_SPEED;
 
+import java.awt.event.KeyEvent;
 import java.util.concurrent.ExecutorService;
 
 import nl.weeaboo.awt.AwtUtil;
 import nl.weeaboo.common.Dim;
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.game.BaseGame;
+import nl.weeaboo.game.DebugPanel;
 import nl.weeaboo.game.GameDisplay;
 import nl.weeaboo.game.IGameDisplay;
+import nl.weeaboo.game.RenderMode;
 import nl.weeaboo.game.input.IKeyConfig;
 import nl.weeaboo.game.input.UserInput;
 import nl.weeaboo.gl.GLManager;
@@ -28,6 +31,8 @@ import nl.weeaboo.gl.text.ParagraphRenderer;
 import nl.weeaboo.gl.texture.TextureCache;
 import nl.weeaboo.lua.LuaException;
 import nl.weeaboo.lua.io.LuaSerializer;
+import nl.weeaboo.nvlist.debug.DebugImagePanel;
+import nl.weeaboo.nvlist.debug.DebugLuaPanel;
 import nl.weeaboo.nvlist.menu.GameMenuFactory;
 import nl.weeaboo.settings.IConfig;
 import nl.weeaboo.sound.SoundManager;
@@ -42,6 +47,7 @@ import nl.weeaboo.vn.impl.base.BaseNovelConfig;
 import nl.weeaboo.vn.impl.lua.EnvLuaSerializer;
 import nl.weeaboo.vn.impl.nvlist.GuiFactory;
 import nl.weeaboo.vn.impl.nvlist.ImageFactory;
+import nl.weeaboo.vn.impl.nvlist.ImageFxFactory;
 import nl.weeaboo.vn.impl.nvlist.ImageState;
 import nl.weeaboo.vn.impl.nvlist.InputAdapter;
 import nl.weeaboo.vn.impl.nvlist.Movie;
@@ -77,30 +83,34 @@ public class Game extends BaseGame {
 		super(cfg, e, gd, fm, fontman, tc, sc, trs, sm, in, kc);
 		
 		gd.setJMenuBar(GameMenuFactory.createPlaceholderJMenuBar()); //Forces GameDisplay to use a JFrame
+		gd.setRenderMode(RenderMode.MANUAL);
 		
 		pr = trs.createParagraphRenderer();
 	}
 
 	//Functions
 	@Override
-	public boolean stop(boolean force) {
-		if (force || askStop()) {
-			if (novel != null) {
-				novel.reset();
+	public void stop(final boolean force, final Runnable onStop) {
+		super.stop(force, new Runnable() {
+			public void run() {
+				if (novel != null) {
+					novel.savePersistent();
+					novel.reset();
+				}
+				if (gmf != null) {
+					gmf.dispose();
+					gmf = null;
+				}
+				
+				if (onStop != null) {
+					onStop.run();
+				}				
 			}
-			if (gmf != null) {
-				gmf.dispose();
-				gmf = null;
-			}
-			return super.stop(true);
-		}
-		return false;
+		});
 	}
 	
 	@Override
-	public void start() {
-		super.start();
-		
+	public void start() {		
 		IConfig config = getConfig();		
 		if (VERSION_STRING.compareTo(config.get(ENGINE_MIN_VERSION)) < 0) {
 			//Our version number is too old to run the game
@@ -129,9 +139,10 @@ public class Game extends BaseGame {
 		ISeenLog seenLog = saveHandler.getSeenLog();
 		ImageFactory imgfac = new ImageFactory(texCache, shCache, trStore,
 				seenLog, notifier, imgSize.w, imgSize.h, nvlSize.w, nvlSize.h);
+		ImageFxFactory imgfxfac = new ImageFxFactory(imgfac);
 		SoundFactory sndfac = new SoundFactory(sm, seenLog, notifier);
 		VideoFactory vidfac = new VideoFactory(fm, texCache, seenLog, notifier);		
-		GuiFactory guifac = new GuiFactory();
+		GuiFactory guifac = new GuiFactory(this);
 
 		ImageState is = new ImageState(nvlSize.w, nvlSize.h);		
 		SoundState ss = new SoundState(sndfac);
@@ -139,18 +150,17 @@ public class Game extends BaseGame {
 		TextState ts = new TextState();		
 		IInput in = new InputAdapter(getInput());		
 		
-		novel = new Novel(novelConfig, imgfac, is, sndfac, ss, vidfac, vs, ts,
+		novel = new Novel(novelConfig, imgfac, is, imgfxfac, sndfac, ss, vidfac, vs, ts,
 				notifier, in, guifac, saveHandler,
-				fm, getKeyConfig(), texCache, shCache, trStore) {
-			
-			public boolean exit(boolean force) {
-				return Game.this.stop(force);
-			}
-		};
+				fm, getKeyConfig(), texCache, shCache, trStore);
         luaSerializer = new EnvLuaSerializer(novel);
         saveHandler.setNovel(novel, luaSerializer);
+                
+		super.start();
         
-		restart("main");		
+		restart("main");
+		
+		onConfigPropertiesChanged(); //Needs to be called again now novel is initialized		
 	}
 	
 	public void restart() {
@@ -158,19 +168,13 @@ public class Game extends BaseGame {
 	}
 	protected void restart(final String mainFunc) {		
 		novel.restart(luaSerializer, mainFunc);
+				
 		onConfigPropertiesChanged();
 	}
 	
-	/**
-	 * Requests a repaint of the game display
-	 */
-	protected void repaint() {
-		//Don't do anything, NVList only has active rendering right now...
-	}
-	
 	@Override
-	public void update(UserInput input, float dt) {
-		super.update(input, dt);
+	public boolean update(UserInput input, float dt) {
+		boolean changed = super.update(input, dt);
 
 		IGameDisplay display = getDisplay();
 		boolean allowMenuBarToggle = display.isEmbedded() || display.isFullscreen();
@@ -182,8 +186,6 @@ public class Game extends BaseGame {
 		} else if (!allowMenuBarToggle) {
 			display.setMenuBarVisible(true);
 		}
-		
-		boolean changed = false;
 		
 		changed |= novel.update();
 		
@@ -197,9 +199,15 @@ public class Game extends BaseGame {
 			}
 		}
 		
-		if (changed) {
-			repaint();			
+		if (getConfig().get(DEBUG) && input.consumeKey(KeyEvent.VK_ASTERISK)) {
+			int a = 0;
+			a = 0 / a; //Boom shakalaka
 		}
+		
+		IVideoState vs = novel.getVideoState();
+		changed |= vs.isBlocking();
+		
+		return changed;
 	}
 	
 	@Override
@@ -217,7 +225,7 @@ public class Game extends BaseGame {
 						getScreenW(), getScreenH());
 			}
 			is.draw(renderer);
-	        renderer.render();
+	        renderer.render(null);
 			renderer.reset();
 		}
 		
@@ -237,7 +245,7 @@ public class Game extends BaseGame {
 			
 			ITextState ts = novel.getTextState();
 			if (ts != null) {
-				ts.setTextSpeed(config.get(TEXT_SPEED));
+				ts.setBaseTextSpeed(config.get(TEXT_SPEED));
 			}
 			
 			novel.setScriptDebug(config.get(DEBUG));
@@ -254,7 +262,15 @@ public class Game extends BaseGame {
 			 */
 		}
 		
-		repaint();
+		getDisplay().repaint();
+	}
+	
+	@Override
+	protected DebugPanel createDebugPanel() {
+		DebugPanel debugPanel = super.createDebugPanel();
+		debugPanel.addTab("Lua", new DebugLuaPanel(this, getNovel()));
+		debugPanel.addTab("Image", new DebugImagePanel(this, getNovel()));
+		return debugPanel;
 	}
 	
 	//Getters
@@ -269,8 +285,6 @@ public class Game extends BaseGame {
 			super.setScreenBounds(rx, ry, rw, rh, sw, sh);
 			
 			renderer = null;
-			
-			repaint();
 		}
 	}
 	

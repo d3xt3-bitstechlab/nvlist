@@ -1,9 +1,6 @@
 package nl.weeaboo.nvlist.menu;
 
 import static nl.weeaboo.nvlist.NovelPrefs.EFFECT_SPEED;
-import nl.weeaboo.nvlist.Game;
-import nl.weeaboo.settings.IConfig;
-import nl.weeaboo.vn.impl.nvlist.Novel;
 
 public class EffectSpeedMenu extends RangeMenu<Double> {
 
@@ -25,14 +22,8 @@ public class EffectSpeedMenu extends RangeMenu<Double> {
 		999.0
 	};
 	
-	public EffectSpeedMenu(double currentEffectSpeed) {
-		super("Effect Speed", '\0', labels, values, currentEffectSpeed);
-	}
-
-	@Override
-	protected void onItemSelected(Game game, Novel nvl, int index, String label, Double value) {
-		IConfig config = game.getConfig();
-		config.set(EFFECT_SPEED, value);
+	public EffectSpeedMenu() {
+		super(EFFECT_SPEED, "Effect Speed", '\0', labels, values);
 	}
 	
 }

@@ -1,9 +1,6 @@
 package nl.weeaboo.nvlist.menu;
 
 import static nl.weeaboo.nvlist.NovelPrefs.TEXT_SPEED;
-import nl.weeaboo.nvlist.Game;
-import nl.weeaboo.settings.IConfig;
-import nl.weeaboo.vn.impl.nvlist.Novel;
 
 public class TextSpeedMenu extends RangeMenu<Double> {
 
@@ -27,14 +24,8 @@ public class TextSpeedMenu extends RangeMenu<Double> {
 		999999.0
 	};
 	
-	public TextSpeedMenu(double currentTextSpeed) {
-		super("Text Speed", '\0', labels, values, currentTextSpeed);
-	}
-
-	@Override
-	protected void onItemSelected(Game game, Novel nvl, int index, String label, Double value) {
-		IConfig config = game.getConfig();
-		config.set(TEXT_SPEED, value);
+	public TextSpeedMenu() {
+		super(TEXT_SPEED, "Text Speed", '\0', labels, values);
 	}
 	
 }

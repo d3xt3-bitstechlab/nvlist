@@ -1,9 +1,6 @@
 package nl.weeaboo.nvlist.menu;
 
 import static nl.weeaboo.nvlist.NovelPrefs.AUTO_READ_WAIT;
-import nl.weeaboo.nvlist.Game;
-import nl.weeaboo.settings.IConfig;
-import nl.weeaboo.vn.impl.nvlist.Novel;
 
 public class AutoReadWaitMenu extends RangeMenu<Integer> {
 
@@ -23,14 +20,8 @@ public class AutoReadWaitMenu extends RangeMenu<Integer> {
 		4000
 	};
 	
-	public AutoReadWaitMenu(int currentAutoReadWait) {
-		super("Auto Read Delay", '\0', labels, values, currentAutoReadWait);
-	}
-
-	@Override
-	protected void onItemSelected(Game game, Novel nvl, int index, String label, Integer value) {
-		IConfig config = game.getConfig();
-		config.set(AUTO_READ_WAIT, value);
+	public AutoReadWaitMenu() {
+		super(AUTO_READ_WAIT, "Auto Read Delay", '\0', labels, values);
 	}
 	
 }

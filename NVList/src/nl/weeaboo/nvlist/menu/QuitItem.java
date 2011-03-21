@@ -17,11 +17,15 @@ public class QuitItem extends GameMenuAction {
 	}
 
 	@Override
-	public void actionPerformed(JMenuItem item, ActionEvent e, Game game, Novel nvl) {
+	public void actionPerformed(JMenuItem item, ActionEvent e, final Game game, Novel nvl) {
 		if (nvl != null) {
-			nvl.exit(false);
+			nvl.getGuiFactory().exit(false);
 		} else {
-			game.stop(false);
+			game.stop(false, new Runnable() {
+				public void run() {
+					game.dispose();
+				}
+			});
 		}
 	}
 

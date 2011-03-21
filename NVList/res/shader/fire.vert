@@ -14,6 +14,6 @@ void main() {
     vec2 normScreenPos = screenPos.xy / screen.ba;
     
 	vec2 tpos = normScreenPos.xy * gl_TexCoord[0].st;
-	float s = (0.5 + tpos.y) + sin(time * 0.1) * 0.3;
-	fc = s * vec3(0.5 + tpos.y * 0.3, 0.1 + tpos.y * 0.3, 0);
+	float s = (0.5 + 0.3 * tpos.y) + sin(time * 0.1) * 0.3;
+	fc = s * vec3(0.6 + tpos.y * 0.3, tpos.y * 0.1, 0);
 }

@@ -54,6 +54,11 @@ public class SaveHandler extends LuaSaveHandler implements Serializable {
 			sysVars.load();
 		} catch (IOException ioe) {
 			n.fnf("Error loading sysVars", ioe);
+			try {
+				sysVars.save();
+			} catch (IOException e) {
+				//Ignore
+			}
 		}
 		
 		seenLog = new SeenLog(fm, pathPrefix + "seen.bin");
@@ -61,6 +66,11 @@ public class SaveHandler extends LuaSaveHandler implements Serializable {
 			seenLog.load();
 		} catch (IOException ioe) {
 			n.fnf("Error loading seenLog", ioe);
+			try {
+				seenLog.save();
+			} catch (IOException e) {
+				//Ignore
+			}
 		}
 		
 		addAllowedPackages("nl.weeaboo.gl", "nl.weeaboo.gl.capture", "nl.weeaboo.gl.texture");

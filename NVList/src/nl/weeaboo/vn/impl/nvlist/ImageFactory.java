@@ -73,12 +73,12 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	}
 	
 	@Override
-	public ITexture createTexture(int[] argb, int w, int h, int iw, int ih) {
+	public ITexture createTexture(int[] argb, int w, int h, double sx, double sy) {
 		GLTexture tex = createGLTexture(argb, w, h);
 		if (tex == null) {
 			return null;
 		}
-		return new TextureAdapter(tex.getTexRect(null), width, height, iw, ih);
+		return new TextureAdapter(tex.getTexRect(null), sx, sy);
 	}
 	
 	public GLGeneratedTexture createGLTexture(int[] argb, int w, int h) {
@@ -103,7 +103,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 		if (tr == null) {
 			return null;
 		}				
-		return new TextureAdapter(tr, width, height, imgWidth, imgHeight);
+		return new TextureAdapter(tr, width / (double)imgWidth, height / (double)imgHeight);
 	}
 		
 	public BufferedImage getBufferedImage(String filename) throws IOException {

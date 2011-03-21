@@ -3,10 +3,6 @@ package nl.weeaboo.nvlist.menu;
 import static nl.weeaboo.game.BaseGameConfig.MUSIC_VOLUME;
 import static nl.weeaboo.game.BaseGameConfig.SOUND_VOLUME;
 import static nl.weeaboo.game.BaseGameConfig.VOICE_VOLUME;
-import static nl.weeaboo.nvlist.NovelPrefs.AUTO_READ;
-import static nl.weeaboo.nvlist.NovelPrefs.AUTO_READ_WAIT;
-import static nl.weeaboo.nvlist.NovelPrefs.EFFECT_SPEED;
-import static nl.weeaboo.nvlist.NovelPrefs.TEXT_SPEED;
 
 import java.awt.Component;
 
@@ -15,7 +11,6 @@ import javax.swing.JPopupMenu;
 
 import nl.weeaboo.nvlist.Game;
 import nl.weeaboo.settings.ConfigPropertyListener;
-import nl.weeaboo.settings.IConfig;
 import nl.weeaboo.settings.Preference;
 
 public class GameMenuFactory {
@@ -70,6 +65,7 @@ public class GameMenuFactory {
 			createImageMenu(),
 			createSoundMenu(),
 			createWindowMenu(),
+			createAdvancedMenu(),
 			createInfoMenu()
 		};
 	}
@@ -89,40 +85,45 @@ public class GameMenuFactory {
 	}
 
 	protected GameMenu createTextMenu() {
-		IConfig config = game.getConfig();
-		
 		GameMenu menu = createMenu("Text", 'T');
-		menu.add(new TextSpeedMenu(config.get(TEXT_SPEED)));
-		menu.add(new AutoReadWaitMenu(config.get(AUTO_READ_WAIT)));
-		menu.add(new AutoReadItem(config, AUTO_READ));
+		menu.add(new TextSpeedMenu());
+		menu.add(new AutoReadWaitMenu());
+		menu.add(new AutoReadItem());
 		menu.addSeparator();
 		menu.add(new TextLogItem());		
 		return menu;
 	}
 	
 	protected GameMenu createImageMenu() {
-		IConfig config = game.getConfig();
-		
 		GameMenu menu = createMenu("Image", 'I');
-		menu.add(new EffectSpeedMenu(config.get(EFFECT_SPEED)));
+		menu.add(new EffectSpeedMenu());
 		menu.addSeparator();
 		menu.add(new ViewCGItem());		
+		menu.add(new ScreenshotItem());		
 		return menu;
 	}
 	
 	protected GameMenu createSoundMenu() {
-		IConfig config = game.getConfig();
-		
 		GameMenu menu = createMenu("Sound", 'S');
-		menu.add(new AudioVolumeMenu(MUSIC_VOLUME, "Music Volume", config.get(MUSIC_VOLUME)));
-		menu.add(new AudioVolumeMenu(SOUND_VOLUME, "Sound Volume", config.get(SOUND_VOLUME)));
-		menu.add(new AudioVolumeMenu(VOICE_VOLUME, "Voice Volume", config.get(VOICE_VOLUME)));
+		menu.add(new AudioVolumeMenu(MUSIC_VOLUME, "Music Volume"));
+		menu.add(new AudioVolumeMenu(SOUND_VOLUME, "Sound Volume"));
+		menu.add(new AudioVolumeMenu(VOICE_VOLUME, "Voice Volume"));
 		return menu;
 	}
 	
 	protected GameMenu createWindowMenu() {
 		GameMenu menu = createMenu("Window", 'W');
 		menu.add(new FullscreenItem());
+		return menu;
+	}
+	
+	protected GameMenu createAdvancedMenu() {
+		GameMenu menu = createMenu("Advanced", 'A');
+		menu.add(new ImageCacheMenu());
+		menu.add(new MaxTexSizeMenu());
+		menu.add(new FBOMenu());
+		menu.add(new GLSLItem());
+		menu.add(new VSyncItem());
 		return menu;
 	}
 	

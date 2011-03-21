@@ -1,11 +1,11 @@
 package nl.weeaboo.vn.impl.nvlist;
 
 import java.util.Arrays;
-import java.util.Collection;
 
 import javax.media.opengl.GL2ES1;
 
 import nl.weeaboo.common.Rect;
+import nl.weeaboo.common.Rect2D;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.text.ParagraphRenderer;
 import nl.weeaboo.gl.texture.GLTexRect;
@@ -15,7 +15,6 @@ import nl.weeaboo.textlayout.TextLayout;
 import nl.weeaboo.vn.BlendMode;
 import nl.weeaboo.vn.IPixelShader;
 import nl.weeaboo.vn.ITexture;
-import nl.weeaboo.vn.RenderCommand;
 import nl.weeaboo.vn.impl.base.BaseRenderCommand;
 import nl.weeaboo.vn.impl.base.BaseRenderer;
 import nl.weeaboo.vn.impl.base.CustomRenderCommand;
@@ -26,6 +25,8 @@ public class Renderer extends BaseRenderer {
 
 	private final GLManager glm;
 	private final ParagraphRenderer pr;
+	
+	private transient BaseRenderCommand[] tempArray;
 	
 	public Renderer(GLManager glm, ParagraphRenderer pr, int w, int h,
 			int rx, int ry, int rw, int rh, int sw, int sh)
@@ -55,32 +56,59 @@ public class Renderer extends BaseRenderer {
 	}
 	
 	@Override
-	public void render() {
+	public void render(Rect2D bounds) {
+		if (commands.isEmpty()) {
+			return;
+		}
+		
 		final int rx = getRealX();
 		final int ry = getRealY();
 		final int rw = getRealWidth();
 		final int rh = getRealHeight();
 		//final int sw = getScreenWidth();
 		final int sh = getScreenHeight();
-		
-		Collection<RenderCommand> commandList = commands;
-		BaseRenderCommand commands[] = commandList.toArray(new BaseRenderCommand[commandList.size()]);
-		Arrays.sort(commands);
+						
+		if (tempArray == null) {
+			tempArray = new BaseRenderCommand[commands.size()];
+		}
+		tempArray = commands.toArray(tempArray);
+		final int len = commands.size();
+		Arrays.sort(tempArray, 0, len);
 				
 		GL2ES1 gl = glm.getGL();
-		
+		gl.glPushMatrix();
+		if (bounds != null) {
+			glm.translate(bounds.x, bounds.y);
+		}
+
+		//Setup clipping
 		boolean clipping = true;
 		gl.glEnable(GL2ES1.GL_SCISSOR_TEST);
-		gl.glScissor(rx, sh-ry-rh, rw, rh);
+
+		final int cx, cy, cw, ch; //Clip rect in screen coords
+		if (bounds == null) {
+			cx = rx; cy = ry; cw = rw; ch = rh;
+		} else {
+			cx = rx + Math.max(0, Math.min(rw, (int)Math.round(bounds.x * getScale())));
+			cy = ry + Math.max(0, Math.min(rh, (int)Math.round(bounds.y * getScale())));
+			cw = Math.max(0, Math.min(rw, (int)Math.round(bounds.w * getScale())));
+			ch = Math.max(0, Math.min(rh, (int)Math.round(bounds.h * getScale())));
+		}
+		gl.glScissor(cx, sh-cy-ch, cw, ch);
 				
+		//Setup blend mode
 		BlendMode blendMode = BlendMode.DEFAULT;
 		gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE_MINUS_SRC_ALPHA);
 		
+		//Setup color
 		int foreground = 0xFFFFFFFF;
 		glm.pushColor();
 		glm.setColor(foreground);
 		
-		for (BaseRenderCommand cmd : commands) {
+		//Render buffered commands
+		for (int n = 0; n < len; n++) {
+			BaseRenderCommand cmd = tempArray[n];
+			
 			//Clipping changed
 			if (cmd.clipEnabled != clipping) {
 				if (cmd.clipEnabled) {
@@ -152,6 +180,9 @@ public class Renderer extends BaseRenderer {
 		glm.popColor();
 		gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE_MINUS_SRC_ALPHA);
 		gl.glDisable(GL2ES1.GL_SCISSOR_TEST);
+		gl.glPopMatrix();
+		
+		Arrays.fill(tempArray, 0, len, null);
 	}
 	
 	void renderQuad(GLManager glm, ITexture itex, double x, double y, double w, double h,

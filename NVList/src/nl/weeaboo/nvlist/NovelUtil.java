@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import nl.weeaboo.common.Dim;
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.game.GameLog;
+import nl.weeaboo.game.GameUtil;
 import nl.weeaboo.settings.IConfig;
 import nl.weeaboo.settings.INIFile;
 
@@ -21,7 +22,7 @@ public final class NovelUtil {
 		int width = 0;
 		int height = 0;
 		try {
-			InputStream in = fm.getInputStream("img.ini");
+			InputStream in = fm.getInputStream(GameUtil.IMAGE_FOLDER + "img.ini");
 			try {
 				INIFile iniFile = new INIFile();
 				iniFile.read(new BufferedReader(new InputStreamReader(in, "UTF-8"), 1024));
@@ -31,7 +32,7 @@ public final class NovelUtil {
 				in.close();
 			}
 		} catch (FileNotFoundException fnfe) {
-			//Ignore
+			GameLog.v("No img.ini file found");
 		} catch (IOException ioe) {
 			GameLog.w("Error opening img.ini", ioe);
 		}

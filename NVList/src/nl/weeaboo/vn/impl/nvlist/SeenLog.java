@@ -48,6 +48,11 @@ public class SeenLog extends BaseSeenLog implements Serializable {
 		return fm.rename(oldFilename, newFilename);
 	}
 	
+	@Override
+	protected boolean delete(String filename) {
+		return fm.delete(filename);
+	}
+	
 	//Getters
 	
 	//Setters

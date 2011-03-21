@@ -659,7 +659,7 @@ DAMAGE.
    
 ===============================================================================
 
-LuaJ is included under the following license:
+A modified version of LuaJ is included under the following license:
 -------------------------------------------------------------------------------
 
 Copyright (c) 2007 LuaJ. All rights reserved.

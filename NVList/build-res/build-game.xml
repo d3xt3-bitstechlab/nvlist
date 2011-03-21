@@ -9,7 +9,6 @@
   <property name="src.dir" value="src" />
   <property name="bin.dir" value="bin" />
   <property name="tools.dir" value="tools" />
-  <property name="launch4j.dir" location="${tools.dir}/launch4j" />
   <property name="res.dir" value="${gamedata.dir}/res" />
   <property name="build-res.dir" value="${gamedata.dir}/build-res" />
   <property name="docs.dir" location="${gamedata.dir}/docs" />
@@ -75,7 +74,7 @@
 
   <taskdef name="launch4j"
            classname="net.sf.launch4j.ant.Launch4jTask"
-           classpath="${launch4j.dir}/launch4j.jar;${launch4j.dir}/lib/xstream.jar" />
+           classpath="${tools.dir}/launch4j/launch4j.jar;${tools.dir}/launch4j/lib/xstream.jar" />
   
   <macrodef name="create-exe">
     <attribute name="dir"/>
@@ -87,7 +86,7 @@
     <attribute name="dontWrapJar" default="true"/>
 
     <sequential>
-      <launch4j bindir="${launch4j.dir}/bin/${os.family}">
+      <launch4j bindir="tools/launch4j/bin/${os.family}">
         <config headerType="gui" outfile="@{dir}/@{exename}.exe" dontWrapJar="@{dontWrapJar}"
                 jarPath="@{jarname}.jar" icon="@{icon}" cmdLine="@{args}">
           <jre minVersion="1.6.0">
@@ -99,26 +98,35 @@
     </sequential>
   </macrodef>
 
+  <taskdef name="jarbundler"           
+           classname="net.sourceforge.jarbundler.JarBundler"
+           classpath="${tools.dir}/jarbundler/jarbundler-2.2.0.jar" />
+              
   <macrodef name="create-launchers">
     <attribute name="dir" default="." />
+    <attribute name="extra-args" default="" />
 
     <sequential>
       <copy todir="@{dir}" overwrite="true">
         <fileset dir="build-res/launcher" />
         <filterChain>
+          <replacetokens>
+            <token key="ARGS" value="-id &quot;${project-name}&quot; @{extra-args} ${program-args}"/>
+          </replacetokens>        
           <expandProperties />
         </filterChain>
       </copy>
-            
+
+      <!-- Create launcher scripts -->      
       <chmod dir="${gamedata.dir}" includes="*.sh" perm="ugo+rx"/>
-        
+                    
       <!-- Create a win32 executable -->
       <create-exe dir="@{dir}" icon="${res.dir}/icon.ico" jvm-args="${jvm-args} ${jvm-args-win32}"
-            args="-id &quot;${project-name}&quot; ${program-args}" />
+            args="-id &quot;${project-name}&quot; @{extra-args} ${program-args}" />
           
       <!-- Create a win64 executable -->
       <create-exe dir="@{dir}" icon="${res.dir}/icon.ico" jvm-args="${jvm-args} ${jvm-args-win64}"
-            exename="${project-name}-64" args="-id &quot;${project-name}&quot; ${program-args}" />
+            exename="${project-name}-64" args="-id &quot;${project-name}&quot; @{extra-args} ${program-args}" />
     </sequential>    
   </macrodef>
 
@@ -144,12 +152,13 @@
 
   <!-- Remove all generated resources -->
   <target name="clean" depends="init">
-    <delete dir="${dist.dir}" />
     <delete dir="${bin.dir}" />
+    <delete dir="${dist.dir}" />
+    <delete dir="${gamedata.dir}/${project-name}.app" />
     <delete file="${gamedata.dir}/${project-name}.exe" quiet="true" />
     <delete file="${gamedata.dir}/${project-name}-64.exe" quiet="true" />
     <delete file="${gamedata.dir}/${project-name}.jar" />
-    <delete dir="${gamedata.dir}" includes="run*.bat,run*.sh,run*.jnlp" />
+    <delete dir="${gamedata.dir}" includes="run*.bat,run*.sh,run*.command,run*.jnlp" />
   </target>
 
 <!-- ====================================================================== -->
@@ -185,7 +194,7 @@
       <fileset file="license.txt" />
     </jar> 
   	
-    <create-launchers dir="${gamedata.dir}" />  	
+    <create-launchers dir="${gamedata.dir}" extra-args="&quot;${gamedata.dir}&quot;" />  	
   </target>
 
 <!-- ====================================================================== -->
@@ -289,5 +298,5 @@
   	
     <create-launchers dir="${dist.dir}" />    
   </target>
-  
+    
 </project>

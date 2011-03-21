@@ -20,7 +20,7 @@ public class FreeRotationGS implements IGeometryShader {
 
 	//Functions
 	@Override
-	public boolean update() {
+	public boolean update(double effectSpeed) {
 		//Nothing to do
 		
 		boolean result = changed;

@@ -17,6 +17,7 @@ import nl.weeaboo.lua.io.DefaultEnvironment;
 import nl.weeaboo.lua.io.LuaSerializer;
 import nl.weeaboo.vn.IGuiFactory;
 import nl.weeaboo.vn.IImageFactory;
+import nl.weeaboo.vn.IImageFxFactory;
 import nl.weeaboo.vn.IImageState;
 import nl.weeaboo.vn.IInput;
 import nl.weeaboo.vn.INotifier;
@@ -33,20 +34,20 @@ import org.luaj.vm.LTable;
 import org.luaj.vm.LuaErrorException;
 import org.luaj.vm.LuaState;
 
-public abstract class Novel extends LuaNovel {
+public class Novel extends LuaNovel {
 
 	private transient FileManager fm;
 	private transient IKeyConfig keyConfig;
 	
 	// !!WARNING!! Do not add properties without adding code for saving/loading
 	
-	public Novel(INovelConfig nc, IImageFactory imgfac, IImageState is, ISoundFactory sndfac,
-			ISoundState ss, IVideoFactory vf, IVideoState vs, ITextState ts,
-			INotifier n, IInput in, IGuiFactory guifac, ISaveHandler sh,
+	public Novel(INovelConfig nc, IImageFactory imgfac, IImageState is, IImageFxFactory imgfxfac,
+			ISoundFactory sndfac, ISoundState ss, IVideoFactory vf, IVideoState vs,
+			ITextState ts, INotifier n, IInput in, IGuiFactory guifac, ISaveHandler sh,
 			FileManager fm, IKeyConfig kc, TextureCache tc, ShaderCache sc,
 			GLTextRendererStore trStore)
 	{
-		super(nc, imgfac, is, sndfac, ss, vf, vs, ts, n, in, guifac, sh);
+		super(nc, imgfac, is, imgfxfac, sndfac, ss, vf, vs, ts, n, in, guifac, sh);
 		
 		this.fm = fm;
 		this.keyConfig = kc;
@@ -65,6 +66,12 @@ public abstract class Novel extends LuaNovel {
 		if (in == null) {
 			notifier.fnf("Script not found: " + filename);
 		}
+		
+		/*
+		byte[] bytes = StreamUtil.readFully(in);
+		System.out.println(StringUtil.fromUTF8(bytes, 0, bytes.length));
+		in = new ByteArrayInputStream(bytes);
+		*/
 		
 		return in;
 	}

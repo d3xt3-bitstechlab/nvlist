@@ -21,6 +21,7 @@ import nl.weeaboo.gl.shader.GLShader;
 import nl.weeaboo.gl.texture.GLGeneratedTexture;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
+import nl.weeaboo.gl.texture.TextureException;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.lua.platform.LuajavaLib;
 import nl.weeaboo.vn.IImageDrawable;
@@ -217,8 +218,8 @@ public class BitmapTween extends BaseImageTween {
 	}
 	
 	@Override
-	public boolean update() {
-		boolean changed = super.update();		
+	public boolean update(double effectSpeed) {
+		boolean changed = super.update(effectSpeed);		
 		changed |= updateRemapTex();
 		return changed;
 	}
@@ -229,7 +230,13 @@ public class BitmapTween extends BaseImageTween {
 		int minA = Math.min(interpMax, Math.max(0, (int)Math.round(mia)));
 		int maxA = Math.min(interpMax, Math.max(0, (int)Math.round(maa)));
 		
-		int remap[] = remapTex.getARGB(true);
+		int remap[];
+		try {
+			remap = remapTex.getARGB();
+		} catch (TextureException e) {
+			notifier.w("Error getting pixels from remapTex", e);
+			remap = new int[remapTex.getCropWidth() * remapTex.getCropHeight()];
+		}
 		
 		Arrays.fill(remap, 0, minA, interpMax);		
 		Arrays.fill(remap, maxA, remap.length, 0);		

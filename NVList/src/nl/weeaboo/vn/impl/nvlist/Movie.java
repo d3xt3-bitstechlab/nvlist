@@ -2,9 +2,12 @@ package nl.weeaboo.vn.impl.nvlist;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.nio.IntBuffer;
+import java.util.concurrent.ThreadFactory;
 
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.texture.GLGeneratedTexture;
+import nl.weeaboo.io.BufferUtil;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.ogg.StreamUtil;
 import nl.weeaboo.ogg.player.DefaultVideoSink;
@@ -50,7 +53,13 @@ public final class Movie extends BaseVideo {
 			}
 			public void onTimeChanged(double t, double et, double frac) {
 			}
-		}, videoSink);				
+		}, videoSink, new ThreadFactory() {
+			int id = 0;
+			
+			public Thread newThread(Runnable r) {
+				return new Thread(r, "VideoPlayer-" + (++id));
+			}
+		});				
 		player.setInput(StreamUtil.getOggInput(vfac.getVideoInputStream(filename)));
 	}
 	
@@ -101,11 +110,11 @@ public final class Movie extends BaseVideo {
 		if (player == null) {
 			return;
 		}
-		
+
 		int w = player.getWidth();
 		int h = player.getHeight();
 
-		int pixels[] = videoSink.get();
+		IntBuffer pixels = videoSink.get();
 		if (pixels != null && w > 0 && h > 0) {
 			if (tex != null && (tex.getCropWidth() != w || tex.getCropHeight() != h)) {
 				tex.dispose();
@@ -115,7 +124,15 @@ public final class Movie extends BaseVideo {
 			if (tex == null) {
 				tex = vfac.generateTexture(w, h);
 			}
-			tex.setARGB(pixels);
+
+			int[] arr;
+			if (pixels.hasArray() && pixels.arrayOffset() == 0) {
+				arr = pixels.array();
+			} else {
+				arr = BufferUtil.toArray(pixels);
+			}
+			
+			tex.setARGB(arr);
 			tex.forceLoad(glm);
 		}
 

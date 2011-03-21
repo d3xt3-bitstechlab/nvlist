@@ -1,31 +1,33 @@
 package nl.weeaboo.nvlist.menu;
 
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
-import javax.swing.AbstractButton;
 import javax.swing.ButtonGroup;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JRadioButtonMenuItem;
 
 import nl.weeaboo.nvlist.Game;
+import nl.weeaboo.settings.IConfig;
+import nl.weeaboo.settings.Preference;
 import nl.weeaboo.vn.impl.nvlist.Novel;
 
 public abstract class RangeMenu<T extends Comparable<T>> extends GameMenuAction {
 
+	private final Preference<T> pref;
 	private final String label;
 	private final char mnemonic;
 	private final String itemLabels[];
 	private final T itemValues[];
-	private final T current;
 	
-	public RangeMenu(String label, char mnemonic, String[] labels, T[] values, T current) {		
+	public RangeMenu(Preference<T> pref, String label, char mnemonic,
+			String[] labels, T[] values)
+	{
+		this.pref = pref;
 		this.label = label;
 		this.mnemonic = mnemonic;
 		this.itemLabels = labels;
 		this.itemValues = values;
-		this.current = current;
 	}
 	
 	@Override
@@ -35,7 +37,8 @@ public abstract class RangeMenu<T extends Comparable<T>> extends GameMenuAction 
 			menu.setMnemonic(mnemonic);
 		}
 
-		int best = getSelectedIndex(itemValues, current);
+		IConfig config = game.getConfig();
+		int best = getSelectedIndex(itemValues, config.get(pref));
 		
 		ButtonGroup group = new ButtonGroup();
 		for (int n = 0; n < Math.min(itemLabels.length, itemValues.length); n++) {
@@ -78,27 +81,10 @@ public abstract class RangeMenu<T extends Comparable<T>> extends GameMenuAction 
 		}
 	}
 	
-	protected abstract void onItemSelected(Game game, Novel nvl, int index,
-			String label, T value);
-	
-	//Inner Classes
-	private static class SubItemActionListener implements ActionListener {
-
-		private final AbstractButton parent;
-		private final int index;
-		
-		public SubItemActionListener(AbstractButton p, int idx) {
-			parent = p;
-			index = idx;
-		}
-		
-		public void actionPerformed(ActionEvent e) {
-			e = new ActionEvent(index, e.getID(), e.getActionCommand());
-			for (ActionListener al : parent.getActionListeners()) {
-				al.actionPerformed(e);
-			}
-		}
-		
+	protected void onItemSelected(Game game, Novel nvl, int index,
+			String label, T value)
+	{
+		game.getConfig().set(pref, value);
 	}
 	
 }
