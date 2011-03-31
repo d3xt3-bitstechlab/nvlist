@@ -13,7 +13,6 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
 import nl.weeaboo.common.Dim;
-import nl.weeaboo.common.Rect;
 import nl.weeaboo.common.ScaleUtil;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.GLUtil;
@@ -21,7 +20,6 @@ import nl.weeaboo.gl.shader.GLShader;
 import nl.weeaboo.gl.texture.GLGeneratedTexture;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
-import nl.weeaboo.gl.texture.TextureException;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.lua.platform.LuajavaLib;
 import nl.weeaboo.vn.IImageDrawable;
@@ -52,12 +50,16 @@ public class BitmapTween extends BaseImageTween {
 	private final boolean fadeTexTile; //Texture tiling
 	
 	//--- Initialized in prepare() ---
-	private int interpolation[];
+	private int[] interpolation;
 	private GLShader shader;
-	private GLTexRect texs[];
-	private float uv[][];
+	private GLTexRect[] texs;
+	private float[][] origUV;
+	private float[][] uv;
+	private float anchorX, anchorY; //Relative positioning of different-sized images (0.0-1.0)
+	private float fadeTexAnchorX, fadeTexAnchorY;
 	private GLGeneratedTexture fadeTex;
 	private GLGeneratedTexture remapTex;
+	private transient int[] remapTemp;
 	
 	public BitmapTween(ImageFactory ifac, INotifier ntf, String fadeFilename,
 			int duration, double range)
@@ -114,16 +116,18 @@ public class BitmapTween extends BaseImageTween {
 		}
 
 		//Calculate texRects' UV
+		origUV = new float[texs.length+1][];
 		uv = new float[texs.length+1][];
 		for (int n = 0; n < texs.length; n++) {
 			if (texs[n] == null) {
+				origUV[n] = new float[] {0, 1, 0, 1};
 				uv[n] = new float[] {0, 1, 0, 1};
 			} else {			
 				GLTexture t = texs[n].getTexture();
-				uv[n] = GLUtil.getUV(t.getTexWidth(), t.getTexHeight(), texs[n].getRect());
-				if (n > 0 && texs[0] != null) {
-					matchPixelSize(uv[n], texs[n].getRect(), texs[0].getRect());				
-				}
+				origUV[n] = GLUtil.getUV(t.getTexWidth(), t.getTexHeight(), texs[n].getRect());				
+				uv[n] = scaleUV(origUV[n],
+						w/(float)itexs[n].getWidth(), h/(float)itexs[n].getHeight(),
+						anchorX, anchorY);
 			}
 		}
 		
@@ -163,18 +167,23 @@ public class BitmapTween extends BaseImageTween {
 		for (int n = 0; n < fadeTexARGB.length; n++) {
 			fadeTexARGB[n] = 0xFF000000 | fadeTexARGB[n];
 		}
-		
+
 		fadeTex = fac.createGLTexture(fadeTexARGB, fadeTexW, fadeTexH,
 				(fadeTexLerp ? GL.GL_LINEAR : GL.GL_NEAREST),
 				(fadeTexLerp ? GL.GL_LINEAR : GL.GL_NEAREST),
 				(fadeTexTile ? GL.GL_REPEAT : GL.GL_CLAMP_TO_EDGE));		
 		
-		float fadeUV[] = GLUtil.getUV(fadeTex.getTexWidth(), fadeTex.getTexHeight(), fadeTex.getCrop());
+		int fadeUVIndex = texs.length;
+		
+		origUV[fadeUVIndex] = GLUtil.getUV(fadeTex.getTexWidth(), fadeTex.getTexHeight(), fadeTex.getCrop());
 		if (fadeTexTile) {
-			matchPixelSize(fadeUV, fadeTex.getCrop(), texs[0].getRect());
+			uv[fadeUVIndex] = scaleUV(origUV[fadeUVIndex],
+					w/(float)fadeTexW, h/(float)fadeTexH,
+					fadeTexAnchorX, fadeTexAnchorY);
+		} else {
+			uv[fadeUVIndex] = origUV[fadeUVIndex].clone();
 		}
-		uv[texs.length + 0] = fadeUV;
-		   
+		
 		//Create remap texture
 		int remapTexW = 256;
 		int remapTexH = 256;
@@ -208,13 +217,15 @@ public class BitmapTween extends BaseImageTween {
 		return data;
 	}
 	
-	protected void matchPixelSize(float srcUV[], Rect src, Rect dst) {
-		float scaleU = dst.w / (float)src.w;
-		float scaleV = dst.h / (float)src.h;
-		srcUV[0] *= scaleU;
-		srcUV[1] *= scaleU;
-		srcUV[2] *= scaleV;
-		srcUV[3] *= scaleV;
+	private float[] scaleUV(float[] uv, float scaleX, float scaleY,
+			float anchorX, float anchorY)
+	{
+		float w = uv[1] - uv[0];
+		float h = uv[3] - uv[2];
+		float x = uv[0] - w * (scaleX-1) * anchorX;
+		float y = uv[2] - h * (scaleY-1) * anchorY;
+		
+		return new float[] { x, x + w * scaleX, y, y + h * scaleY };
 	}
 	
 	@Override
@@ -229,31 +240,29 @@ public class BitmapTween extends BaseImageTween {
 		double maa = interpMax * (getNormalizedTime()      ) / (1 - range);
 		int minA = Math.min(interpMax, Math.max(0, (int)Math.round(mia)));
 		int maxA = Math.min(interpMax, Math.max(0, (int)Math.round(maa)));
-		
-		int remap[];
-		try {
-			remap = remapTex.getARGB();
-		} catch (TextureException e) {
-			notifier.w("Error getting pixels from remapTex", e);
-			remap = new int[remapTex.getCropWidth() * remapTex.getCropHeight()];
+
+		int requiredLen = remapTex.getCropWidth() * remapTex.getCropHeight();
+		if (remapTemp == null || remapTemp.length < requiredLen) {
+			remapTemp = new int[requiredLen];
 		}
 		
-		Arrays.fill(remap, 0, minA, interpMax);		
-		Arrays.fill(remap, maxA, remap.length, 0);		
+		Arrays.fill(remapTemp, 0, minA, interpMax);		
+		Arrays.fill(remapTemp, maxA, remapTemp.length, 0);		
 		double inc = interpMax / (maa - mia);
 		double cur = (minA - mia) * inc;			
 		for (int n = minA; n <= maxA && n <= interpMax; n++) {
 			int ar = Math.max(0, Math.min(interpMax, (int)Math.round(cur)));
-			remap[n] = interpMax - interpolation[ar];				
+			remapTemp[n] = interpMax - interpolation[ar];				
 			cur += inc;
 		}
 		
 		//Add an alpha channel for debugging purposes
-		for (int n = 0; n < remap.length; n++) {
-			remap[n] = 0xFF000000 | remap[n];
+		for (int n = 0; n < remapTemp.length; n++) {
+			remapTemp[n] = 0xFF000000 | remapTemp[n];
 		}
 		
-		remapTex.setDirty(true);
+		remapTex.setARGB(remapTemp);
+		
 		return true;
 	}
 	
@@ -262,7 +271,7 @@ public class BitmapTween extends BaseImageTween {
 		super.draw(r);
 				
 		BaseRenderer rr = (BaseRenderer)r;
-		rr.draw(new RenderCommand(drawable, texs, uv, fadeTex, remapTex, shader));
+		rr.draw(new RenderCommand(drawable, texs, origUV, uv, fadeTex, remapTex, shader));
 	}
 	
 	protected float remap(float u) {
@@ -283,12 +292,14 @@ public class BitmapTween extends BaseImageTween {
 
 		private final float x, y, w, h;
 		private final GLTexRect[] texs;
+		private final float[][] origUV;
 		private final float[][] uv;
 		private final GLTexture fadeTex;
 		private final GLTexture remapTex;
 		private final GLShader shader;
 		
-		public RenderCommand(IImageDrawable id, GLTexRect[] texs, float uv[][],
+		public RenderCommand(IImageDrawable id, GLTexRect[] texs,
+				float[][] origUV, float[][] uv,
 				GLTexture fadeTex, GLTexture remapTex, GLShader shader)
 		{
 			super(id.getZ(), id.isClipEnabled(), id.getBlendMode(), id.getColor(),
@@ -299,6 +310,7 @@ public class BitmapTween extends BaseImageTween {
 			this.w = (float)id.getWidth();
 			this.h = (float)id.getHeight();			
 			this.texs = texs;
+			this.origUV = origUV;
 			this.uv = uv;
 			this.fadeTex = fadeTex;
 			this.remapTex = remapTex;
@@ -332,6 +344,8 @@ public class BitmapTween extends BaseImageTween {
 			glm.setShader(shader);
 			
 			//Initialize shader
+			shader.setVec4Param(gl2, "crop0", origUV[0], 0);
+			shader.setVec4Param(gl2, "crop1", origUV[1], 0);
 			shader.setTextureParam(gl2, 0, "src0", texId(texs[0]));
 			shader.setTextureParam(gl2, 1, "src1", texId(texs[1]));
 			shader.setTextureParam(gl2, 2, "fade", texId(fadeTex));

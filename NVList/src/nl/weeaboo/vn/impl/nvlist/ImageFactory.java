@@ -107,6 +107,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	}
 		
 	public BufferedImage getBufferedImage(String filename) throws IOException {
+		filename = normalizeFilename(filename);
 		return texCache.loadBufferedImage(filename);
 	}
 	

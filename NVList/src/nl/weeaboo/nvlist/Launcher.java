@@ -7,6 +7,7 @@ import nl.weeaboo.game.GameDisplay;
 import nl.weeaboo.game.IGame;
 import nl.weeaboo.game.input.IKeyConfig;
 import nl.weeaboo.game.input.UserInput;
+import nl.weeaboo.gl.GLResourceCache;
 import nl.weeaboo.gl.shader.ShaderCache;
 import nl.weeaboo.gl.text.FontManager;
 import nl.weeaboo.gl.text.GLTextRendererStore;
@@ -31,9 +32,10 @@ public class Launcher extends nl.weeaboo.game.Launcher {
 	@Override
 	protected IGame newGame(IConfig config, ExecutorService executor, GameDisplay display,
 			FileManager fm, FontManager fontManager, TextureCache tc, ShaderCache sc,
-			GLTextRendererStore trs, SoundManager sm, UserInput in, IKeyConfig kc)
+			GLResourceCache rc, GLTextRendererStore trs, SoundManager sm, UserInput in,
+			IKeyConfig kc)
 	{
-		return new Game(config, executor, display, fm, fontManager, tc, sc, trs, sm, in, kc);
+		return new Game(config, executor, display, fm, fontManager, tc, sc, rc, trs, sm, in, kc);
 	}
 	
 	//Getters

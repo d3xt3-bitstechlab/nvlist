@@ -23,28 +23,37 @@ public class FBOMenu extends GameMenuAction {
 		
 		ButtonGroup group = new ButtonGroup();
 		
+		JRadioButtonMenuItem autoItem = new JRadioButtonMenuItem("Automatic");
+		autoItem.addActionListener(new SubItemActionListener(menu, 0));
+		group.add(autoItem);
+		menu.add(autoItem);
+
+		menu.addSeparator();
+		
 		JRadioButtonMenuItem offItem = new JRadioButtonMenuItem("Off");
-		offItem.addActionListener(new SubItemActionListener(menu, 0));
+		offItem.addActionListener(new SubItemActionListener(menu, 1));
 		group.add(offItem);
 		menu.add(offItem);
 		
 		JRadioButtonMenuItem onItem = new JRadioButtonMenuItem("On");
-		onItem.addActionListener(new SubItemActionListener(menu, 1));
+		onItem.addActionListener(new SubItemActionListener(menu, 2));
 		group.add(onItem);
 		menu.add(onItem);
 		
-		JRadioButtonMenuItem onAndMipmapItem = new JRadioButtonMenuItem("On + mipmap minification");
-		onAndMipmapItem.addActionListener(new SubItemActionListener(menu, 2));
+		JRadioButtonMenuItem onAndMipmapItem = new JRadioButtonMenuItem("On + Mipmap Minification");
+		onAndMipmapItem.addActionListener(new SubItemActionListener(menu, 3));
 		group.add(onAndMipmapItem);
 		menu.add(onAndMipmapItem);
 		
 		IConfig config = game.getConfig();
-		if (config.get(FBO)) {
+		if ("true".equalsIgnoreCase(config.get(FBO))) {
 			if (config.get(FBO_MIPMAP)) {
 				onAndMipmapItem.setSelected(true);
 			} else {
 				onItem.setSelected(true);
 			}
+		} else if ("auto".equalsIgnoreCase(config.get(FBO))) {
+			autoItem.setSelected(true);
 		} else {
 			offItem.setSelected(true);
 		}
@@ -57,8 +66,20 @@ public class FBOMenu extends GameMenuAction {
 		IConfig config = game.getConfig();
 		if (e.getSource() instanceof Integer) {
 			int index = (Integer)e.getSource();
-			config.set(FBO, index >= 1);
-			config.set(FBO_MIPMAP, index >= 2);
+			
+			String fbo;
+			
+			switch (index) {
+			case 0: fbo = "auto";  config.set(FBO_MIPMAP, true);  break;
+			case 1: fbo = "false"; break;
+			case 2: fbo = "true";  config.set(FBO_MIPMAP, false); break;
+			case 3: fbo = "true";  config.set(FBO_MIPMAP, true);  break;
+			default: return; //Invalid
+			}
+			
+			if (fbo != null) {
+				config.set(FBO, fbo);
+			}
 		}
 	}
 

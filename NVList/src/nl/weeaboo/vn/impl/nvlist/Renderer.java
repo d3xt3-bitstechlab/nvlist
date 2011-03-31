@@ -98,6 +98,7 @@ public class Renderer extends BaseRenderer {
 				
 		//Setup blend mode
 		BlendMode blendMode = BlendMode.DEFAULT;
+		gl.glEnable(GL2ES1.GL_BLEND);
 		gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE_MINUS_SRC_ALPHA);
 		
 		//Setup color
@@ -124,8 +125,9 @@ public class Renderer extends BaseRenderer {
 				blendMode = cmd.blendMode;
 				
 				switch (blendMode) {
-				case DEFAULT: gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE_MINUS_SRC_ALPHA); break;
-				case ADD: gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE); break;
+				case DEFAULT: gl.glEnable(GL2ES1.GL_BLEND);  gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE_MINUS_SRC_ALPHA); break;
+				case ADD:     gl.glEnable(GL2ES1.GL_BLEND);  gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE); break;
+				case OPAQUE:  gl.glDisable(GL2ES1.GL_BLEND); break;
 				}
 			}
 			
@@ -178,6 +180,7 @@ public class Renderer extends BaseRenderer {
 		}
 		
 		glm.popColor();
+		gl.glEnable(GL2ES1.GL_BLEND);
 		gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE_MINUS_SRC_ALPHA);
 		gl.glDisable(GL2ES1.GL_SCISSOR_TEST);
 		gl.glPopMatrix();

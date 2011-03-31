@@ -122,6 +122,7 @@ public class GameMenuFactory {
 		menu.add(new ImageCacheMenu());
 		menu.add(new MaxTexSizeMenu());
 		menu.add(new FBOMenu());
+		menu.add(new TrueFullscreenItem());
 		menu.add(new GLSLItem());
 		menu.add(new VSyncItem());
 		return menu;

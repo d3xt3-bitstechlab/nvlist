@@ -39,7 +39,7 @@ public class GLSLPS extends BaseTweenShader implements IPixelShader {
 	//Functions 
 	public static void install(LTable globals, final ImageFactory ifac, final INotifier ntf) {
 		LTable table = new LTable();
-		BitmapTweenLib.install(table, ifac, ntf);
+		GLSLLib.install(table, ifac, ntf);
 		globals.put("GLSL", table);
 	}
 	
@@ -83,7 +83,7 @@ public class GLSLPS extends BaseTweenShader implements IPixelShader {
 	
 	//Inner Classes
 	@LuaSerializable
-	private static class BitmapTweenLib extends LFunction implements Serializable {
+	private static class GLSLLib extends LFunction implements Serializable {
 		
 		private static final long serialVersionUID = NVListImpl.serialVersionUID;
 
@@ -97,7 +97,7 @@ public class GLSLPS extends BaseTweenShader implements IPixelShader {
 		private final ImageFactory fac;
 		private final INotifier ntf;
 		
-		private BitmapTweenLib(int id, ImageFactory fac, INotifier ntf) {
+		private GLSLLib(int id, ImageFactory fac, INotifier ntf) {
 			this.id = id;
 			this.fac = fac;
 			this.ntf = ntf;
@@ -105,7 +105,7 @@ public class GLSLPS extends BaseTweenShader implements IPixelShader {
 		
 		public static void install(LTable table, ImageFactory fac, INotifier ntf) {
 			for (int n = 0; n < NAMES.length; n++) {
-				table.put(NAMES[n], new BitmapTweenLib(n, fac, ntf));
+				table.put(NAMES[n], new GLSLLib(n, fac, ntf));
 			}
 		}
 

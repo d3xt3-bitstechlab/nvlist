@@ -19,6 +19,11 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 	}
 	
 	@Override
+	public void translate(double dx, double dy) {
+		input.setMousePos(input.getMouseX()+dx, input.getMouseY()+dy);
+	}
+	
+	@Override
 	public boolean consumeKey(int keycode) {
 		return input.consumeKey(keycode);
 	}

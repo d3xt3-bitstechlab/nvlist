@@ -1,12 +1,20 @@
 package nl.weeaboo.vn.impl.nvlist;
 
+import static nl.weeaboo.gl.texture.GLTexUtil.getDefaultPixelFormatARGB;
+import static nl.weeaboo.gl.texture.GLTexUtil.getDefaultPixelTypeARGB;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.nio.IntBuffer;
 import java.util.concurrent.ThreadFactory;
 
+import javax.media.opengl.GL2;
+import javax.media.opengl.GL2ES1;
+
 import nl.weeaboo.gl.GLManager;
+import nl.weeaboo.gl.PBO;
 import nl.weeaboo.gl.texture.GLGeneratedTexture;
+import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.io.BufferUtil;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.ogg.StreamUtil;
@@ -23,13 +31,15 @@ public final class Movie extends BaseVideo {
 	private final VideoFactory vfac;
 	private final String filename;
 	
-	private transient GLGeneratedTexture tex;	
+	private transient GLGeneratedTexture[] textures;
+	private transient int readIndex;
+	private transient PBO pbo;
 	private transient Player player;
 	private transient DefaultVideoSink videoSink;
 	
 	public Movie(VideoFactory vfac, String filename) {
 		this.vfac = vfac;
-		this.filename = filename;
+		this.filename = filename;		
 	}
 	
 	//Functions
@@ -61,6 +71,25 @@ public final class Movie extends BaseVideo {
 			}
 		});				
 		player.setInput(StreamUtil.getOggInput(vfac.getVideoInputStream(filename)));
+		
+		if (textures == null) {
+			textures = new GLGeneratedTexture[2];
+		}
+	}
+	
+	protected void cleanupGL() {
+		if (pbo != null) {
+			pbo.dispose();
+			pbo = null;
+		}
+		if (textures != null) {
+			for (GLTexture tex : textures) {
+				if (tex != null) {
+					tex.dispose();
+				}
+			}
+			textures = null;
+		}
 	}
 	
 	@Override
@@ -82,6 +111,8 @@ public final class Movie extends BaseVideo {
 	protected void _stop() {
 		if (player != null) {
 			player.stop();
+			
+			cleanupGL();
 		}
 	}
 
@@ -107,40 +138,97 @@ public final class Movie extends BaseVideo {
 	}
 	
 	public void draw(GLManager glm, int drawW, int drawH) {
-		if (player == null) {
+		if (player == null || textures == null) {
 			return;
 		}
 
 		int w = player.getWidth();
 		int h = player.getHeight();
-
+		
 		IntBuffer pixels = videoSink.get();
 		if (pixels != null && w > 0 && h > 0) {
-			if (tex != null && (tex.getCropWidth() != w || tex.getCropHeight() != h)) {
-				tex.dispose();
-				tex = null;
+			readIndex = (readIndex + 1) % textures.length;			
+
+			GLGeneratedTexture writeTex = textures[(readIndex + 1) % textures.length];
+			
+			if (writeTex != null && (writeTex.getCropWidth() != w || writeTex.getCropHeight() != h)) {
+				writeTex.dispose();
+				writeTex = null;
 			}
 				
-			if (tex == null) {
-				tex = vfac.generateTexture(w, h);
-			}
-
-			int[] arr;
-			if (pixels.hasArray() && pixels.arrayOffset() == 0) {
-				arr = pixels.array();
-			} else {
-				arr = BufferUtil.toArray(pixels);
+			if (writeTex == null) {
+				writeTex = textures[(readIndex + 1) % textures.length] = vfac.generateTexture(w, h);
 			}
 			
-			tex.setARGB(arr);
-			tex.forceLoad(glm);
+			if (writeTex.isDisposed()) {
+				writeTex.forceLoad(glm);
+			}
+
+			if (!uploadPixelsPBO(glm, pixels, w, h, writeTex)) {
+				uploadPixels(glm, pixels, w, h, writeTex);
+			}
 		}
 
-		if (tex != null && !tex.isDisposed()) {
-			glm.setTexture(tex);
+		GLTexture readTex = textures[readIndex];
+		if (readTex != null && !readTex.isDisposed()) {	
+			glm.setTexture(readTex);
 			glm.fillRect(0, 0, drawW, drawH);
 			glm.setTexture(null);
+		}		
+	}
+	
+	protected boolean uploadPixelsPBO(GLManager glm, IntBuffer pixels, int w, int h,
+			GLGeneratedTexture writeTex)
+	{
+		GL2ES1 gl = glm.getGL();
+		if (!gl.isGL2()) {
+			return false;
 		}
+		
+		GL2 gl2 = GLManager.getGL2(gl);		
+		if (pbo == null || pbo.isDisposed()) {
+			pbo = vfac.createPBO(gl2);	
+			if (pbo == null) {
+				return false;
+			}
+		}
+		pbo.bindUpload(gl2);
+		
+		try {
+			//long t0 = System.nanoTime();
+
+			gl2.glBufferData(pbo.getBufferType(), w*h*4, pixels, GL2.GL_STREAM_DRAW);
+			
+			//long t1 = System.nanoTime();
+			
+			//Stream PBO data to texture
+			glm.setTexture(writeTex);
+			gl2.glTexImage2D(GL2.GL_TEXTURE_2D, 0, GL2.GL_RGBA8,
+					w, h, 0, getDefaultPixelFormatARGB(gl2),
+					getDefaultPixelTypeARGB(gl2), 0);
+			glm.setTexture(null);
+			
+			//long t2 = System.nanoTime();
+			//System.out.printf("%.2fms %.2fms\n", (t1-t0)/1000000.0, (t2-t1)/1000000.0);
+		} finally {
+			pbo.unbind(gl2);
+		}		
+
+		return true;
+	}
+	
+	protected void uploadPixels(GLManager glm, IntBuffer pixels, int w, int h,
+			GLGeneratedTexture writeTex)
+	{
+		int[] arr;
+		if (pixels.hasArray() && pixels.arrayOffset() == 0) {
+			arr = pixels.array();
+		} else {
+			arr = BufferUtil.toArray(pixels);
+		}
+		
+		writeTex.setARGB(arr);
+		writeTex.forceLoad(glm);		
 	}
 	
 	//Getters

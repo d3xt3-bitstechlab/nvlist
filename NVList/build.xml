@@ -5,6 +5,7 @@
   
   <property name="gamedata.dir" value="." />
   <property name="build-res.dir" value="${gamedata.dir}/build-res" />
+  <property name="backup.dir" value="${gamedata.dir}/bak" />
   
 <!-- Imports -->
 
@@ -37,6 +38,16 @@
     <obfuscate />
     
     <delete file="${dist.dir}/${project-name}-src.zip" />
+  </target>
+  
+  <target name="backup" depends="init">
+    <mkdir dir="${backup.dir}/script"/>
+
+    <zip destfile="${backup.dir}/script/script-${DSTAMP}.zip"
+         basedir="${gamedata.dir}/res/script"
+         compress="true"
+         encoding="UTF-8" />         
+    <echo>Script folder backup created: "${backup.dir}/script/script-${DSTAMP}.zip"</echo>
   </target>
     
 </project>

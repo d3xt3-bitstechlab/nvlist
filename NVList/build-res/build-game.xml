@@ -245,7 +245,6 @@
     <!-- ZIP source code -->
     <zip basedir="src" destfile="${dist.dir}/lib/${library.name}-src.zip" />
     <delete dir="${dist.dir}/src" />
-    <mkdir dir="${dist.dir}/src" />
     
     <!-- Move Build.jar to the main folder -->
     <move todir="${dist.dir}">

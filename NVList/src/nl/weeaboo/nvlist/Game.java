@@ -24,6 +24,7 @@ import nl.weeaboo.game.RenderMode;
 import nl.weeaboo.game.input.IKeyConfig;
 import nl.weeaboo.game.input.UserInput;
 import nl.weeaboo.gl.GLManager;
+import nl.weeaboo.gl.GLResourceCache;
 import nl.weeaboo.gl.shader.ShaderCache;
 import nl.weeaboo.gl.text.FontManager;
 import nl.weeaboo.gl.text.GLTextRendererStore;
@@ -77,10 +78,10 @@ public class Game extends BaseGame {
 	private Movie movie;
 	
 	public Game(IConfig cfg, ExecutorService e, GameDisplay gd, FileManager fm,
-			FontManager fontman, TextureCache tc, ShaderCache sc, GLTextRendererStore trs,
-			SoundManager sm, UserInput in, IKeyConfig kc)
+			FontManager fontman, TextureCache tc, ShaderCache sc, GLResourceCache rc,
+			GLTextRendererStore trs, SoundManager sm, UserInput in, IKeyConfig kc)
 	{
-		super(cfg, e, gd, fm, fontman, tc, sc, trs, sm, in, kc);
+		super(cfg, e, gd, fm, fontman, tc, sc, rc, trs, sm, in, kc);
 		
 		gd.setJMenuBar(GameMenuFactory.createPlaceholderJMenuBar()); //Forces GameDisplay to use a JFrame
 		gd.setRenderMode(RenderMode.MANUAL);
@@ -96,6 +97,7 @@ public class Game extends BaseGame {
 				if (novel != null) {
 					novel.savePersistent();
 					novel.reset();
+					novel = null;
 				}
 				if (gmf != null) {
 					gmf.dispose();
@@ -127,7 +129,8 @@ public class Game extends BaseGame {
 		
 		FileManager fm = getFileManager();
 		TextureCache texCache = getTextureCache();
-		ShaderCache shCache = getShaderCache();
+		GLResourceCache resCache = getGLResourceCache();
+		ShaderCache shCache = getShaderCache();		
 		GLTextRendererStore trStore = getTextRendererStore();
 		SoundManager sm = getSoundManager();
 		INovelConfig novelConfig = new BaseNovelConfig(config.get(TITLE), config.get(WIDTH), config.get(HEIGHT));
@@ -141,9 +144,9 @@ public class Game extends BaseGame {
 				seenLog, notifier, imgSize.w, imgSize.h, nvlSize.w, nvlSize.h);
 		ImageFxFactory imgfxfac = new ImageFxFactory(imgfac);
 		SoundFactory sndfac = new SoundFactory(sm, seenLog, notifier);
-		VideoFactory vidfac = new VideoFactory(fm, texCache, seenLog, notifier);		
+		VideoFactory vidfac = new VideoFactory(fm, texCache, resCache, seenLog, notifier);		
 		GuiFactory guifac = new GuiFactory(this);
-
+		
 		ImageState is = new ImageState(nvlSize.w, nvlSize.h);		
 		SoundState ss = new SoundState(sndfac);
 		VideoState vs = new VideoState();
@@ -155,7 +158,7 @@ public class Game extends BaseGame {
 				fm, getKeyConfig(), texCache, shCache, trStore);
         luaSerializer = new EnvLuaSerializer(novel);
         saveHandler.setNovel(novel, luaSerializer);
-                
+        
 		super.start();
         
 		restart("main");
@@ -180,10 +183,15 @@ public class Game extends BaseGame {
 		boolean allowMenuBarToggle = display.isEmbedded() || display.isFullscreen();
 		
 		if (display.isMenuBarVisible()) {
-			if (allowMenuBarToggle && input.consumeMouse()) {
+			if (allowMenuBarToggle
+				&& (input.consumeMouse() || display.isFullscreenExclusive()))
+			{
 				display.setMenuBarVisible(false);
 			}
 		} else if (!allowMenuBarToggle) {
+			if (display.isFullscreenExclusive()) {
+				display.setFullscreen(false);
+			}
 			display.setMenuBarVisible(true);
 		}
 		
@@ -193,6 +201,10 @@ public class Game extends BaseGame {
 			if (display.isMenuBarVisible() && allowMenuBarToggle) {
 				display.setMenuBarVisible(false);
 			} else {
+				if (display.isFullscreenExclusive()) {
+					display.setFullscreen(false);
+				}
+
 				GameMenuFactory gameMenu = new GameMenuFactory(this);
 				display.setJMenuBar(gameMenu.createJMenuBar());
 				display.setMenuBarVisible(true);

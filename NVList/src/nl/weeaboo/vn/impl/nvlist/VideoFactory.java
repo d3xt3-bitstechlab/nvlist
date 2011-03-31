@@ -5,7 +5,11 @@ import java.io.InputStream;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 
+import javax.media.opengl.GL2;
+
 import nl.weeaboo.filemanager.FileManager;
+import nl.weeaboo.gl.GLResourceCache;
+import nl.weeaboo.gl.PBO;
 import nl.weeaboo.gl.texture.GLGeneratedTexture;
 import nl.weeaboo.gl.texture.TextureCache;
 import nl.weeaboo.io.EnvironmentSerializable;
@@ -20,14 +24,18 @@ public class VideoFactory extends BaseVideoFactory implements Serializable {
 
 	private final FileManager fm;
 	private final TextureCache texCache;
+	private final GLResourceCache resCache;
 	private final String pathPrefix;
 	private final EnvironmentSerializable es;
 	
-	public VideoFactory(FileManager fm, TextureCache tc, ISeenLog sl, INotifier ntf) {
+	public VideoFactory(FileManager fm, TextureCache tc, GLResourceCache rc,
+			ISeenLog sl, INotifier ntf)
+	{
 		super(sl, ntf);
 		
 		this.fm = fm;
 		this.texCache = tc;
+		this.resCache = rc;
 		this.pathPrefix = "video/";
 		this.es = new EnvironmentSerializable(this);
 	}
@@ -46,6 +54,10 @@ public class VideoFactory extends BaseVideoFactory implements Serializable {
 		
 	public GLGeneratedTexture generateTexture(int w, int h) {
 		return texCache.generateTexture(w, h);
+	}
+	
+	public PBO createPBO(GL2 gl) {
+		return resCache.createPBO(gl);
 	}
 	
 	//Getters
