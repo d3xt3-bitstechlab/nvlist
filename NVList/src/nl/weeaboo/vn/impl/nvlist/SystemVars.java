@@ -22,7 +22,7 @@ public class SystemVars extends BasePersistentStorage implements Serializable {
 	private final EnvironmentSerializable es;
 	
 	public SystemVars(FileManager fm, String filename, INotifier ntf) {
-		super(0, filename);
+		super(filename);
 		
 		this.fm = fm;
 		this.notifier = ntf;		

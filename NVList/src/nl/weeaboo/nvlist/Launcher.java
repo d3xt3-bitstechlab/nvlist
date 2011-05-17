@@ -34,7 +34,7 @@ public class Launcher extends nl.weeaboo.game.Launcher {
 			FileManager fm, FontManager fontManager, TextureCache tc, ShaderCache sc,
 			GLResourceCache rc, GLTextRendererStore trs, SoundManager sm, UserInput in,
 			IKeyConfig kc)
-	{
+	{		
 		return new Game(config, executor, display, fm, fontManager, tc, sc, rc, trs, sm, in, kc);
 	}
 	

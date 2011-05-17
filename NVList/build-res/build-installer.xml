@@ -95,7 +95,8 @@
     <echo>Creating Mac OSX application bundle (may take a long time)...</echo>
     
     <tstamp />
-  
+    <chmod dir="${build-res.dir}/mac" includes="JavaApplicationStub*" perm="ugo+rx"/>
+
     <!-- Create Mac OSX launcher -->
     <jarbundler dir="${dist.dir}"
         name="${project-name}"
@@ -104,8 +105,8 @@
         stubfile="${build-res.dir}/mac/JavaApplicationStub"
         jvmversion="1.6+"
         jvmarchs="x86_64 i386 ppc"
-        vmoptions="${jvm-args} ${jvm-args-mac64} -Djava.library.path=.."
-        arguments="-id &quot;${project-name}&quot; ${program-args}">
+        vmoptions="${jvm-args}"
+        arguments="-reparseArgs -id &quot;${project-name}&quot; ${program-args} $APP_PACKAGE/Contents/Resources">
             
       <!-- Include jars to classpath -->
       <jarfileset dir="lib" includes="**/*.jar" />        
@@ -114,16 +115,19 @@
       </jarfilelist>
         
       <!-- Include native libs -->
-      <resourcefileset dir="lib/mac/amd64" includes="*.jnilib" />
-    
+      <javafileset dir="lib/mac/amd64" />
+      
       <!-- Include resources -->
-      <javafileset dir="${dist.dir}" includes="*.zip,*.nvl" excludes="lib/**" />
+      <resourcefileset dir="${dist.dir}" includes="*.zip,*.nvl" />
     </jarbundler>
     
     <zip destfile="${releases.dir}/${project-name}-MacOSX-${DSTAMP}.zip"
-            basedir="${dist.dir}" compress="true" encoding="UTF-8">
+            compress="true" encoding="UTF-8">
             
-      <include name="${project-name}.app/**" />
+      <zipfileset dir="${dist.dir}/${project-name}.app" prefix="${project-name}.app"
+            filemode="755" includes="Contents/MacOS/**,Contents/Resources/Java/**" />
+      <zipfileset dir="${dist.dir}/${project-name}.app" prefix="${project-name}.app"
+            includes="**"  excludes="Contents/MacOS/**,Contents/Resources/Java/**" />
     </zip>
         
     <delete dir="${dist.dir}/${project-name}.app" />        

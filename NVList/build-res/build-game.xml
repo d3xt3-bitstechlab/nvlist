@@ -50,11 +50,13 @@
   <!-- Absolute paths to JARs -->
   <pathconvert property="jar-classpath" targetos="unix" pathsep=" " dirsep="/" refid="classpath">
     <map from="${basedir}/" to="${jar-lib-basedir}" />
+    <map from=" " to="\ " />
   </pathconvert>
   
   <!-- Relative paths to JARs -->
   <pathconvert property="jar-classpath-local" pathsep=" " dirsep="/" refid="classpath">
     <map from="${basedir}/" to="" />
+    <map from=" " to="\ " />
   </pathconvert>
   
   <!-- Operating system family detection -->
@@ -244,8 +246,10 @@
   <target name="dist-lib" depends="dist-src">
     <!-- ZIP source code -->
     <zip basedir="src" destfile="${dist.dir}/lib/${library.name}-src.zip" />
-    <delete dir="${dist.dir}/src" />
-    
+    <delete includeemptydirs="true">
+      <fileset dir="${dist.dir}/src" includes="**/*" />
+    </delete>
+  
     <!-- Move Build.jar to the main folder -->
     <move todir="${dist.dir}">
       <fileset dir="${dist.dir}/tools" includes="Build*.*" />

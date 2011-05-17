@@ -16,7 +16,7 @@ public class SeenLog extends BaseSeenLog implements Serializable {
 	private final EnvironmentSerializable es;	
 	
 	public SeenLog(FileManager fm, String filename) {
-		super(0, filename);
+		super(filename);
 		
 		this.fm = fm;
 		this.es = new EnvironmentSerializable(this);

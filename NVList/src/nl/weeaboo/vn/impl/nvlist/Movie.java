@@ -196,8 +196,7 @@ public final class Movie extends BaseVideo {
 		
 		try {
 			//long t0 = System.nanoTime();
-
-			gl2.glBufferData(pbo.getBufferType(), w*h*4, pixels, GL2.GL_STREAM_DRAW);
+			pbo.setData(gl2, pixels, w*h*4);
 			
 			//long t1 = System.nanoTime();
 			
@@ -212,7 +211,7 @@ public final class Movie extends BaseVideo {
 			//System.out.printf("%.2fms %.2fms\n", (t1-t0)/1000000.0, (t2-t1)/1000000.0);
 		} finally {
 			pbo.unbind(gl2);
-		}		
+		}
 
 		return true;
 	}

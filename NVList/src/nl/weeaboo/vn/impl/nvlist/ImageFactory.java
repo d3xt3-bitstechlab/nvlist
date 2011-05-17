@@ -16,12 +16,14 @@ import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.gl.texture.TextureCache;
 import nl.weeaboo.io.EnvironmentSerializable;
 import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.vn.IAnalytics;
 import nl.weeaboo.vn.IButtonDrawable;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.IScreenshot;
 import nl.weeaboo.vn.ISeenLog;
 import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.BaseImageFactory;
+import nl.weeaboo.vn.impl.lua.LuaNovelUtil;
 
 @LuaSerializable
 public class ImageFactory extends BaseImageFactory implements Serializable {
@@ -32,9 +34,9 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	private final GLTextRendererStore trStore;
 	
 	public ImageFactory(TextureCache tc, ShaderCache sc, GLTextRendererStore trStore,
-			ISeenLog sl, INotifier ntf, int iw, int ih, int w, int h)
+			IAnalytics an, ISeenLog sl, INotifier ntf, int iw, int ih, int w, int h)
 	{
-		super(sl, ntf, iw, ih, w, h);
+		super(an, sl, ntf, iw, ih, w, h);
 		
 		this.es = new EnvironmentSerializable(this);
 		this.texCache = tc;
@@ -49,7 +51,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	
 	@Override
 	protected void preloadNormalized(String filename) {
-		texCache.preload(filename);
+		texCache.preload(filename);		
 	}
 	
 	@Override
@@ -81,6 +83,12 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 		return new TextureAdapter(tex.getTexRect(null), sx, sy);
 	}
 	
+	@Override
+	public ITexture createTexture(IScreenshot ss) {
+		return createTexture(ss.getARGB(), ss.getWidth(), ss.getHeight(),
+				width / ss.getScreenWidth(), height / ss.getScreenHeight());
+	}
+	
 	public GLGeneratedTexture createGLTexture(int[] argb, int w, int h) {
 		return createGLTexture(argb, w, h, 0, 0, 0);
 	}	
@@ -98,11 +106,28 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	}
 	
 	@Override
-	public ITexture getTextureNormalized(String filename) {
-		GLTexRect tr = texCache.get(filename);
+	public ITexture getTextureNormalized(String filename, String[] luaStack) {
+		GLTexRect tr;
+		if (!texCache.isLoaded(filename)) {
+			long t0 = System.nanoTime();			
+			tr = texCache.get(filename);
+			long t1 = System.nanoTime();
+			
+			if (tr != null) {
+				String callSite = LuaNovelUtil.getNearestLVNSrcloc(luaStack);
+				if (callSite != null) {
+					analytics.logImageLoad(filename, callSite, t1-t0);
+					//System.out.println("Image Load: " + filename);
+				}
+			}
+		} else {
+			tr = texCache.get(filename);
+		}
+
 		if (tr == null) {
 			return null;
-		}				
+		}
+				
 		return new TextureAdapter(tr, width / (double)imgWidth, height / (double)imgHeight);
 	}
 		

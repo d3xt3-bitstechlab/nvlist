@@ -8,11 +8,10 @@ import java.io.InputStream;
 import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import javax.imageio.ImageIO;
 
 import nl.weeaboo.awt.ImageUtil;
 import nl.weeaboo.common.Dim;
@@ -22,24 +21,20 @@ import nl.weeaboo.io.EnvironmentSerializable;
 import nl.weeaboo.lua.io.ObjectSerializer;
 import nl.weeaboo.nvlist.Game;
 import nl.weeaboo.vn.INotifier;
-import nl.weeaboo.vn.IPersistentStorage;
 import nl.weeaboo.vn.IScreenshot;
-import nl.weeaboo.vn.ISeenLog;
 import nl.weeaboo.vn.impl.lua.LuaSaveHandler;
-import nl.weeaboo.vn.impl.lua.LuaSaveInfo;
+import nl.weeaboo.vn.impl.lua.SaveInfo;
 
 public class SaveHandler extends LuaSaveHandler implements Serializable {
 
-	private static final Dim screenshotSaveSize = new Dim(256, 256);
-	private static final Dim screenshotLoadSize = new Dim(224, 128);
+	private static final Dim screenshotSaveSize = new Dim(224, 126);
+	private static final Dim screenshotLoadSize = new Dim(224, 126);
 	
 	private final EnvironmentSerializable es;
 	
 	private final String pathPrefix = "";
 	private final FileManager fm;
 	private final INotifier notifier;
-	private final IPersistentStorage sysVars;
-	private final ISeenLog seenLog;
 	
 	public SaveHandler(FileManager fm, INotifier n) {
 		super(Game.VERSION);
@@ -48,31 +43,7 @@ public class SaveHandler extends LuaSaveHandler implements Serializable {
 		this.notifier = n;
 
 		es = new EnvironmentSerializable(this);
-		
-		sysVars = new SystemVars(fm, pathPrefix + "sysvars.bin", n);
-		try {
-			sysVars.load();
-		} catch (IOException ioe) {
-			n.fnf("Error loading sysVars", ioe);
-			try {
-				sysVars.save();
-			} catch (IOException e) {
-				//Ignore
-			}
-		}
-		
-		seenLog = new SeenLog(fm, pathPrefix + "seen.bin");
-		try {
-			seenLog.load();
-		} catch (IOException ioe) {
-			n.fnf("Error loading seenLog", ioe);
-			try {
-				seenLog.save();
-			} catch (IOException e) {
-				//Ignore
-			}
-		}
-		
+				
 		addAllowedPackages("nl.weeaboo.gl", "nl.weeaboo.gl.capture", "nl.weeaboo.gl.texture");
 	}
 
@@ -92,20 +63,24 @@ public class SaveHandler extends LuaSaveHandler implements Serializable {
 			return new byte[0];
 		}
 		
-		int argb[] = ss.getARGB();
 		int w = ss.getWidth();
 		int h = ss.getHeight();
+		int argb[] = ss.getARGB();
 				
-		BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-		image.setRGB(0, 0, w, h, argb, 0, w);
+		BufferedImage image = ImageUtil.createBufferedImage(w, h, argb);		
 		if (screenshotSaveSize != null) {
 			image = ImageUtil.getScaledImageProp(image,
 					screenshotSaveSize.w, screenshotSaveSize.h,
 					Transparency.OPAQUE, Image.SCALE_AREA_AVERAGING);
-		}		
-		ByteChunkOutputStream bout = new ByteChunkOutputStream(32<<10);
+		}
+		
+		ByteChunkOutputStream bout = new ByteChunkOutputStream(32 << 10);
 		try {
-			ImageIO.write(image, "jpg", bout);
+			ImageUtil.writeJPEG(bout, image, 0.95f);
+			
+			//ImageUtil.getPixels(image, argb, 0, image.getWidth());
+			//TGAUtil.writeTGA(bout, argb, image.getWidth(), image.getHeight(), false);
+	        
 			return bout.toByteArray();
 		} catch (IOException ioe) {
 			notifier.w("Error while encoding screenshot", ioe);
@@ -141,8 +116,8 @@ public class SaveHandler extends LuaSaveHandler implements Serializable {
 	}
 
 	@Override
-	public LuaSaveInfo[] getSaves(int start, int end) {
-		List<LuaSaveInfo> result = new ArrayList<LuaSaveInfo>();
+	public SaveInfo[] getSaves(int start, int end) {
+		List<SaveInfo> result = new ArrayList<SaveInfo>();
 		try {
 			//for (String filename : fm.getFolderContents(pathPrefix, false)) {
 			//    int slot = getSlot(filename);
@@ -159,28 +134,18 @@ public class SaveHandler extends LuaSaveHandler implements Serializable {
 						result.add(loadSaveInfo(slot));
 					} catch (IOException e) {
 						notifier.v("Unreadable save slot: " + filename, e);
-						removeInvalidSave(slot);
+						delete(slot);
 					}
 				}
 			}
 		} catch (IOException e) {
 			//Ignore
 		}
-		return result.toArray(new LuaSaveInfo[result.size()]);
-	}
-
-	@Override
-	public IPersistentStorage getSystemVars() {
-		return sysVars;
-	}
-
-	@Override
-	public ISeenLog getSeenLog() {
-		return seenLog;
+		return result.toArray(new SaveInfo[result.size()]);
 	}
 	
 	@Override
-	protected IScreenshot newDecodingScreenshot(byte[] b) {
+	protected IScreenshot decodeScreenshot(ByteBuffer b) {
 		return new ImageDecodingScreenshot(b, screenshotLoadSize.w, screenshotLoadSize.h);
 	}
 
@@ -197,11 +162,6 @@ public class SaveHandler extends LuaSaveHandler implements Serializable {
 	@Override
 	protected void onSaveWarnings(String[] warnings) {
 		notifier.w(ObjectSerializer.toErrorString(Arrays.asList(warnings)));
-	}
-	
-	@Override
-	protected void removeInvalidSave(int slot) throws IOException {
-		delete(slot);
 	}
 	
 }

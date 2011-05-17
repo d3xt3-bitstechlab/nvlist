@@ -33,11 +33,18 @@
   </macrodef>
 
 <!-- Targets -->
+  <target name="dist-common" depends="Game.dist-common">
+    <!-- Copies the generated preloader data to use as the default preloader data -->
+    <copy tofile="${dist.dir}/res/preloader-default.bin"
+        file="${gamedata.dir}/save/preloader.bin"
+        failonerror="false" />        
+  </target>
+
   <target name="dist" depends="Game.dist">
-    <echo>Obfuscating resources (this may take a while)...</echo>
-    <obfuscate />
-    
     <delete file="${dist.dir}/${project-name}-src.zip" />
+
+    <echo>Obfuscating resources (this may take a while)...</echo>
+    <obfuscate />    
   </target>
   
   <target name="backup" depends="init">

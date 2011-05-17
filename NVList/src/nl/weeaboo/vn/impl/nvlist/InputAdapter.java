@@ -89,8 +89,7 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 	@Override
 	public boolean consumeTextLog() {
 		return consumeKey(KeyEvent.VK_LEFT)
-			|| consumeKey(KeyEvent.VK_UP)
-			;
+			|| consumeKey(KeyEvent.VK_UP);
 	}
 	
 	@Override
@@ -109,7 +108,7 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 
 	@Override
 	public boolean consumeViewCG() {
-		return consumeKey(KeyEvent.VK_SPACE);		
+		return consumeKey(KeyEvent.VK_SPACE);
 	}
 	
 	@Override
@@ -125,8 +124,8 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 	@Override
 	public boolean isQuickRead() {
 		return getMouseHeldTime() > 1000
-			|| getKeyHeldTime(KeyEvent.VK_ENTER) > 2000
-			|| getKeyHeldTime(VKey.BUTTON2.toKeyCode(1)) > 2000
+			|| getKeyHeldTime(KeyEvent.VK_ENTER) > 1500
+			|| getKeyHeldTime(VKey.BUTTON2.toKeyCode(1)) > 1500
 			|| isKeyHeld(VKey.BUTTON3.toKeyCode(1))
 			|| isKeyHeld(KeyEvent.VK_CONTROL);
 	}

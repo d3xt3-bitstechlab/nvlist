@@ -38,13 +38,22 @@ public class RotatedQuadCommand extends CustomRenderCommand {
 		GLManager glm = rr.getGLManager();
 		GL2ES1 gl = glm.getGL();
 		
+		boolean lightingWasEnabled = gl.glIsEnabled(GL2ES1.GL_LIGHTING);
+		//boolean depthWasEnabled = gl.glIsEnabled(GL2ES1.GL_DEPTH_TEST);
+		
+		gl.glEnable(GL2ES1.GL_LIGHTING);
+		//gl.glEnable(GL2ES1.GL_DEPTH_TEST);		
+		
 		gl.glPushMatrix();
 		glm.translate(x+w/2, y+h/2);
-		gl.glRotatef((float)rotZ, 0, 0, 1);		
-		gl.glRotatef((float)rotY, 0, 1, 0);		
-		gl.glRotatef((float)rotX, 1, 0, 0);		
+		gl.glRotatef((float)rotZ, 0, 0, 1);
+		gl.glRotatef((float)rotY, 0, 1, 0);
+		gl.glRotatef((float)rotX, 1, 0, 0);
 		rr.renderQuad(glm, itex, -w/2, -h/2, w, h, null, 0, 0, 1, 1);
 		gl.glPopMatrix();
+				
+		if (!lightingWasEnabled) gl.glDisable(GL2ES1.GL_LIGHTING);
+		//if (!depthWasEnabled) gl.glDisable(GL2ES1.GL_DEPTH_TEST);
 	}
 	
 	//Getters

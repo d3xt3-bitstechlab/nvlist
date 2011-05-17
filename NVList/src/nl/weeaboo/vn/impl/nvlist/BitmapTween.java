@@ -4,7 +4,6 @@ import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
@@ -13,6 +12,7 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
 import nl.weeaboo.common.Dim;
+import nl.weeaboo.common.Rect;
 import nl.weeaboo.common.ScaleUtil;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.GLUtil;
@@ -26,7 +26,7 @@ import nl.weeaboo.vn.IImageDrawable;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.IRenderer;
 import nl.weeaboo.vn.ITexture;
-import nl.weeaboo.vn.impl.base.BaseImageTween;
+import nl.weeaboo.vn.impl.base.BaseBitmapTween;
 import nl.weeaboo.vn.impl.base.BaseRenderer;
 import nl.weeaboo.vn.impl.base.CustomRenderCommand;
 
@@ -35,48 +35,33 @@ import org.luaj.vm.LTable;
 import org.luaj.vm.LuaErrorException;
 import org.luaj.vm.LuaState;
 
-public class BitmapTween extends BaseImageTween {
+@LuaSerializable
+public class BitmapTween extends BaseBitmapTween {
 
 	private static final long serialVersionUID = NVListImpl.serialVersionUID;
 	
 	private static final String requiredGlslVersion = "1.1";
-	private static final int interpMax = 65535;
 	
 	private final ImageFactory fac;
-	private final INotifier notifier;
-	private final String fadeFilename;
-	private final double range;
-	private final boolean fadeTexLerp; //Linear interpolation
-	private final boolean fadeTexTile; //Texture tiling
 	
 	//--- Initialized in prepare() ---
-	private int[] interpolation;
 	private GLShader shader;
 	private GLTexRect[] texs;
-	private float[][] origUV;
-	private float[][] uv;
-	private float anchorX, anchorY; //Relative positioning of different-sized images (0.0-1.0)
-	private float fadeTexAnchorX, fadeTexAnchorY;
 	private GLGeneratedTexture fadeTex;
 	private GLGeneratedTexture remapTex;
-	private transient int[] remapTemp;
 	
 	public BitmapTween(ImageFactory ifac, INotifier ntf, String fadeFilename,
 			int duration, double range)
 	{
 		this(ifac, ntf, fadeFilename, duration, range, true, false);
 	}
+	
 	public BitmapTween(ImageFactory ifac, INotifier ntf, String fadeFilename,
 			int duration, double range, boolean fadeTexLerp, boolean fadeTexTile)
 	{	
-		super(duration);
+		super(ntf, fadeFilename, duration, range, fadeTexLerp, fadeTexTile);
 		
 		this.fac = ifac;
-		this.notifier = ntf;
-		this.fadeFilename = fadeFilename;
-		this.range = range;
-		this.fadeTexLerp = fadeTexLerp;
-		this.fadeTexTile = fadeTexTile;
 	}
 	
 	//Functions
@@ -85,113 +70,42 @@ public class BitmapTween extends BaseImageTween {
 		BitmapTweenLib.install(table, ifac, ntf);
 		globals.put("BitmapTween", table);
 	}
-	
+				
 	@Override
-	protected void doPrepare() {
-		super.doPrepare();
-		
-		//Get interpolation function values
-		interpolation = new int[interpMax+1];
-		interpolation[0] = 0;
-		for (int n = 1; n < interpMax; n++) {
-			int i = Math.round(interpMax * remap(n / (float)interpMax));
-			interpolation[n] = (short)Math.max(0, Math.min(interpMax, i));
-		}
-		interpolation[interpMax] = interpMax;
-		
-		//Get shader
+	protected void prepareShader() {
 		shader = fac.getGLShader("bitmap-tween");
-		
-		//Get texRects
-		ITexture[] itexs = new ITexture[] {getStartTexture(), getEndTexture()};
+	}
+
+	@Override
+	protected void prepareTextures(ITexture[] itexs) {
 		texs = new GLTexRect[itexs.length];
-		int w = 0, h = 0;
 		for (int n = 0; n < itexs.length; n++) {
 			if (itexs[n] instanceof TextureAdapter) {
 				TextureAdapter ta = (TextureAdapter)itexs[n];
 				texs[n] = ta.getTexRect();
-				w = Math.max(w, texs[n].getWidth());
-				h = Math.max(h, texs[n].getHeight());
 			}
-		}
-
-		//Calculate texRects' UV
-		origUV = new float[texs.length+1][];
-		uv = new float[texs.length+1][];
-		for (int n = 0; n < texs.length; n++) {
-			if (texs[n] == null) {
-				origUV[n] = new float[] {0, 1, 0, 1};
-				uv[n] = new float[] {0, 1, 0, 1};
-			} else {			
-				GLTexture t = texs[n].getTexture();
-				origUV[n] = GLUtil.getUV(t.getTexWidth(), t.getTexHeight(), texs[n].getRect());				
-				uv[n] = scaleUV(origUV[n],
-						w/(float)itexs[n].getWidth(), h/(float)itexs[n].getHeight(),
-						anchorX, anchorY);
-			}
-		}
-		
-		//Create fade texture
-		int fadeTexARGB[] = null;
-		int fadeTexW = 16, fadeTexH = 16;
-		if (fadeFilename != null) {
-			try {
-				//Load image
-				BufferedImage src = fac.getBufferedImage(fadeFilename);			
-				if (!fadeTexTile) {
-					//Take the region of the image we want to use
-					src = fadeImageSubRect(src, w, h);
-				}
-				
-				//Get 16-bit grayscale pixels from image
-				fadeTexARGB = toGrayScale(src);
-	
-				fadeTexW = src.getWidth();
-				fadeTexH = src.getHeight();
-			} catch (IOException ioe) {
-				if (ioe instanceof FileNotFoundException) {
-					notifier.fnf("Fade image not found: " + fadeFilename, ioe);
-				} else {
-					notifier.w("Error while loading fade image (" + fadeFilename + ")", ioe);
-				}			
-			}
-		}
-		
-		//Init a default value in case there's no bitmap specified or it doesn't exist
-		if (fadeTexARGB == null) {
-			fadeTexARGB = new int[fadeTexW * fadeTexH];
-			Arrays.fill(fadeTexARGB, (interpMax+1) / 2);
-		}
-
-		//Add an alpha channel for debugging purposes
-		for (int n = 0; n < fadeTexARGB.length; n++) {
-			fadeTexARGB[n] = 0xFF000000 | fadeTexARGB[n];
-		}
-
-		fadeTex = fac.createGLTexture(fadeTexARGB, fadeTexW, fadeTexH,
-				(fadeTexLerp ? GL.GL_LINEAR : GL.GL_NEAREST),
-				(fadeTexLerp ? GL.GL_LINEAR : GL.GL_NEAREST),
-				(fadeTexTile ? GL.GL_REPEAT : GL.GL_CLAMP_TO_EDGE));		
-		
-		int fadeUVIndex = texs.length;
-		
-		origUV[fadeUVIndex] = GLUtil.getUV(fadeTex.getTexWidth(), fadeTex.getTexHeight(), fadeTex.getCrop());
-		if (fadeTexTile) {
-			uv[fadeUVIndex] = scaleUV(origUV[fadeUVIndex],
-					w/(float)fadeTexW, h/(float)fadeTexH,
-					fadeTexAnchorX, fadeTexAnchorY);
-		} else {
-			uv[fadeUVIndex] = origUV[fadeUVIndex].clone();
-		}
-		
-		//Create remap texture
-		int remapTexW = 256;
-		int remapTexH = 256;
-		int remapTexARGB[] = new int[remapTexW * remapTexH];
-		remapTex = fac.createGLTexture(remapTexARGB, remapTexW, remapTexH,
-				GL.GL_NEAREST, GL.GL_NEAREST, GL.GL_CLAMP_TO_EDGE);
+		}		
 	}
-	
+
+	@Override
+	protected void prepareFadeTexture(String filename, boolean scaleSmooth, Dim targetSize)
+			throws IOException
+	{
+		BufferedImage src = fac.getBufferedImage(filename);			
+		if (targetSize != null) {
+			//Take the region of the image we want to use
+			src = fadeImageSubRect(src, targetSize.w, targetSize.h);
+		}
+		
+		//Get 16-bit grayscale pixels from image
+		int[] argb = toGrayScale(src);
+
+		fadeTex = fac.createGLTexture(argb, src.getWidth(), src.getHeight(),
+				(scaleSmooth ? GL.GL_LINEAR : GL.GL_NEAREST),
+				(scaleSmooth ? GL.GL_LINEAR : GL.GL_NEAREST),
+				(targetSize == null ? GL.GL_REPEAT : GL.GL_CLAMP_TO_EDGE));		
+	}
+
 	protected BufferedImage fadeImageSubRect(BufferedImage img, int targetW, int targetH) {
 		final int iw = img.getWidth();
 		final int ih = img.getHeight();
@@ -217,70 +131,57 @@ public class BitmapTween extends BaseImageTween {
 		return data;
 	}
 	
-	private float[] scaleUV(float[] uv, float scaleX, float scaleY,
-			float anchorX, float anchorY)
-	{
-		float w = uv[1] - uv[0];
-		float h = uv[3] - uv[2];
-		float x = uv[0] - w * (scaleX-1) * anchorX;
-		float y = uv[2] - h * (scaleY-1) * anchorY;
-		
-		return new float[] { x, x + w * scaleX, y, y + h * scaleY };
-	}
-	
 	@Override
-	public boolean update(double effectSpeed) {
-		boolean changed = super.update(effectSpeed);		
-		changed |= updateRemapTex();
-		return changed;
+	protected void prepareDefaultFadeTexture(int colorARGB) {
+		int w = 16, h = 16;
+		int[] argb = new int[w * h];
+		Arrays.fill(argb, colorARGB);
+		
+		fadeTex = fac.createGLTexture(argb, w, h, GL.GL_NEAREST, GL.GL_NEAREST, GL.GL_CLAMP_TO_EDGE);		
 	}
-	
-	protected boolean updateRemapTex() {
-		double mia = interpMax * (getNormalizedTime()-range) / (1 - range);
-		double maa = interpMax * (getNormalizedTime()      ) / (1 - range);
-		int minA = Math.min(interpMax, Math.max(0, (int)Math.round(mia)));
-		int maxA = Math.min(interpMax, Math.max(0, (int)Math.round(maa)));
 
-		int requiredLen = remapTex.getCropWidth() * remapTex.getCropHeight();
-		if (remapTemp == null || remapTemp.length < requiredLen) {
-			remapTemp = new int[requiredLen];
-		}
-		
-		Arrays.fill(remapTemp, 0, minA, interpMax);		
-		Arrays.fill(remapTemp, maxA, remapTemp.length, 0);		
-		double inc = interpMax / (maa - mia);
-		double cur = (minA - mia) * inc;			
-		for (int n = minA; n <= maxA && n <= interpMax; n++) {
-			int ar = Math.max(0, Math.min(interpMax, (int)Math.round(cur)));
-			remapTemp[n] = interpMax - interpolation[ar];				
-			cur += inc;
-		}
-		
-		//Add an alpha channel for debugging purposes
-		for (int n = 0; n < remapTemp.length; n++) {
-			remapTemp[n] = 0xFF000000 | remapTemp[n];
-		}
-		
-		remapTex.setARGB(remapTemp);
-		
-		return true;
-	}
-	
 	@Override
-	public void draw(IRenderer r) {
-		super.draw(r);
-				
-		BaseRenderer rr = (BaseRenderer)r;
-		rr.draw(new RenderCommand(drawable, texs, origUV, uv, fadeTex, remapTex, shader));
+	protected void prepareRemapTexture(int w, int h) {
+		remapTex = fac.createGLTexture(null, w, h,
+				GL.GL_NEAREST, GL.GL_NEAREST, GL.GL_CLAMP_TO_EDGE);
 	}
-	
-	protected float remap(float u) {
-		if (u >= .5f) {
-			u = 1f - u;
-			return -1.5f + 2.5f / (1f + u * u);			
+
+	@Override
+	protected float[] getOrigUV(int texIndex) {
+		GLTexture tex;
+		Rect crop;
+		if (texIndex >= 0 && texIndex < texs.length) {
+			GLTexRect tr = texs[texIndex];
+			tex = tr.getTexture();
+			crop = tr.getRect();
+		} else if (texIndex == texs.length) {
+			tex = fadeTex;
+			crop = tex.getCrop();
 		} else {
-			return  2.5f - 2.5f / (1f + u * u);
+			throw new ArrayIndexOutOfBoundsException(texIndex);
 		}
+		return GLUtil.getUV(tex.getTexWidth(), tex.getTexHeight(), crop);
+	}
+
+	@Override
+	protected Dim getSize(int texIndex) {
+		if (texIndex >= 0 && texIndex < texs.length) {
+			return new Dim(texs[texIndex].getWidth(), texs[texIndex].getHeight());
+		} else if (texIndex == texs.length) {
+			return new Dim(fadeTex.getCropWidth(), fadeTex.getCropHeight());
+		} else {
+			throw new ArrayIndexOutOfBoundsException(texIndex);
+		}
+	}
+
+	@Override
+	protected void updateRemapTex(int[] argb) {
+		remapTex.setARGB(argb);
+	}
+
+	@Override
+	protected void draw(BaseRenderer rr, IImageDrawable img, float[][] origUV, float[][] uv) {
+		rr.draw(new RenderCommand(img, texs, origUV, uv, fadeTex, remapTex, shader));
 	}
 	
 	//Getters

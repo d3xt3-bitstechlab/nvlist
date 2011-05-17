@@ -1,20 +1,17 @@
 package nl.weeaboo.vn.impl.nvlist;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map.Entry;
 
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.game.input.IKeyConfig;
 import nl.weeaboo.game.input.Keys;
-import nl.weeaboo.gl.shader.ShaderCache;
-import nl.weeaboo.gl.text.GLTextRendererStore;
-import nl.weeaboo.gl.texture.TextureCache;
 import nl.weeaboo.lua.LuaException;
 import nl.weeaboo.lua.LuaRunState;
 import nl.weeaboo.lua.LuaUtil;
-import nl.weeaboo.lua.io.DefaultEnvironment;
-import nl.weeaboo.lua.io.LuaSerializer;
+import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.vn.IAnalytics;
 import nl.weeaboo.vn.IGuiFactory;
 import nl.weeaboo.vn.IImageFactory;
 import nl.weeaboo.vn.IImageFxFactory;
@@ -22,15 +19,24 @@ import nl.weeaboo.vn.IImageState;
 import nl.weeaboo.vn.IInput;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.INovelConfig;
+import nl.weeaboo.vn.IPersistentStorage;
 import nl.weeaboo.vn.ISaveHandler;
+import nl.weeaboo.vn.IScriptFactory;
+import nl.weeaboo.vn.ISeenLog;
 import nl.weeaboo.vn.ISoundFactory;
 import nl.weeaboo.vn.ISoundState;
+import nl.weeaboo.vn.IStorage;
 import nl.weeaboo.vn.ITextState;
 import nl.weeaboo.vn.IVideoFactory;
 import nl.weeaboo.vn.IVideoState;
+import nl.weeaboo.vn.impl.lua.AbstractKeyCodeMetaFunction;
+import nl.weeaboo.vn.impl.lua.LuaMediaPreloader;
 import nl.weeaboo.vn.impl.lua.LuaNovel;
 
+import org.luaj.vm.LInteger;
+import org.luaj.vm.LNil;
 import org.luaj.vm.LTable;
+import org.luaj.vm.LValue;
 import org.luaj.vm.LuaErrorException;
 import org.luaj.vm.LuaState;
 
@@ -44,42 +50,53 @@ public class Novel extends LuaNovel {
 	public Novel(INovelConfig nc, IImageFactory imgfac, IImageState is, IImageFxFactory imgfxfac,
 			ISoundFactory sndfac, ISoundState ss, IVideoFactory vf, IVideoState vs,
 			ITextState ts, INotifier n, IInput in, IGuiFactory guifac, ISaveHandler sh,
-			FileManager fm, IKeyConfig kc, TextureCache tc, ShaderCache sc,
-			GLTextRendererStore trStore)
+			IScriptFactory scrfac, IPersistentStorage sysVars, IStorage globals,
+			ISeenLog seenLog, IAnalytics analytics,
+			FileManager fm, IKeyConfig kc)
 	{
-		super(nc, imgfac, is, imgfxfac, sndfac, ss, vf, vs, ts, n, in, guifac, sh);
+		super(nc, imgfac, is, imgfxfac, sndfac, ss, vf, vs, ts, n, in, guifac, sh, scrfac,
+				sysVars, globals, seenLog, analytics);
 		
 		this.fm = fm;
 		this.keyConfig = kc;
 	}
 	
-	//Functions
-	public InputStream openScriptFile(String filename) throws IOException {
-		//First, try to open built-in file
-		InputStream in = LuaNovel.openBuiltInScript(filename);
-		
-		if (in == null) {
-			//Open regular file if not built-in
-			in = fm.getInputStream("script/" + filename);
+	//Functions	
+	@Override
+	protected void initPreloader(LuaMediaPreloader preloader) {
+		preloader.clear();
+		try {
+			try {
+				InputStream in = fm.getInputStream("preloader-default.bin");
+				try {
+					preloader.load(in);
+				} finally {
+					in.close();
+				}
+			} catch (FileNotFoundException fnfe) {
+				//Ignore
+			}
+			
+			try {
+				InputStream in = fm.getInputStream("preloader.bin");
+				try {
+					preloader.load(in);
+				} finally {
+					in.close();
+				}
+			} catch (FileNotFoundException fnfe) {
+				//Ignore
+			}
+		} catch (IOException ioe) {
+			getNotifier().w("Error initializing preloader", ioe);
 		}
-		
-		if (in == null) {
-			notifier.fnf("Script not found: " + filename);
-		}
-		
-		/*
-		byte[] bytes = StreamUtil.readFully(in);
-		System.out.println(StringUtil.fromUTF8(bytes, 0, bytes.length));
-		in = new ByteArrayInputStream(bytes);
-		*/
-		
-		return in;
 	}
 	
 	@Override
-	public void initLuaRunState(LuaSerializer ls, LuaRunState lrs) {
-		super.initLuaRunState(ls, lrs);
-						
+	public void initLuaRunState() {
+		super.initLuaRunState();
+		
+		LuaRunState lrs = getLuaRunState();
 		LuaState vm = lrs.vm;
 		try {
 			LuaUtil.registerClass(lrs, vm, FreeRotationGS.class);
@@ -89,8 +106,6 @@ public class Novel extends LuaNovel {
 		
 		BitmapTween.install(vm._G, (ImageFactory)getImageFactory(), getNotifier());
 		GLSLPS.install(vm._G, (ImageFactory)getImageFactory(), getNotifier());
-		
-		ls.setEnvironment(new DefaultEnvironment());
 	}
 
 	@Override
@@ -107,21 +122,46 @@ public class Novel extends LuaNovel {
 			t = t.getCause();
 		}
 		
-		notifier.e(message, t);
+		getNotifier().e(message, t);
 		
-		setWait(60);		
+		//printStackTrace(System.out);
+		
+		setWait(60);
 	}
 
 	@Override
-	protected void addKeyCodeConstants(LTable table) {
+	protected void addKeyCodeConstants(LTable table) throws LuaException {
 		Keys keys = keyConfig.getKeys();
-		for (Entry<String, Integer> entry : keys) {
-			table.put(entry.getKey(), entry.getValue());
-		}
+		//for (Entry<String, Integer> entry : keys) {
+		//	table.put(LString.valueOf(entry.getKey()), LInteger.valueOf(entry.getValue()));
+		//}
+		addKeyCodeConstants(table, new KeyCodeMetaFunction(keys, table));
 	}
 	
 	//Getters
 	
 	//Setters
+	
+	//Inner classes
+	@LuaSerializable
+	private static class KeyCodeMetaFunction extends AbstractKeyCodeMetaFunction {
+
+		private static final long serialVersionUID = 1L;
+		
+		private static Keys keys;
+		
+		public KeyCodeMetaFunction(Keys k, LTable t) {
+			super(t);
+			
+			keys = k;
+		}
+
+		@Override
+		protected LValue getKeyCode(String name) {
+			int retval = keys.get(name);
+			return (retval == 0 ? LNil.NIL : LInteger.valueOf(retval));
+		}
+		
+	}
 	
 }
