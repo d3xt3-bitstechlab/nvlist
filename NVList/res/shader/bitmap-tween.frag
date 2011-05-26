@@ -27,14 +27,7 @@ void main() {
     float alpha = (aa.y * 256.0 + aa.x) / 256.0;
 	alpha = clamp(alpha, 0.0, 1.0);
     
-    vec4 c;
-
-	//Premultiply with alpha and blend colors
-    c.rgb = mix(c0.rgb * c0.a, c1.rgb * c1.a, alpha); 
-	//Blend alphas
-	c.a = mix(c0.a, c1.a, alpha);
-	//Reverse premultiply alpha
-    c.rgb = c.rgb / c.a;
+    vec4 c = mix(c0, c1, alpha); 
     
 	//Multiply with glColor and clamp (otherwise the result might overflow)
     gl_FragColor = clamp(gl_Color * c, 0.0, 1.0);

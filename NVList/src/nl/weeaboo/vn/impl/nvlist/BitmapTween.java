@@ -1,5 +1,8 @@
 package nl.weeaboo.vn.impl.nvlist;
 
+import static nl.weeaboo.vn.impl.base.Interpolators.BUTTERWORTH;
+import static nl.weeaboo.vn.impl.base.Interpolators.getInterpolator;
+
 import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -23,12 +26,14 @@ import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.lua.platform.LuajavaLib;
 import nl.weeaboo.vn.IImageDrawable;
+import nl.weeaboo.vn.IInterpolator;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.IRenderer;
 import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.BaseBitmapTween;
 import nl.weeaboo.vn.impl.base.BaseRenderer;
 import nl.weeaboo.vn.impl.base.CustomRenderCommand;
+import nl.weeaboo.vn.math.Matrix;
 
 import org.luaj.vm.LFunction;
 import org.luaj.vm.LTable;
@@ -50,16 +55,10 @@ public class BitmapTween extends BaseBitmapTween {
 	private GLGeneratedTexture fadeTex;
 	private GLGeneratedTexture remapTex;
 	
-	public BitmapTween(ImageFactory ifac, INotifier ntf, String fadeFilename,
-			int duration, double range)
-	{
-		this(ifac, ntf, fadeFilename, duration, range, true, false);
-	}
-	
-	public BitmapTween(ImageFactory ifac, INotifier ntf, String fadeFilename,
-			int duration, double range, boolean fadeTexLerp, boolean fadeTexTile)
+	public BitmapTween(ImageFactory ifac, INotifier ntf, String fadeFilename, double duration,
+			double range, IInterpolator i, boolean fadeTexLerp, boolean fadeTexTile)
 	{	
-		super(ntf, fadeFilename, duration, range, fadeTexLerp, fadeTexTile);
+		super(ntf, fadeFilename, duration, range, i, fadeTexLerp, fadeTexTile);
 		
 		this.fac = ifac;
 	}
@@ -191,6 +190,7 @@ public class BitmapTween extends BaseBitmapTween {
 	//Inner Classes
 	protected static final class RenderCommand extends CustomRenderCommand {
 
+		private final Matrix transform;
 		private final float x, y, w, h;
 		private final GLTexRect[] texs;
 		private final float[][] origUV;
@@ -206,10 +206,11 @@ public class BitmapTween extends BaseBitmapTween {
 			super(id.getZ(), id.isClipEnabled(), id.getBlendMode(), id.getColor(),
 					id.getPixelShader(), (byte)0);
 			
-			this.x = (float)id.getX();
-			this.y = (float)id.getY();
-			this.w = (float)id.getWidth();
-			this.h = (float)id.getHeight();			
+			this.transform = id.getTransform();
+			this.x = 0f;
+			this.y = 0f;
+			this.w = (float)id.getUnscaledWidth();
+			this.h = (float)id.getUnscaledHeight();			
 			this.texs = texs;
 			this.origUV = origUV;
 			this.uv = uv;
@@ -223,6 +224,10 @@ public class BitmapTween extends BaseBitmapTween {
 			Renderer rr = (Renderer)r;			
 			GLManager glm = rr.getGLManager();
 			GL2 gl2 = GLManager.getGL2(glm.getGL());
+			
+			gl2.glPushMatrix();
+			gl2.glMultMatrixf(transform.toGLMatrix(), 0);
+			
 			GLTexture oldTexture = glm.getTexture();
 			glm.setTexture(null);
 			
@@ -277,6 +282,9 @@ public class BitmapTween extends BaseBitmapTween {
 						
 			//Restore previous texture
 			glm.setTexture(oldTexture);
+			
+			//Pop matrix
+			gl2.glPopMatrix();
 		}
 		
 		private static final int texId(GLTexRect tr) {
@@ -329,11 +337,13 @@ public class BitmapTween extends BaseBitmapTween {
 		
 		protected int newBitmapTween(LuaState vm) {
 			String fadeFilename = (vm.isstring(1) ? vm.tostring(1) : null);
-			int duration = vm.tointeger(2);
+			double duration = vm.tonumber(2);
 			double range = vm.tonumber(3);
+			IInterpolator i = getInterpolator(vm, vm.topointer(4), BUTTERWORTH);
 			vm.resettop();
-			BitmapTween tween = new BitmapTween(fac, ntf, fadeFilename, duration, range);
-			vm.pushlvalue(LuajavaLib.toUserdata(tween, BitmapTween.class));
+			BitmapTween tween = new BitmapTween(fac, ntf, fadeFilename, duration, range,
+					i, true, false);
+			vm.pushlvalue(LuajavaLib.toUserdata(tween, tween.getClass()));
 			return 1;
 		}
 		

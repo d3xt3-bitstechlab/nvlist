@@ -104,8 +104,9 @@ public class Novel extends LuaNovel {
 			onScriptError(e);
 		}
 		
-		BitmapTween.install(vm._G, (ImageFactory)getImageFactory(), getNotifier());
-		GLSLPS.install(vm._G, (ImageFactory)getImageFactory(), getNotifier());
+		LTable globals = vm._G;
+		BitmapTween.install(globals, (ImageFactory)getImageFactory(), getNotifier());
+		GLSLPS.install(globals, (ImageFactory)getImageFactory(), getNotifier());
 	}
 
 	@Override

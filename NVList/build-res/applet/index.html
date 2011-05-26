@@ -3,62 +3,73 @@
   <head>
     <title>${project-name}</title>
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="default.css" />
     
     <script type="text/javascript">        
         function scale(size) {
             var applet = document.getElementById("applet");
-            if (size.length > 0 && size[size.length-1] == "%") {
-                applet.style.width  = size;
-                applet.style.height = size;
-            } else {
-                applet.style.width  = ${applet-width}  * size / 100 + "px";
-                applet.style.height = ${applet-height} * size / 100 + "px";
-            }
+            applet.style.width  = (applet.width * size / 100) + "px";
+            applet.style.height = (applet.height * size / 100) + "px";
         }
-    </script>    
+        function fullscreen() {
+            var applet = document.getElementById("applet");
+            applet.toggleFullscreen();
+        }
+    </script>
   </head>
   
-  <body style="font-family: arial, sans-serif; margin: 0px; height: 100%;"
-        onload="scale(document.getElementById('scaleSelect').value)">
-    <applet
-      id="applet"
-      code="org.jdesktop.applet.util.JNLPAppletLauncher"
-      width="${applet-width}" height="${applet-height}"
-      archive="${webstart-applet-launcher}, ${webstart-native-window}, ${webstart-jogl-all}, ${webstart-gluegen-rt},
-               ${project-name-url}.jar">
+  <body onload="scale(document.getElementById('scaleSelect').value)">
+    <div class="container">
+      <div class="containerCell">
+        <div class="header">
+        </div>
+        <div class="outerContent">
+          <div class="content">
+        
+      <applet
+        id="applet"
+        code="org.jdesktop.applet.util.JNLPAppletLauncher"
+        width="${applet-width}" height="${applet-height}"
+        archive="${webstart-applet-launcher}, ${webstart-native-window}, ${webstart-jogl-all}, ${webstart-gluegen-rt},${project-name-url}.jar">
                
-      <param name="cache_archive" value="${project-name-url}.jar" />
-      <param name="codebase_lookup" value="false" />
-      <param name="separate_jvm" value="true" />
+        <param name="cache_archive" value="${project-name-url}.jar" />
+        <param name="codebase_lookup" value="false" />
+        <param name="separate_jvm" value="true" />
 
-      <param name="subapplet.classname" value="${applet-main-class}" />
-      <param name="subapplet.displayname" value="${project-name}" />
-      <param name="noddraw.check" value="true" />
-      <param name="progressbar" value="true" />
-      <param name="jnlpNumExtensions" value="1" />
-      <param name="jnlpExtension1" value="${jnlp-jogl-core}" />
-      <param name="jnlp_href" value="applet.jnlp" />
+        <param name="subapplet.classname" value="${applet-main-class}" />
+        <param name="subapplet.displayname" value="${project-name}" />
+        <param name="noddraw.check" value="true" />
+        <param name="splash" value="splash.jpg" />
+        <param name="progressbar" value="true" />
+        <param name="jnlpNumExtensions" value="1" />
+        <param name="jnlpExtension1" value="${jnlp-jogl-core}" />
+        <param name="jnlp_href" value="applet.jnlp" />
          
-      <param name="java_arguments" value="-Djnlp.packEnabled=true ${jvm-args}" />
-      <param name="args" value="-id &quot;${project-name}&quot; ${program-args}" />
-    </applet>
+        <param name="java_arguments" value="-Djnlp.packEnabled=true ${jvm-args}" />
+        <param name="args" value="-id &quot;${project-name}&quot; ${program-args}" />
+      </applet>
   
-    <div style="padding: 10px; size: .8em;">
-      <span>
-        Size: 
-        <select id="scaleSelect" onChange="scale(this.value)">
-          <option value="50">smaller</option>
-          <option value="75">small</option>
-          <option value="100" selected="selected">normal</option>
-          <option value="150">large</option>
-          <option value="200">larger</option>
-          <option value="100%">fill</option>
-        </select>
-      </span>
-      <span style="padding-left: 100px; color: #666666;">
-        <!-- Any important messages to the user go here -->
-      </span>
+      <div class="info">
+        <span>
+          Size: 
+          <select id="scaleSelect" onchange="scale(this.value)">
+            <option value="50">smaller</option>
+            <option value="75">small</option>
+            <option value="100" selected="selected">normal</option>
+            <option value="150">large</option>
+            <option value="200">larger</option>
+            <!-- <option value="-1">fill</option> -->
+          </select>
+          <input type="button" value="Fullscreen" onclick="fullscreen()" />
+        </span>
+        <span style="padding-left: 100px; color: #666666;">
+          <!-- Any important messages to the user go here -->
+        </span>
+      </div>
+      
+          </div>
+        </div>
+      </div>
     </div>
-          
   </body>
 </html>

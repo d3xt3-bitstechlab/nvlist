@@ -96,7 +96,11 @@ public class DebugOutputPanel extends JPanel {
 		private final Formatter formatter;
 		
 		public LogHandler() {
-			setLevel(Level.ALL);
+			try {
+				setLevel(Level.ALL);
+			} catch (SecurityException se) {
+				//Ignore
+			}
 			
 			formatter = new GameLogFormatter(false);
 		}

@@ -36,8 +36,9 @@ class ImageDecodingScreenshot extends DecodingScreenshot {
 	protected void tryLoad(ByteBuffer data) {
 		BufferedImage image = null;
 		if (data != null) {
+			ImageInputStream iin = null;
 			try {
-				ImageInputStream iin = ImageIO.createImageInputStream(new ByteBufferInputStream(data));
+				iin = ImageIO.createImageInputStream(new ByteBufferInputStream(data));
 				Iterator<ImageReader> itr = ImageIO.getImageReaders(iin);
 				while (image == null && itr.hasNext()) {
 					ImageReader reader = itr.next();
@@ -58,6 +59,10 @@ class ImageDecodingScreenshot extends DecodingScreenshot {
 				}
 			} catch (IOException ioe) {
 				//Ignore
+			} finally {
+				try {
+					if (iin != null) iin.close();
+				} catch (IOException ioe) { }
 			}
 		}
 		

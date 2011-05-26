@@ -29,6 +29,7 @@ import nl.weeaboo.vn.impl.lua.LuaNovelUtil;
 public class ImageFactory extends BaseImageFactory implements Serializable {
 
 	private final EnvironmentSerializable es;
+	private final IAnalytics analytics;
 	private final TextureCache texCache;
 	private final ShaderCache shCache;
 	private final GLTextRendererStore trStore;
@@ -36,12 +37,14 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	public ImageFactory(TextureCache tc, ShaderCache sc, GLTextRendererStore trStore,
 			IAnalytics an, ISeenLog sl, INotifier ntf, int iw, int ih, int w, int h)
 	{
-		super(an, sl, ntf, iw, ih, w, h);
+		super(sl, ntf, iw, ih, w, h);
 		
-		this.es = new EnvironmentSerializable(this);
+		this.analytics = an;
 		this.texCache = tc;
 		this.shCache = sc;
-		this.trStore = trStore;
+		this.trStore = trStore;		
+
+		this.es = new EnvironmentSerializable(this);
 	}
 	
 	//Functions
@@ -51,7 +54,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	
 	@Override
 	protected void preloadNormalized(String filename) {
-		texCache.preload(filename);		
+		texCache.preload(filename);
 	}
 	
 	@Override

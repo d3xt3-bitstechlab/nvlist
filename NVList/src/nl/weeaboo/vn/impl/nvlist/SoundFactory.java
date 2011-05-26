@@ -22,13 +22,16 @@ import nl.weeaboo.vn.impl.lua.LuaNovelUtil;
 @LuaSerializable
 public class SoundFactory extends BaseSoundFactory implements Serializable {
 
-	private final SoundManager sm;
 	private final EnvironmentSerializable es;
+	private final IAnalytics analytics;
+	private final SoundManager sm;
 	
 	public SoundFactory(SoundManager sm, IAnalytics an, ISeenLog sl, INotifier ntf) {
-		super(an, sl, ntf);
+		super(sl, ntf);
 		
+		this.analytics = an;
 		this.sm = sm;
+
 		this.es = new EnvironmentSerializable(this);
 	}
 	

@@ -8,20 +8,24 @@ import nl.weeaboo.vn.IPixelShader;
 import nl.weeaboo.vn.IRenderer;
 import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.CustomRenderCommand;
+import nl.weeaboo.vn.math.Matrix;
+import nl.weeaboo.vn.math.MutableMatrix;
 
 public class RotatedQuadCommand extends CustomRenderCommand {
 
-	private ITexture itex;
-	private double x, y, w, h;
-	private double rotX, rotY, rotZ;
+	private final ITexture itex;
+	private final Matrix transform;
+	private final double x, y, w, h;
+	private final double rotX, rotY, rotZ;
 	
 	public RotatedQuadCommand(short z, boolean clipEnabled, BlendMode blendMode,
-			int argb, ITexture tex, double x, double y, double w, double h,
+			int argb, ITexture tex, Matrix trans, double x, double y, double w, double h,
 			IPixelShader ps, double rotX, double rotY, double rotZ)
 	{
 		super(z, clipEnabled, blendMode, argb, ps, (byte)0);
 		
 		this.itex = tex;
+		this.transform = trans;
 		this.x = x;
 		this.y = y;
 		this.w = w;
@@ -45,11 +49,20 @@ public class RotatedQuadCommand extends CustomRenderCommand {
 		//gl.glEnable(GL2ES1.GL_DEPTH_TEST);		
 		
 		gl.glPushMatrix();
-		glm.translate(x+w/2, y+h/2);
+
+		glm.translate(transform.getTranslationX(), transform.getTranslationY());		
+		glm.translate((x+w/2) * transform.getScaleX(), (y+h/2) * transform.getScaleY());
 		gl.glRotatef((float)rotZ, 0, 0, 1);
 		gl.glRotatef((float)rotY, 0, 1, 0);
 		gl.glRotatef((float)rotX, 1, 0, 0);
-		rr.renderQuad(glm, itex, -w/2, -h/2, w, h, null, 0, 0, 1, 1);
+		
+		MutableMatrix m = transform.mutableCopy();
+		m.setTranslation(0, 0);
+		gl.glMultMatrixf(m.toGLMatrix(), 0);
+		
+		rr.renderQuad(glm, itex, Matrix.identityMatrix(),
+				-w/2, -h/2, w, h, null, 0, 0, 1, 1);
+		
 		gl.glPopMatrix();
 				
 		if (!lightingWasEnabled) gl.glDisable(GL2ES1.GL_LIGHTING);

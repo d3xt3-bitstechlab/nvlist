@@ -11,9 +11,11 @@ import nl.weeaboo.vn.ISaveLoadScreen;
 public class GuiFactory extends EnvironmentSerializable implements IGuiFactory {
 
 	private final Game game;
+	private final boolean isEmbedded;
 	
 	public GuiFactory(Game game) {
 		this.game = game;
+		this.isEmbedded = game.getDisplay().isEmbedded();
 	}
 	
 	
@@ -43,6 +45,10 @@ public class GuiFactory extends EnvironmentSerializable implements IGuiFactory {
 	}
 	
 	//Getters
+	@Override
+	public boolean canExit() {
+		return !isEmbedded;
+	}
 	
 	//Setters
 	

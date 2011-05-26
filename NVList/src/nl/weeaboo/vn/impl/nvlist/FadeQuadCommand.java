@@ -7,6 +7,7 @@ import java.nio.IntBuffer;
 
 import javax.media.opengl.GL2ES1;
 
+import nl.weeaboo.awt.ImageUtil;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
@@ -15,11 +16,13 @@ import nl.weeaboo.vn.IPixelShader;
 import nl.weeaboo.vn.IRenderer;
 import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.CustomRenderCommand;
+import nl.weeaboo.vn.math.Matrix;
 
 public class FadeQuadCommand extends CustomRenderCommand {
 
 	private static Geometry geometry;
-	
+
+	private Matrix transform;
 	private double x, y, w, h;
 	private ITexture itex;
 	private int dir;
@@ -28,11 +31,12 @@ public class FadeQuadCommand extends CustomRenderCommand {
 	private double frac;
 	
 	protected FadeQuadCommand(short z, boolean clipEnabled, BlendMode blendMode,
-		int argb, ITexture tex, double x, double y, double w, double h, IPixelShader ps,
-		int dir, boolean fadeIn, double span, double frac)
+		int argb, ITexture tex, Matrix trans, double x, double y, double w, double h,
+		IPixelShader ps, int dir, boolean fadeIn, double span, double frac)
 	{
 		super(z, clipEnabled, blendMode, argb, ps, (byte)tex.hashCode());
 		
+		this.transform = trans;
 		this.x = x;
 		this.y = y;
 		this.w = w;
@@ -47,7 +51,7 @@ public class FadeQuadCommand extends CustomRenderCommand {
 	//Functions
 	@Override
 	protected void renderGeometry(IRenderer r) {
-		Renderer rr = (Renderer)r;		
+		Renderer rr = (Renderer)r;
 		GLManager glm = rr.getGLManager();
 		GL2ES1 gl = glm.getGL();
 		
@@ -76,12 +80,15 @@ public class FadeQuadCommand extends CustomRenderCommand {
 			c1 = temp;
 		}
 		
+		gl.glPushMatrix();
+		gl.glMultMatrixf(transform.toGLMatrix(), 0);
 		if (geometry == null) {
 			geometry = new Geometry();
 		}		
 		geometry.set(tex, dir == 4 || dir == 6, (float)a, (float)b,
 				(float)x, (float)y, (float)w, (float)h, c0, c1);
 		geometry.draw(gl);
+		gl.glPopMatrix();
 		
 		//Reset state
 		glm.setTexture(oldtex);
@@ -181,7 +188,9 @@ public class FadeQuadCommand extends CustomRenderCommand {
     		//System.out.printf("(%d, %d, %d, %d) (%.1f, %.1f, %.1f, %.1f)\n", ix0, iposa, iposb, ix1, u0, uva, uvb, u1);
     		
 	    	//Colors must be in ABGR for OpenGL
+	    	c0 = ImageUtil.premultiplyAlpha(c0);
 	    	c0 = (c0&0xFF000000) | ((c0<<16)&0xFF0000) | (c0&0xFF00) | ((c0>>16)&0xFF);
+	    	c1 = ImageUtil.premultiplyAlpha(c1);
 	    	c1 = (c1&0xFF000000) | ((c1<<16)&0xFF0000) | (c1&0xFF00) | ((c1>>16)&0xFF);
 	    	
 	    	if (horizontal) {

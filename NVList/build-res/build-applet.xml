@@ -51,11 +51,15 @@
     </p200>
     
     <copy todir="${dist.dir}">
-      <fileset dir="${build-res.dir}/applet" />
+      <fileset dir="${build-res.dir}/applet" includes="*.jnlp,*.js,*.css,*.html,*.txt" />      
       <filterChain>
         <expandProperties />
       </filterChain>
     </copy>
+    <copy todir="${dist.dir}">
+      <fileset dir="${build-res.dir}/applet" excludes="*.jnlp,*.js,*.css,*.html,*.txt" />      
+    </copy>
+    
     <copy tofile="${dist.dir}/favicon.ico" file="${gamedata.dir}/res/icon.ico" />
   </target>
 

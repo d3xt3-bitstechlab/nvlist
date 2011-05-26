@@ -24,7 +24,7 @@ public class Launcher extends nl.weeaboo.game.Launcher {
 	
 	//Functions
 	public static void main(String args[]) {		
-		//GameLog.getLogger().setLevel(Level.FINE);
+		//nl.weeaboo.game.GameLog.getLogger().setLevel(java.util.logging.Level.FINE);
 		
 		main(new Launcher(), args);
 	}

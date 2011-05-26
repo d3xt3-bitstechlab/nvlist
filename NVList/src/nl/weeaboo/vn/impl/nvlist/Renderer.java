@@ -20,6 +20,7 @@ import nl.weeaboo.vn.impl.base.BaseRenderer;
 import nl.weeaboo.vn.impl.base.CustomRenderCommand;
 import nl.weeaboo.vn.impl.base.QuadRenderCommand;
 import nl.weeaboo.vn.impl.base.ScreenshotRenderCommand;
+import nl.weeaboo.vn.math.Matrix;
 
 public class Renderer extends BaseRenderer {
 
@@ -48,11 +49,20 @@ public class Renderer extends BaseRenderer {
 	
 	@Override
 	public void drawFadeQuad(short z, boolean clipEnabled, BlendMode blendMode, int argb,
-			ITexture tex, double x, double y, double w, double h, IPixelShader ps,
+			ITexture tex, Matrix trans, double x, double y, double w, double h, IPixelShader ps,
 			int dir, boolean fadeIn, double span, double time)
 	{
-		draw(new FadeQuadCommand(z, clipEnabled, blendMode, argb, tex, x, y, w, h, ps,
-				dir, fadeIn, span, time));
+		draw(new FadeQuadCommand(z, clipEnabled, blendMode, argb, tex,
+				trans, x, y, w, h, ps, dir, fadeIn, span, time));
+	}
+	
+	@Override
+	public void drawBlendQuad(short z, boolean clipEnabled, BlendMode blendMode, int argb,
+			ITexture tex0, ITexture tex1, double frac, Matrix trans,
+			double x, double y, double w, double h, IPixelShader ps)
+	{
+		draw(new BlendQuadCommand(z, clipEnabled, blendMode, argb, tex0, tex1, frac,
+				trans, x, y, w, h, ps));
 	}
 	
 	@Override
@@ -98,8 +108,7 @@ public class Renderer extends BaseRenderer {
 				
 		//Setup blend mode
 		BlendMode blendMode = BlendMode.DEFAULT;
-		gl.glEnable(GL2ES1.GL_BLEND);
-		gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE_MINUS_SRC_ALPHA);
+		glm.setBlendMode(nl.weeaboo.gl.BlendMode.DEFAULT);
 		
 		//Setup color
 		int foreground = 0xFFFFFFFF;
@@ -125,9 +134,9 @@ public class Renderer extends BaseRenderer {
 				blendMode = cmd.blendMode;
 				
 				switch (blendMode) {
-				case DEFAULT: gl.glEnable(GL2ES1.GL_BLEND);  gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE_MINUS_SRC_ALPHA); break;
-				case ADD:     gl.glEnable(GL2ES1.GL_BLEND);  gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE); break;
-				case OPAQUE:  gl.glDisable(GL2ES1.GL_BLEND); break;
+				case DEFAULT: glm.setBlendMode(nl.weeaboo.gl.BlendMode.DEFAULT); break;
+				case ADD:     glm.setBlendMode(nl.weeaboo.gl.BlendMode.LIGHT); break;
+				case OPAQUE:  glm.setBlendMode(null); break;
 				}
 			}
 			
@@ -138,13 +147,14 @@ public class Renderer extends BaseRenderer {
 			}
 			
 			//Don't render fully transparent objects
-			if (((glm.getColor()>>24)&0xFF) == 0) {
+			if (((foreground>>24)&0xFF) == 0) {
 				continue;
 			}
 			
 			if (cmd.id == QuadRenderCommand.id) {
 				QuadRenderCommand qrc = (QuadRenderCommand)cmd;
-				renderQuad(glm, qrc.tex, qrc.x, qrc.y, qrc.width, qrc.height, qrc.ps,
+				renderQuad(glm, qrc.tex, qrc.transform,
+						qrc.x, qrc.y, qrc.width, qrc.height, qrc.ps,
 						qrc.u, qrc.v, qrc.uw, qrc.vh);
 			} else if (cmd.id == ScreenshotRenderCommand.id) {
 				ScreenshotRenderCommand src = (ScreenshotRenderCommand)cmd;
@@ -180,22 +190,19 @@ public class Renderer extends BaseRenderer {
 		}
 		
 		glm.popColor();
-		gl.glEnable(GL2ES1.GL_BLEND);
-		gl.glBlendFunc(GL2ES1.GL_SRC_ALPHA, GL2ES1.GL_ONE_MINUS_SRC_ALPHA);
+		glm.setBlendMode(nl.weeaboo.gl.BlendMode.DEFAULT);
 		gl.glDisable(GL2ES1.GL_SCISSOR_TEST);
 		gl.glPopMatrix();
 		
 		Arrays.fill(tempArray, 0, len, null);
 	}
 	
-	void renderQuad(GLManager glm, ITexture itex, double x, double y, double w, double h,
+	void renderQuad(GLManager glm, ITexture itex, Matrix t,
+			double x, double y, double w, double h,
 			IPixelShader ps, double u, double v, double uw, double vh)
 	{
-		if (ps != null) ps.preDraw(this);
-		
 		if (itex == null) {
 			glm.setTexture(null);
-			glm.fillRect(x, y, w, h, 0, 0, 1, 1);
 		} else {
 			GLTexRect tr = ((TextureAdapter)itex).getTexRect();
 			GLTexture tex = tr.getTexture();
@@ -208,10 +215,28 @@ public class Renderer extends BaseRenderer {
 			v  = (tr.getY() + v * tr.getHeight()) / th;
 			uw = (uw * tr.getWidth()) / tw;
 			vh = (vh * tr.getHeight()) / th;
-
-			//System.out.printf("%.2f, %.2f -> %.2f, %.2f\n", u, v, uw, vh);
-			glm.fillRect(x, y, w, h, u, v, uw, vh);
 		}
+
+		renderQuad(glm, t, x, y, w, h, ps, u, v, uw, vh);
+	}
+	
+	void renderQuad(GLManager glm, Matrix t, double x, double y, double w, double h,
+			IPixelShader ps, double u, double v, double uw, double vh)
+	{
+		if (ps != null) ps.preDraw(this);
+				
+		GL2ES1 gl = glm.getGL();
+		if (t.hasShear()) {
+			gl.glPushMatrix();		
+			gl.glMultMatrixf(t.toGLMatrix(), 0);
+			glm.fillRect(x, y, w, h, u, v, uw, vh);
+			gl.glPopMatrix();
+		} else {
+			double sx = t.getScaleX();
+			double sy = t.getScaleY();
+			glm.fillRect(x * sx + t.getTranslationX(), y * sy + t.getTranslationY(),
+					w * sx, h * sy, u, v, uw, vh);
+		}		
 		
 		if (ps != null) ps.postDraw(this);		
 	}

@@ -7,6 +7,7 @@ import nl.weeaboo.vn.IPixelShader;
 import nl.weeaboo.vn.IRenderer;
 import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.BaseRenderer;
+import nl.weeaboo.vn.math.Matrix;
 
 public class FreeRotationGS implements IGeometryShader {
 
@@ -36,13 +37,12 @@ public class FreeRotationGS implements IGeometryShader {
 		boolean clip = image.isClipEnabled();
 		BlendMode blend = image.getBlendMode();
 		int argb = image.getColor();
-		double x = image.getX();
-		double y = image.getY();
-		double w = image.getWidth();
-		double h = image.getHeight();
+		Matrix trans = image.getTransform();
+		double w = image.getUnscaledWidth();
+		double h = image.getUnscaledHeight();
 		
 		rr.draw(new RotatedQuadCommand(z, clip, blend, argb, tex,
-					x, y, w, h, ps, rotX, rotY, rotZ));
+					trans, 0, 0, w, h, ps, rotX, rotY, rotZ));
 	}
 	
 	//Getters

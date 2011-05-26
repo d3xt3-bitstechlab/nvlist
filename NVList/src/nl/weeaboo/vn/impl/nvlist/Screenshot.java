@@ -25,7 +25,7 @@ public class Screenshot extends BaseScreenshot {
 	protected void serializePixels(ObjectOutputStream out, int argb[]) throws IOException {
 		if (argb != null && getWidth() > 0 && getHeight() > 0) {
 			ByteChunkOutputStream bout = new ByteChunkOutputStream();
-			TGAUtil.writeTGA(bout, argb, getWidth(), getHeight(), true);
+			TGAUtil.writeTGA(bout, argb, getWidth(), getHeight(), true, true);
 			out.writeInt(bout.size());
 			bout.writeContentsTo(out);
 		} else {

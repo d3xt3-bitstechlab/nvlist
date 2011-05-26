@@ -6,6 +6,7 @@
     <homepage href="${jnlp-homepage}"/>
     <description>${jnlp-description}</description>
     <description kind="short">${jnlp-description}</description>
+    <icon kind="splash" href="splash.jpg"/> 
     <offline-allowed />
   </information>
 
