@@ -15,10 +15,8 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 
 import nl.weeaboo.common.Dim;
-import nl.weeaboo.common.Rect;
 import nl.weeaboo.common.ScaleUtil;
 import nl.weeaboo.gl.GLManager;
-import nl.weeaboo.gl.GLUtil;
 import nl.weeaboo.gl.shader.GLShader;
 import nl.weeaboo.gl.texture.GLGeneratedTexture;
 import nl.weeaboo.gl.texture.GLTexRect;
@@ -33,6 +31,7 @@ import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.BaseBitmapTween;
 import nl.weeaboo.vn.impl.base.BaseRenderer;
 import nl.weeaboo.vn.impl.base.CustomRenderCommand;
+import nl.weeaboo.vn.impl.base.TriangleGrid;
 import nl.weeaboo.vn.math.Matrix;
 
 import org.luaj.vm.LFunction;
@@ -87,7 +86,7 @@ public class BitmapTween extends BaseBitmapTween {
 	}
 
 	@Override
-	protected void prepareFadeTexture(String filename, boolean scaleSmooth, Dim targetSize)
+	protected ITexture prepareFadeTexture(String filename, boolean scaleSmooth, Dim targetSize)
 			throws IOException
 	{
 		BufferedImage src = fac.getBufferedImage(filename);			
@@ -102,7 +101,9 @@ public class BitmapTween extends BaseBitmapTween {
 		fadeTex = fac.createGLTexture(argb, src.getWidth(), src.getHeight(),
 				(scaleSmooth ? GL.GL_LINEAR : GL.GL_NEAREST),
 				(scaleSmooth ? GL.GL_LINEAR : GL.GL_NEAREST),
-				(targetSize == null ? GL.GL_REPEAT : GL.GL_CLAMP_TO_EDGE));		
+				GL.GL_REPEAT);
+		
+		return fac.createTexture(fadeTex, 1, 1);
 	}
 
 	protected BufferedImage fadeImageSubRect(BufferedImage img, int targetW, int targetH) {
@@ -131,46 +132,19 @@ public class BitmapTween extends BaseBitmapTween {
 	}
 	
 	@Override
-	protected void prepareDefaultFadeTexture(int colorARGB) {
+	protected ITexture prepareDefaultFadeTexture(int colorARGB) {
 		int w = 16, h = 16;
 		int[] argb = new int[w * h];
 		Arrays.fill(argb, colorARGB);
 		
-		fadeTex = fac.createGLTexture(argb, w, h, GL.GL_NEAREST, GL.GL_NEAREST, GL.GL_CLAMP_TO_EDGE);		
+		fadeTex = fac.createGLTexture(argb, w, h, GL.GL_NEAREST, GL.GL_NEAREST, GL.GL_CLAMP_TO_EDGE);
+		
+		return fac.createTexture(fadeTex, 1, 1);
 	}
 
 	@Override
 	protected void prepareRemapTexture(int w, int h) {
-		remapTex = fac.createGLTexture(null, w, h,
-				GL.GL_NEAREST, GL.GL_NEAREST, GL.GL_CLAMP_TO_EDGE);
-	}
-
-	@Override
-	protected float[] getOrigUV(int texIndex) {
-		GLTexture tex;
-		Rect crop;
-		if (texIndex >= 0 && texIndex < texs.length) {
-			GLTexRect tr = texs[texIndex];
-			tex = tr.getTexture();
-			crop = tr.getRect();
-		} else if (texIndex == texs.length) {
-			tex = fadeTex;
-			crop = tex.getCrop();
-		} else {
-			throw new ArrayIndexOutOfBoundsException(texIndex);
-		}
-		return GLUtil.getUV(tex.getTexWidth(), tex.getTexHeight(), crop);
-	}
-
-	@Override
-	protected Dim getSize(int texIndex) {
-		if (texIndex >= 0 && texIndex < texs.length) {
-			return new Dim(texs[texIndex].getWidth(), texs[texIndex].getHeight());
-		} else if (texIndex == texs.length) {
-			return new Dim(fadeTex.getCropWidth(), fadeTex.getCropHeight());
-		} else {
-			throw new ArrayIndexOutOfBoundsException(texIndex);
-		}
+		remapTex = fac.createGLTexture(null, w, h, GL.GL_NEAREST, GL.GL_NEAREST, GL.GL_CLAMP_TO_EDGE);
 	}
 
 	@Override
@@ -179,8 +153,8 @@ public class BitmapTween extends BaseBitmapTween {
 	}
 
 	@Override
-	protected void draw(BaseRenderer rr, IImageDrawable img, float[][] origUV, float[][] uv) {
-		rr.draw(new RenderCommand(img, texs, origUV, uv, fadeTex, remapTex, shader));
+	protected void draw(BaseRenderer rr, IImageDrawable img, TriangleGrid grid) {
+		rr.draw(new RenderCommand(img, texs, fadeTex, remapTex, shader, grid));
 	}
 	
 	//Getters
@@ -191,32 +165,24 @@ public class BitmapTween extends BaseBitmapTween {
 	protected static final class RenderCommand extends CustomRenderCommand {
 
 		private final Matrix transform;
-		private final float x, y, w, h;
 		private final GLTexRect[] texs;
-		private final float[][] origUV;
-		private final float[][] uv;
 		private final GLTexture fadeTex;
 		private final GLTexture remapTex;
 		private final GLShader shader;
+		private final TriangleGrid grid;
 		
-		public RenderCommand(IImageDrawable id, GLTexRect[] texs,
-				float[][] origUV, float[][] uv,
-				GLTexture fadeTex, GLTexture remapTex, GLShader shader)
+		public RenderCommand(IImageDrawable id, GLTexRect[] texs, GLTexture fadeTex,
+				GLTexture remapTex, GLShader shader, TriangleGrid grid)
 		{
 			super(id.getZ(), id.isClipEnabled(), id.getBlendMode(), id.getColor(),
 					id.getPixelShader(), (byte)0);
 			
 			this.transform = id.getTransform();
-			this.x = 0f;
-			this.y = 0f;
-			this.w = (float)id.getUnscaledWidth();
-			this.h = (float)id.getUnscaledHeight();			
-			this.texs = texs;
-			this.origUV = origUV;
-			this.uv = uv;
+			this.texs = texs.clone();
 			this.fadeTex = fadeTex;
 			this.remapTex = remapTex;
 			this.shader = shader;
+			this.grid = grid;
 		}
 
 		@Override
@@ -224,10 +190,7 @@ public class BitmapTween extends BaseBitmapTween {
 			Renderer rr = (Renderer)r;			
 			GLManager glm = rr.getGLManager();
 			GL2 gl2 = GLManager.getGL2(glm.getGL());
-			
-			gl2.glPushMatrix();
-			gl2.glMultMatrixf(transform.toGLMatrix(), 0);
-			
+						
 			GLTexture oldTexture = glm.getTexture();
 			glm.setTexture(null);
 			
@@ -250,41 +213,22 @@ public class BitmapTween extends BaseBitmapTween {
 			glm.setShader(shader);
 			
 			//Initialize shader
-			shader.setVec4Param(gl2, "crop0", origUV[0], 0);
-			shader.setVec4Param(gl2, "crop1", origUV[1], 0);
 			shader.setTextureParam(gl2, 0, "src0", texId(texs[0]));
 			shader.setTextureParam(gl2, 1, "src1", texId(texs[1]));
 			shader.setTextureParam(gl2, 2, "fade", texId(fadeTex));
 			shader.setTextureParam(gl2, 3, "remap", texId(remapTex));
 			
-			//Render a quad
-			gl2.glBegin(GL2.GL_QUADS);
-			for (int n = 0; n <= 2; n++) {
-				gl2.glMultiTexCoord2f(GL2.GL_TEXTURE0 + n, uv[n][0], uv[n][2]);
-			}
-			gl2.glVertex2f(x, y);
-			for (int n = 0; n <= 2; n++) {
-				gl2.glMultiTexCoord2f(GL2.GL_TEXTURE0 + n, uv[n][1], uv[n][2]);
-			}
-			gl2.glVertex2f(x+w, y);
-			for (int n = 0; n <= 2; n++) {
-				gl2.glMultiTexCoord2f(GL2.GL_TEXTURE0 + n, uv[n][1], uv[n][3]);
-			}
-			gl2.glVertex2f(x+w, y+h);
-			for (int n = 0; n <= 2; n++) {
-				gl2.glMultiTexCoord2f(GL2.GL_TEXTURE0 + n, uv[n][0], uv[n][3]);
-			}
-			gl2.glVertex2f(x, y+h);
-			gl2.glEnd();
+			//Render geometry
+			gl2.glPushMatrix();
+			gl2.glMultMatrixf(transform.toGLMatrix(), 0);
+			rr.renderTriangleGrid(grid);
+			gl2.glPopMatrix();
 
 			//Disable shader
 			glm.setShader(oldShader);
 						
 			//Restore previous texture
 			glm.setTexture(oldTexture);
-			
-			//Pop matrix
-			gl2.glPopMatrix();
 		}
 		
 		private static final int texId(GLTexRect tr) {

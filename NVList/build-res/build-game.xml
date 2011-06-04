@@ -39,6 +39,18 @@
     ]]>
   </script>
   
+  <path id="javasrc">
+    <fileset dir="${src.dir}" includes="**/*.java" erroronmissingdir="false" />
+  </path>
+  
+  <condition property="javasrc.exists">
+    <resourcecount refid="javasrc" when="greater" count="0" />
+  </condition>
+
+  <path id="javabin">
+    <fileset dir="${bin.dir}" includes="**" erroronmissingdir="false" />
+  </path>
+  
   <path id="classpath">
     <fileset dir="." includes="lib/**/*.jar" />
   </path>
@@ -168,10 +180,10 @@
 <!-- ====================================================================== -->
   
   <!-- Compile source files -->
-  <target name="compile" depends="init">
+  <target name="compile" depends="init" if="javasrc.exists">
     <mkdir dir="${bin.dir}"/>
         
-    <javac srcdir="${src.dir}" destdir="${bin.dir}" encoding="UTF-8" debug="true">
+    <javac srcdir="${src.dir}" destdir="${bin.dir}" encoding="UTF-8" target="1.6" debug="true">        
 	  <classpath refid="classpath" />
 	</javac>
 
@@ -183,16 +195,16 @@
 
   <!-- Do a clean compile and generate the main jar -->
   <target name="jar" depends="compile">
-  	<delete file="${gamedata.dir}/${project-name}.jar" quiet="true" />
+  	<delete file="${gamedata.dir}/${project-name}.jar" />
   	
-    <jar destfile="${gamedata.dir}/${project-name}.jar" basedir="${bin.dir}" includes="**">
-    	
+    <jar destfile="${gamedata.dir}/${project-name}.jar">    	
       <manifest>
         <attribute name="Class-Path" value="${jar-classpath}"/>
         <attribute name="Main-Class" value="${main-class}"/>
         <attribute name="Implementation-Version" value="${DSTAMP}"/>
       </manifest>
       
+      <path refid="javabin" />
       <fileset file="license.txt" />
     </jar> 
   	
@@ -256,10 +268,11 @@
     </move>
     
     <!-- Create library JAR file -->
-    <jar destfile="${dist.dir}/lib/${library.name}.jar" basedir="${bin.dir}" includes="**">    	
+    <jar destfile="${dist.dir}/lib/${library.name}.jar">
       <manifest>
         <attribute name="Implementation-Version" value="${DSTAMP}"/>
       </manifest>
+      <path refid="javabin" />
       <fileset file="license.txt" />
     </jar>
   </target>
@@ -290,12 +303,14 @@
     <delete file="${dist.dir}/res" />
     
     <!-- Create JAR and launchers in dist folder -->
-    <jar destfile="${dist.dir}/${project-name}.jar" basedir="${bin.dir}" includes="**">    	
+    <jar destfile="${dist.dir}/${project-name}.jar">
       <manifest>
         <attribute name="Class-Path" value="${jar-classpath-local}"/>
         <attribute name="Main-Class" value="${main-class}"/>
         <attribute name="Implementation-Version" value="${DSTAMP}"/>
       </manifest>
+      
+      <path refid="javabin" />
       <fileset file="license.txt" />
     </jar>
   	

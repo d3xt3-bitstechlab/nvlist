@@ -92,6 +92,13 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 				width / ss.getScreenWidth(), height / ss.getScreenHeight());
 	}
 	
+	public ITexture createTexture(GLTexture tex, double sx, double sy) {
+		if (tex == null) {
+			return null;
+		}
+		return new TextureAdapter(tex.getTexRect(null), sx, sy);
+	}
+	
 	public GLGeneratedTexture createGLTexture(int[] argb, int w, int h) {
 		return createGLTexture(argb, w, h, 0, 0, 0);
 	}	

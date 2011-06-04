@@ -1,5 +1,6 @@
 package nl.weeaboo.vn.impl.nvlist;
 
+import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.vn.BlendMode;
 import nl.weeaboo.vn.IGeometryShader;
 import nl.weeaboo.vn.IImageDrawable;
@@ -7,30 +8,26 @@ import nl.weeaboo.vn.IPixelShader;
 import nl.weeaboo.vn.IRenderer;
 import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.BaseRenderer;
+import nl.weeaboo.vn.impl.base.BaseShader;
+import nl.weeaboo.vn.impl.base.LayoutUtil;
 import nl.weeaboo.vn.math.Matrix;
+import nl.weeaboo.vn.math.Vec2;
 
-public class FreeRotationGS implements IGeometryShader {
+@LuaSerializable
+public class FreeRotationGS extends BaseShader implements IGeometryShader {
 
 	private static final long serialVersionUID = NVListImpl.serialVersionUID;
 
 	private double rotX, rotY, rotZ;
-	private boolean changed;
 	
 	public FreeRotationGS() {
 	}
 
-	//Functions
+	//Functions	
 	@Override
-	public boolean update(double effectSpeed) {
-		//Nothing to do
-		
-		boolean result = changed;
-		changed = false;
-		return result;
-	}
-	
-	@Override
-	public void draw(IRenderer r, IImageDrawable image, ITexture tex, IPixelShader ps) {
+	public void draw(IRenderer r, IImageDrawable image, ITexture tex,
+			double alignX, double alignY, IPixelShader ps)
+	{
 		BaseRenderer rr = (BaseRenderer)r;
 		
 		short z = image.getZ();
@@ -41,8 +38,9 @@ public class FreeRotationGS implements IGeometryShader {
 		double w = image.getUnscaledWidth();
 		double h = image.getUnscaledHeight();
 		
+		Vec2 offset = LayoutUtil.getImageOffset(tex, alignX, alignY);
 		rr.draw(new RotatedQuadCommand(z, clip, blend, argb, tex,
-					trans, 0, 0, w, h, ps, rotX, rotY, rotZ));
+					trans, offset.x, offset.y, w, h, ps, rotX, rotY, rotZ));
 	}
 	
 	//Getters
@@ -53,7 +51,7 @@ public class FreeRotationGS implements IGeometryShader {
 			rotX = rx;
 			rotY = ry;
 			rotZ = rz;
-			changed = true;
+			markChanged();
 		}
 	}
 	

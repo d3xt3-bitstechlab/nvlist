@@ -5,6 +5,6 @@ void main() {
     gl_TexCoord[1] = gl_MultiTexCoord1;
     gl_TexCoord[2] = gl_MultiTexCoord2;
     
-    gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * gl_Vertex;
+    gl_Position = ftransform(); //gl_ProjectionMatrix * gl_ModelViewMatrix * gl_Vertex;
 	gl_FrontColor = gl_Color;
 }

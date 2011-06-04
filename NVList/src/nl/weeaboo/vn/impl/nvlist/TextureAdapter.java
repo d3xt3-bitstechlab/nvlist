@@ -1,5 +1,6 @@
 package nl.weeaboo.vn.impl.nvlist;
 
+import nl.weeaboo.common.Rect2D;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.vn.ITexture;
@@ -20,13 +21,19 @@ public class TextureAdapter implements ITexture {
 	
 	@Override
 	public String toString() {
-		return String.format("TextureAdapter(%s)", tr.getPath());
+		return String.format("TextureAdapter(%s)", (tr.getPath() != null ? tr.getPath() : tr.getWidth()+"x"+tr.getHeight()));
 	}
 	
 	public GLTexRect getTexRect() {
 		return tr;
 	}
-
+	
+	@Override
+	public Rect2D getUV() {
+		if (tr == null) return new Rect2D(0, 0, 1, 1);
+		return tr.getUV();
+	}
+	
 	@Override
 	public double getWidth() {
 		return tr.getWidth() * scaleX;

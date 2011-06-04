@@ -29,11 +29,10 @@ import static javax.media.opengl.GL2ES1.GL_TEXTURE_ENV;
 import static javax.media.opengl.GL2ES1.GL_TEXTURE_ENV_COLOR;
 import static javax.media.opengl.GL2ES1.GL_TEXTURE_ENV_MODE;
 
-import javax.media.opengl.GL;
 import javax.media.opengl.GL2ES1;
 
+import nl.weeaboo.common.Rect2D;
 import nl.weeaboo.gl.GLManager;
-import nl.weeaboo.gl.GLUtil;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.vn.BlendMode;
@@ -41,31 +40,35 @@ import nl.weeaboo.vn.IPixelShader;
 import nl.weeaboo.vn.IRenderer;
 import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.CustomRenderCommand;
+import nl.weeaboo.vn.impl.base.LayoutUtil;
+import nl.weeaboo.vn.impl.base.TriangleGrid;
+import nl.weeaboo.vn.impl.base.TriangleGrid.TextureWrap;
 import nl.weeaboo.vn.math.Matrix;
-
-import com.sun.opengl.util.BufferUtil;
 
 public class BlendQuadCommand extends CustomRenderCommand {
 
-	private final ITexture tex0, tex1;
+	private final ITexture itex0;
+	private final double alignX0, alignY0;
+	private final ITexture itex1;
+	private final double alignX1, alignY1;
 	private final double frac;
 	private final Matrix transform;
-	private final double x, y, w, h;
 	
 	public BlendQuadCommand(short z, boolean clipEnabled, BlendMode blendMode, int argb,
-		ITexture tex0, ITexture tex1, double frac, Matrix transform,
-		double x, double y, double w, double h, IPixelShader ps)
+		ITexture tex0, double alignX0, double alignY0,
+		ITexture tex1, double alignX1, double alignY1,
+		double frac, Matrix transform, IPixelShader ps)
 	{
 		super(z, clipEnabled, blendMode, argb, ps, (byte)tex0.hashCode());
 		
-		this.tex0 = tex0;
-		this.tex1 = tex1;
+		this.itex0 = tex0;
+		this.alignX0 = alignX0;
+		this.alignY0 = alignY0;
+		this.itex1 = tex1;
+		this.alignX1 = alignX1;
+		this.alignY1 = alignY1;
 		this.frac = frac;
 		this.transform = transform;
-		this.x = x;
-		this.y = y;
-		this.w = w;
-		this.h = h;
 		
 		if (tex0 == null || tex1 == null) {
 			throw new IllegalArgumentException("Crossfade texture args may not be null");
@@ -83,37 +86,40 @@ public class BlendQuadCommand extends CustomRenderCommand {
 		//Init textures
 		GLTexture oldtex = glm.getTexture();
 		
-		GLTexRect tr0 = ((TextureAdapter)tex0).getTexRect();
+		TextureAdapter ta0 = (TextureAdapter)itex0;
+		GLTexRect tr0 = ta0.getTexRect();
 		GLTexture tex0 = tr0.getTexture();
 		tex0.forceLoad(glm);
 				
-		GLTexRect tr1 = ((TextureAdapter)tex1).getTexRect();
+		TextureAdapter ta1 = (TextureAdapter)itex1;
+		GLTexRect tr1 = ta1.getTexRect();
 		GLTexture tex1 = tr1.getTexture();
 		tex1.forceLoad(glm);
 		
-		float[][] uv = new float[][] {
-			GLUtil.getUV(tex0.getTexWidth(), tex0.getTexHeight(), tr0.getRect()),		
-			GLUtil.getUV(tex1.getTexWidth(), tex1.getTexHeight(), tr1.getRect())		
-		};
-
+		Rect2D bounds0 = LayoutUtil.getBounds(itex0, alignX0, alignY0);
+		Rect2D texBounds0 = tr0.getUV();
+		Rect2D bounds1 = LayoutUtil.getBounds(itex1, alignX1, alignY1);
+		Rect2D texBounds1 = tr1.getUV();
+		
 		if (!gl.isExtensionAvailable("GL_ARB_texture_env_crossbar")
 			|| !gl.isExtensionAvailable("GL_ARB_texture_env_combine"))
 		{
 			//Fallback for OpenGL < 1.4
-			
 			gl.glPushMatrix();
 			gl.glMultMatrixf(transform.toGLMatrix(), 0);
 			
 			glm.setTexture(tex0);
 			glm.pushColor();
 			glm.mixColor(1, 1, 1, f);
-			glm.fillRect(x, y, w, h, uv[0][0], uv[0][2], uv[0][1]-uv[0][0], uv[0][3]-uv[0][2]);
+			glm.fillRect(bounds0.x, bounds0.y, bounds0.w, bounds0.h,
+					texBounds0.x, texBounds0.y, texBounds0.w, texBounds0.h);
 			glm.popColor();
 
 			glm.setTexture(tex1);
 			glm.pushColor();
 			glm.mixColor(1, 1, 1, 1-f);
-			glm.fillRect(x, y, w, h, uv[1][0], uv[1][2], uv[1][1]-uv[1][0], uv[1][3]-uv[1][2]);
+			glm.fillRect(bounds1.x, bounds1.y, bounds1.w, bounds1.h,
+					texBounds1.x, texBounds1.y, texBounds1.w, texBounds1.h);
 			glm.popColor();
 
 			glm.setTexture(tex0);
@@ -125,7 +131,7 @@ public class BlendQuadCommand extends CustomRenderCommand {
 		//Set texture 0		
 		gl.glActiveTexture(GL_TEXTURE0);
 		gl.glEnable(GL_TEXTURE_2D);
-		gl.glBindTexture(GL.GL_TEXTURE_2D, tex0.getTexId());
+		gl.glBindTexture(GL_TEXTURE_2D, tex0.getTexId());
 		
 		gl.glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, new float[] {f, f, f, f}, 0);
 		gl.glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
@@ -166,33 +172,14 @@ public class BlendQuadCommand extends CustomRenderCommand {
 		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
 		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_ALPHA, GL_SRC_ALPHA);
 		
+		//Render triangle grid
 		gl.glPushMatrix();
 		gl.glMultMatrixf(transform.toGLMatrix(), 0);
+		TriangleGrid grid = TriangleGrid.layout2(
+				bounds0, texBounds0, TextureWrap.CLAMP,
+				bounds1, texBounds1, TextureWrap.CLAMP);
 		
-		
-		
-		gl.glEnableClientState(GL2ES1.GL_VERTEX_ARRAY);
-	    gl.glVertexPointer(2, GL2ES1.GL_FLOAT, 0, BufferUtil.newFloatBuffer(new float[] {
-	    		(float)x, (float)y, (float)(x+w), (float)y,
-	    		(float)x, (float)(y+h), (float)(x+w), (float)(y+h)}));
-	    
-		for (int n = 0; n <= 1; n++) {			
-			gl.glClientActiveTexture(GL2ES1.GL_TEXTURE0+n);
-		    gl.glEnableClientState(GL2ES1.GL_TEXTURE_COORD_ARRAY);
-		    gl.glTexCoordPointer(2, GL2ES1.GL_FLOAT, 0, BufferUtil.newFloatBuffer(new float[] {
-		    	uv[n][0], uv[n][2], uv[n][1], uv[n][2],
-		    	uv[n][0], uv[n][3], uv[n][1], uv[n][3]
-		    }));
-		}
-		
-	    gl.glDrawArrays(GL2ES1.GL_TRIANGLE_STRIP, 0, 4);
-	    
-		for (int n = 1; n >= 0; n--) {
-			gl.glClientActiveTexture(GL2ES1.GL_TEXTURE0+n);
-			gl.glDisableClientState(GL2ES1.GL_TEXTURE_COORD_ARRAY);
-		}
-	    gl.glDisableClientState(GL2ES1.GL_VERTEX_ARRAY);
-	    
+		rr.renderTriangleGrid(grid);
 	    gl.glPopMatrix();
 		
 		//Reset texture

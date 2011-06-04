@@ -12,7 +12,7 @@ import nl.weeaboo.lua.platform.LuajavaLib;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.IPixelShader;
 import nl.weeaboo.vn.IRenderer;
-import nl.weeaboo.vn.impl.base.BaseTweenShader;
+import nl.weeaboo.vn.impl.base.BaseShader;
 
 import org.luaj.vm.LFunction;
 import org.luaj.vm.LTable;
@@ -20,7 +20,7 @@ import org.luaj.vm.LuaErrorException;
 import org.luaj.vm.LuaState;
 
 @LuaSerializable
-public class GLSLPS extends BaseTweenShader implements IPixelShader {
+public class GLSLPS extends BaseShader implements IPixelShader {
 		
 	private static final long serialVersionUID = NVListImpl.serialVersionUID;
 

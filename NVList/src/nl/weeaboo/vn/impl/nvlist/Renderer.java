@@ -1,5 +1,12 @@
 package nl.weeaboo.vn.impl.nvlist;
 
+import static com.sun.opengl.util.BufferUtil.copyFloatBuffer;
+import static javax.media.opengl.GL.GL_FLOAT;
+import static javax.media.opengl.GL.GL_TEXTURE0;
+import static javax.media.opengl.GL.GL_TRIANGLE_STRIP;
+import static javax.media.opengl.fixedfunc.GLPointerFunc.GL_TEXTURE_COORD_ARRAY;
+import static javax.media.opengl.fixedfunc.GLPointerFunc.GL_VERTEX_ARRAY;
+
 import java.util.Arrays;
 
 import javax.media.opengl.GL2ES1;
@@ -20,6 +27,7 @@ import nl.weeaboo.vn.impl.base.BaseRenderer;
 import nl.weeaboo.vn.impl.base.CustomRenderCommand;
 import nl.weeaboo.vn.impl.base.QuadRenderCommand;
 import nl.weeaboo.vn.impl.base.ScreenshotRenderCommand;
+import nl.weeaboo.vn.impl.base.TriangleGrid;
 import nl.weeaboo.vn.math.Matrix;
 
 public class Renderer extends BaseRenderer {
@@ -58,11 +66,14 @@ public class Renderer extends BaseRenderer {
 	
 	@Override
 	public void drawBlendQuad(short z, boolean clipEnabled, BlendMode blendMode, int argb,
-			ITexture tex0, ITexture tex1, double frac, Matrix trans,
-			double x, double y, double w, double h, IPixelShader ps)
+			ITexture tex0, double alignX0, double alignY0,
+			ITexture tex1, double alignX1, double alignY1,
+			double frac, Matrix trans, IPixelShader ps)
 	{
-		draw(new BlendQuadCommand(z, clipEnabled, blendMode, argb, tex0, tex1, frac,
-				trans, x, y, w, h, ps));
+		draw(new BlendQuadCommand(z, clipEnabled, blendMode, argb,
+				tex0, alignX0, alignY0,
+				tex1, alignX1, alignY1,
+				frac, trans, ps));
 	}
 	
 	@Override
@@ -208,13 +219,21 @@ public class Renderer extends BaseRenderer {
 			GLTexture tex = tr.getTexture();
 			tex.forceLoad(glm);
 			glm.setTexture(tex);
+
+			Rect2D uv = tr.getUV();
+			u  = uv.x + u * uv.w;
+			v  = uv.y + v * uv.h;
+			uw = uv.w * uw;
+			vh = uv.h * vh;
 			
+			/*
 			int tw = tex.getTexWidth();
 			int th = tex.getTexHeight();
 			u  = (tr.getX() + u * tr.getWidth()) / tw;
 			v  = (tr.getY() + v * tr.getHeight()) / th;
 			uw = (uw * tr.getWidth()) / tw;
 			vh = (vh * tr.getHeight()) / th;
+			*/
 		}
 
 		renderQuad(glm, t, x, y, w, h, ps, u, v, uw, vh);
@@ -225,7 +244,7 @@ public class Renderer extends BaseRenderer {
 	{
 		if (ps != null) ps.preDraw(this);
 				
-		GL2ES1 gl = glm.getGL();
+		GL2ES1 gl = glm.getGL();		
 		if (t.hasShear()) {
 			gl.glPushMatrix();		
 			gl.glMultMatrixf(t.toGLMatrix(), 0);
@@ -241,18 +260,32 @@ public class Renderer extends BaseRenderer {
 		if (ps != null) ps.postDraw(this);		
 	}
 	
-	//Getters
 	@Override
-	public double getScale() {
-		return getScale(getWidth(), getHeight(), getRealWidth(), getRealHeight());
+	public void renderTriangleGrid(TriangleGrid grid) {
+		GL2ES1 gl = glm.getGL();
+		gl.glEnableClientState(GL_VERTEX_ARRAY);
+		for (int n = 0; n < grid.getTextures(); n++) {
+			gl.glClientActiveTexture(GL_TEXTURE0 + n);
+			gl.glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		}
+		for (int row = 0; row < grid.getRows(); row++) {
+			gl.glVertexPointer(2, GL_FLOAT, 0, copyFloatBuffer(grid.getPos(row)));
+			for (int n = 0; n < grid.getTextures(); n++) {
+				gl.glClientActiveTexture(GL_TEXTURE0 + n);
+			    gl.glTexCoordPointer(2, GL_FLOAT, 0, copyFloatBuffer(grid.getTex(n, row)));
+			}
+		    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, grid.getVertexCount(row));
+		}
+		for (int n = grid.getTextures()-1; n >= 0; n--) {
+			gl.glClientActiveTexture(GL_TEXTURE0 + n);
+			gl.glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		}
+	    gl.glDisableClientState(GL2ES1.GL_VERTEX_ARRAY);		
 	}
 	
+	//Getters	
 	public GLManager getGLManager() {
 		return glm;
-	}
-	
-	protected static double getScale(int vwidth, int vheight, int rwidth, int rheight) {
-		return Math.min(rwidth/(double)vwidth, rheight/(double)vheight);		
 	}
 		
 	//Setters
