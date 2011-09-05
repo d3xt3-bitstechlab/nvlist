@@ -8,6 +8,7 @@ import java.nio.IntBuffer;
 import javax.media.opengl.GL2ES1;
 
 import nl.weeaboo.awt.ImageUtil;
+import nl.weeaboo.common.Rect2D;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
@@ -144,19 +145,6 @@ public class FadeQuadCommand extends CustomRenderCommand {
 	    public void set(GLTexture tex, boolean horizontal, float start, float end,
 	    		float x, float y, float w, float h, int c0, int c1)
 	    {
-	    	int txx, txy, txw, txh, tw, th;
-	    	if (tex != null && tex.getTexId() != 0) {
-		    	txx = tex.getCropX();
-		    	txy = tex.getCropY();
-		    	txw = tex.getCropWidth();
-		    	txh = tex.getCropHeight();
-		    	tw = tex.getTexWidth();
-		    	th = tex.getTexHeight();
-	    	} else {
-	    		txx = txy = 0;
-	    		txw = txh = tw = th = 1;
-	    	}
-	    		    	
 	    	start = Math.max(0f, Math.min(1f, start));
 	    	end = Math.max(0f, Math.min(1f, end));
 	    	
@@ -165,28 +153,27 @@ public class FadeQuadCommand extends CustomRenderCommand {
     		float y0 = y;
     		float y1 = y + h;
 
-    		float u0 = txx / (float)tw;
-    		float u1 = (txx + txw) / (float)tw;	    		
-    		float v0 = txy / (float)th;
-    		float v1 = (txy + txh) / (float)th;
+    		Rect2D uv = tex.getUV();    		
+	    	float u0 = (float)(uv.x);
+	    	float v0 = (float)(uv.y);
+	    	float u1 = (float)(uv.x+uv.w);
+	    	float v1 = (float)(uv.y+uv.h);
     		
 	    	float uva, uvb, posa, posb;
 	    	if (horizontal) {
-	    		uva = (txx + start * txw) / (float)tw;
-	    		uvb = (txx + end * txw) / (float)tw;
+	    		uva = (float)(uv.x + start * uv.w);
+	    		uvb = (float)(uv.x + end * uv.w);
 	    		posa = x + start * w;
 	    		posb = x + end * w;
 	    	} else {
-	    		uva = (txy + start * txh) / (float)th;
-	    		uvb = (txy + end * txh) / (float)th;
+	    		uva = (float)(uv.y + start * uv.h);
+	    		uvb = (float)(uv.y + end * uv.h);
 	    		posa = y + start * h;
 	    		posb = y + end * h;
-
-	    		//System.out.println(y0 + " " + posa + " " + posb + " " + y1 + " " + Integer.toHexString(c0) + " " + Integer.toHexString(c1));
 	    	}
 	    	
     		//System.out.printf("(%d, %d, %d, %d) (%.1f, %.1f, %.1f, %.1f)\n", ix0, iposa, iposb, ix1, u0, uva, uvb, u1);
-    		
+	    	
 	    	//Colors must be in ABGR for OpenGL
 	    	c0 = ImageUtil.premultiplyAlpha(c0);
 	    	c0 = (c0&0xFF000000) | ((c0<<16)&0xFF0000) | (c0&0xFF00) | ((c0>>16)&0xFF);

@@ -18,7 +18,9 @@ import nl.weeaboo.vn.impl.base.Obfuscator;
 
 public class Launcher extends nl.weeaboo.game.Launcher {
 	
-	public Launcher() {		
+	public Launcher() {
+		super();
+		
 		setObfuscator(Obfuscator.getInstance());
 	}
 	
@@ -40,7 +42,8 @@ public class Launcher extends nl.weeaboo.game.Launcher {
 	
 	//Getters
 	protected String[] getZipFilenames(String gameId) {
-		return new String[] {"res.zip", gameId+".nvl"};		
+		return new String[] {"res.zip", "res.nvl",
+				gameId+".zip", gameId+".nvl"};		
 	}
 	
 	//Setters

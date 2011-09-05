@@ -110,10 +110,10 @@ public class Renderer extends BaseRenderer {
 		if (bounds == null) {
 			cx = rx; cy = ry; cw = rw; ch = rh;
 		} else {
-			cx = rx + Math.max(0, Math.min(rw, (int)Math.round(bounds.x * getScale())));
-			cy = ry + Math.max(0, Math.min(rh, (int)Math.round(bounds.y * getScale())));
-			cw = Math.max(0, Math.min(rw, (int)Math.round(bounds.w * getScale())));
-			ch = Math.max(0, Math.min(rh, (int)Math.round(bounds.h * getScale())));
+			cx = rx + Math.max(0, Math.min(rw, (int)Math.ceil(bounds.x * getScale())));
+			cy = ry + Math.max(0, Math.min(rh, (int)Math.ceil(bounds.y * getScale())));
+			cw = Math.max(0, Math.min(rw, (int)Math.floor(bounds.w * getScale())));
+			ch = Math.max(0, Math.min(rh, (int)Math.floor(bounds.h * getScale())));
 		}
 		gl.glScissor(cx, sh-cy-ch, cw, ch);
 				

@@ -47,6 +47,11 @@ import nl.weeaboo.vn.math.Matrix;
 
 public class BlendQuadCommand extends CustomRenderCommand {
 
+	public static String[] REQUIRED_EXTENSIONS = new String[] {
+		"GL_ARB_texture_env_crossbar",
+		"GL_ARB_texture_env_combine"
+	};
+	
 	private final ITexture itex0;
 	private final double alignX0, alignY0;
 	private final ITexture itex1;
@@ -59,7 +64,7 @@ public class BlendQuadCommand extends CustomRenderCommand {
 		ITexture tex1, double alignX1, double alignY1,
 		double frac, Matrix transform, IPixelShader ps)
 	{
-		super(z, clipEnabled, blendMode, argb, ps, (byte)tex0.hashCode());
+		super(z, clipEnabled, blendMode, argb, ps, tex0 != null ? (byte)tex0.hashCode() : 0);
 		
 		this.itex0 = tex0;
 		this.alignX0 = alignX0;
@@ -101,13 +106,19 @@ public class BlendQuadCommand extends CustomRenderCommand {
 		Rect2D bounds1 = LayoutUtil.getBounds(itex1, alignX1, alignY1);
 		Rect2D texBounds1 = tr1.getUV();
 		
-		if (!gl.isExtensionAvailable("GL_ARB_texture_env_crossbar")
-			|| !gl.isExtensionAvailable("GL_ARB_texture_env_combine"))
-		{
-			//Fallback for OpenGL < 1.4
-			gl.glPushMatrix();
-			gl.glMultMatrixf(transform.toGLMatrix(), 0);
-			
+		//Check if all extensions are available
+		boolean extensionsAvailable = true;
+		for (String ext : REQUIRED_EXTENSIONS) {
+			if (!gl.isExtensionAvailable(ext)) {
+				extensionsAvailable = false;
+				break;
+			}
+		}
+		
+		gl.glPushMatrix();
+		gl.glMultMatrixf(transform.toGLMatrix(), 0);		
+		if (!extensionsAvailable) {
+			//Fallback for OpenGL < 1.4			
 			glm.setTexture(tex0);
 			glm.pushColor();
 			glm.mixColor(1, 1, 1, f);
@@ -123,76 +134,70 @@ public class BlendQuadCommand extends CustomRenderCommand {
 			glm.popColor();
 
 			glm.setTexture(tex0);
-			gl.glPopMatrix();
+		} else {		
+			//Set texture 0		
+			gl.glActiveTexture(GL_TEXTURE0);
+			gl.glEnable(GL_TEXTURE_2D);
+			gl.glBindTexture(GL_TEXTURE_2D, tex0.getTexId());
 			
-			return;
-		}
-		
-		//Set texture 0		
-		gl.glActiveTexture(GL_TEXTURE0);
-		gl.glEnable(GL_TEXTURE_2D);
-		gl.glBindTexture(GL_TEXTURE_2D, tex0.getTexId());
-		
-		gl.glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, new float[] {f, f, f, f}, 0);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-		
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_INTERPOLATE);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_TEXTURE0);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_TEXTURE1);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC2_RGB, GL_CONSTANT);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND2_RGB, GL_SRC_COLOR);
-
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_INTERPOLATE);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_ALPHA, GL_TEXTURE0);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_ALPHA, GL_TEXTURE1);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC2_ALPHA, GL_CONSTANT);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_ALPHA, GL_SRC_ALPHA);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND2_ALPHA, GL_SRC_ALPHA);
-		
-		// Set texture 1
-		gl.glActiveTexture(GL_TEXTURE1);
-		gl.glEnable(GL_TEXTURE_2D);
-		gl.glBindTexture(GL_TEXTURE_2D, tex1.getTexId());
-		
-		gl.glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, new float[] {1, 1, 1, 1}, 0);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-		
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_PREVIOUS);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_PRIMARY_COLOR);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_INTERPOLATE);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_ALPHA, GL_PREVIOUS);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_ALPHA, GL_PRIMARY_COLOR);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_ALPHA, GL_SRC_ALPHA);
-		
-		//Render triangle grid
-		gl.glPushMatrix();
-		gl.glMultMatrixf(transform.toGLMatrix(), 0);
-		TriangleGrid grid = TriangleGrid.layout2(
-				bounds0, texBounds0, TextureWrap.CLAMP,
-				bounds1, texBounds1, TextureWrap.CLAMP);
-		
-		rr.renderTriangleGrid(grid);
-	    gl.glPopMatrix();
-		
-		//Reset texture
-		gl.glActiveTexture(GL_TEXTURE1);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-		gl.glDisable(GL_TEXTURE_2D);
-		gl.glActiveTexture(GL_TEXTURE0);
-		gl.glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-		if (oldtex != null) {
-			gl.glBindTexture(GL_TEXTURE_2D, oldtex.getTexId());
-		} else {
+			gl.glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, new float[] {f, f, f, f}, 0);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+			
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_INTERPOLATE);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_TEXTURE0);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_TEXTURE1);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC2_RGB, GL_CONSTANT);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND2_RGB, GL_SRC_COLOR);
+	
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_INTERPOLATE);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_ALPHA, GL_TEXTURE0);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_ALPHA, GL_TEXTURE1);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC2_ALPHA, GL_CONSTANT);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_ALPHA, GL_SRC_ALPHA);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND2_ALPHA, GL_SRC_ALPHA);
+			
+			// Set texture 1
+			gl.glActiveTexture(GL_TEXTURE1);
+			gl.glEnable(GL_TEXTURE_2D);
+			gl.glBindTexture(GL_TEXTURE_2D, tex1.getTexId());
+			
+			gl.glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, new float[] {1, 1, 1, 1}, 0);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+			
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_PREVIOUS);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_PRIMARY_COLOR);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
+	
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_INTERPOLATE);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_ALPHA, GL_PREVIOUS);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_ALPHA, GL_PRIMARY_COLOR);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_ALPHA, GL_SRC_ALPHA);
+			
+			//Render triangle grid
+			TriangleGrid grid = TriangleGrid.layout2(
+					bounds0, texBounds0, TextureWrap.CLAMP,
+					bounds1, texBounds1, TextureWrap.CLAMP);			
+			rr.renderTriangleGrid(grid);
+			
+			//Reset texture
+			gl.glActiveTexture(GL_TEXTURE1);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 			gl.glDisable(GL_TEXTURE_2D);
+			gl.glActiveTexture(GL_TEXTURE0);
+			gl.glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+			if (oldtex != null) {
+				gl.glBindTexture(GL_TEXTURE_2D, oldtex.getTexId());
+			} else {
+				gl.glDisable(GL_TEXTURE_2D);
+			}
 		}
+	    gl.glPopMatrix();
 	}
 	
 	//Getters

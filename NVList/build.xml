@@ -44,7 +44,7 @@
     <delete file="${dist.dir}/${project-name}-src.zip" />
 
     <echo>Obfuscating resources (this may take a while)...</echo>
-    <obfuscate />    
+    <obfuscate />
   </target>
   
   <target name="backup" depends="init">

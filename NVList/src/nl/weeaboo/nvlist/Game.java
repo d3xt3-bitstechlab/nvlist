@@ -7,6 +7,9 @@ import static nl.weeaboo.nvlist.NovelPrefs.AUTO_READ;
 import static nl.weeaboo.nvlist.NovelPrefs.AUTO_READ_WAIT;
 import static nl.weeaboo.nvlist.NovelPrefs.EFFECT_SPEED;
 import static nl.weeaboo.nvlist.NovelPrefs.ENGINE_MIN_VERSION;
+import static nl.weeaboo.nvlist.NovelPrefs.PRELOADER_LOOK_AHEAD;
+import static nl.weeaboo.nvlist.NovelPrefs.PRELOADER_MAX_PER_LINE;
+import static nl.weeaboo.nvlist.NovelPrefs.TEXTLOG_PAGE_LIMIT;
 import static nl.weeaboo.nvlist.NovelPrefs.TEXT_SPEED;
 
 import java.awt.event.KeyEvent;
@@ -47,7 +50,7 @@ import nl.weeaboo.vn.IInput;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.INovelConfig;
 import nl.weeaboo.vn.IPersistentStorage;
-import nl.weeaboo.vn.IScriptFactory;
+import nl.weeaboo.vn.IScriptLib;
 import nl.weeaboo.vn.ISeenLog;
 import nl.weeaboo.vn.IStorage;
 import nl.weeaboo.vn.ITextState;
@@ -57,11 +60,11 @@ import nl.weeaboo.vn.impl.base.BaseNovelConfig;
 import nl.weeaboo.vn.impl.base.NullAnalytics;
 import nl.weeaboo.vn.impl.base.PreloaderData;
 import nl.weeaboo.vn.impl.lua.EnvLuaSerializer;
+import nl.weeaboo.vn.impl.lua.LuaMediaPreloader;
 import nl.weeaboo.vn.impl.nvlist.Analytics;
 import nl.weeaboo.vn.impl.nvlist.Globals;
-import nl.weeaboo.vn.impl.nvlist.GuiFactory;
 import nl.weeaboo.vn.impl.nvlist.ImageFactory;
-import nl.weeaboo.vn.impl.nvlist.ImageFxFactory;
+import nl.weeaboo.vn.impl.nvlist.ImageFxLib;
 import nl.weeaboo.vn.impl.nvlist.ImageState;
 import nl.weeaboo.vn.impl.nvlist.InputAdapter;
 import nl.weeaboo.vn.impl.nvlist.Movie;
@@ -69,12 +72,14 @@ import nl.weeaboo.vn.impl.nvlist.Novel;
 import nl.weeaboo.vn.impl.nvlist.NovelNotifier;
 import nl.weeaboo.vn.impl.nvlist.Renderer;
 import nl.weeaboo.vn.impl.nvlist.SaveHandler;
-import nl.weeaboo.vn.impl.nvlist.ScriptFactory;
+import nl.weeaboo.vn.impl.nvlist.ScriptLib;
 import nl.weeaboo.vn.impl.nvlist.SeenLog;
 import nl.weeaboo.vn.impl.nvlist.SoundFactory;
 import nl.weeaboo.vn.impl.nvlist.SoundState;
+import nl.weeaboo.vn.impl.nvlist.SystemLib;
 import nl.weeaboo.vn.impl.nvlist.SystemVars;
 import nl.weeaboo.vn.impl.nvlist.TextState;
+import nl.weeaboo.vn.impl.nvlist.TweenLib;
 import nl.weeaboo.vn.impl.nvlist.VideoFactory;
 import nl.weeaboo.vn.impl.nvlist.VideoState;
 
@@ -185,13 +190,15 @@ public class Game extends BaseGame {
 			}
 		}
 		
+		SystemLib syslib = new SystemLib(this);
 		ImageFactory imgfac = new ImageFactory(texCache, shCache, trStore,
-				an, seenLog, notifier, imgSize.w, imgSize.h, nvlSize.w, nvlSize.h);
-		ImageFxFactory imgfxfac = new ImageFxFactory(imgfac);
+				an, seenLog, notifier, syslib.isTouchScreen(),
+				imgSize.w, imgSize.h, nvlSize.w, nvlSize.h);
+		ImageFxLib fxlib = new ImageFxLib(imgfac);
 		SoundFactory sndfac = new SoundFactory(sm, an, seenLog, notifier);
 		VideoFactory vidfac = new VideoFactory(fm, texCache, resCache, seenLog, notifier);		
-		GuiFactory guifac = new GuiFactory(this);
-		IScriptFactory scrfac = new ScriptFactory(fm, notifier);
+		IScriptLib scrlib = new ScriptLib(fm, notifier);
+		TweenLib tweenLib = new TweenLib(imgfac, notifier);
 		
 		ImageState is = new ImageState(nvlSize.w, nvlSize.h);		
 		SoundState ss = new SoundState(sndfac);
@@ -200,8 +207,9 @@ public class Game extends BaseGame {
 		IInput in = new InputAdapter(getInput());	
 		IStorage globals = new Globals();
 				
-		novel = new Novel(novelConfig, imgfac, is, imgfxfac, sndfac, ss, vidfac, vs, ts,
-				notifier, in, guifac, saveHandler, scrfac, sysVars, globals, seenLog, an,
+		novel = new Novel(novelConfig, imgfac, is, fxlib, sndfac, ss, vidfac, vs, ts,
+				notifier, in, syslib, saveHandler, scrlib, tweenLib, sysVars, globals,
+				seenLog, an,
 				fm, getKeyConfig());
         luaSerializer = new EnvLuaSerializer();
         saveHandler.setNovel(novel, luaSerializer);
@@ -362,6 +370,13 @@ public class Game extends BaseGame {
 			ITextState ts = novel.getTextState();
 			if (ts != null) {
 				ts.setBaseTextSpeed(config.get(TEXT_SPEED));
+				ts.getTextLog().setPageLimit(config.get(TEXTLOG_PAGE_LIMIT));
+			}
+			
+			LuaMediaPreloader preloader = novel.getPreloader();
+			if (preloader != null) {
+				preloader.setLookAhead(config.get(PRELOADER_LOOK_AHEAD));
+				preloader.setMaxItemsPerLine(config.get(PRELOADER_MAX_PER_LINE));
 			}
 			
 			novel.setScriptDebug(isDebug());

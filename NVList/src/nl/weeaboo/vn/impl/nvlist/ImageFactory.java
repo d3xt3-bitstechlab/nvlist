@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 
+import nl.weeaboo.gl.GLInfo;
 import nl.weeaboo.gl.shader.GLShader;
 import nl.weeaboo.gl.shader.ShaderCache;
 import nl.weeaboo.gl.text.GLTextRendererStore;
@@ -33,9 +34,11 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	private final TextureCache texCache;
 	private final ShaderCache shCache;
 	private final GLTextRendererStore trStore;
+	private final boolean isTouchScreen;
 	
 	public ImageFactory(TextureCache tc, ShaderCache sc, GLTextRendererStore trStore,
-			IAnalytics an, ISeenLog sl, INotifier ntf, int iw, int ih, int w, int h)
+			IAnalytics an, ISeenLog sl, INotifier ntf, boolean isTouchScreen,
+			int iw, int ih, int w, int h)
 	{
 		super(sl, ntf, iw, ih, w, h);
 		
@@ -43,7 +46,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 		this.texCache = tc;
 		this.shCache = sc;
 		this.trStore = trStore;		
-
+		this.isTouchScreen = isTouchScreen;
 		this.es = new EnvironmentSerializable(this);
 	}
 	
@@ -69,7 +72,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 
 	@Override
 	public IButtonDrawable createButtonDrawable() {
-		return new ButtonDrawable();
+		return new ButtonDrawable(isTouchScreen);
 	}
 	
 	@Override
@@ -152,6 +155,11 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 		
 	public String getGlslVersion() {
 		return shCache.getGlslVersion();
+	}
+	
+	public boolean isGLExtensionAvailable(String ext) {
+		GLInfo info = texCache.getGLInfo();
+		return info != null && info.isExtensionAvailable(ext);
 	}
 
 	@Override

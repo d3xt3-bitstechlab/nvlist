@@ -42,7 +42,7 @@ public class Analytics extends BaseAnalytics implements Serializable {
 			notifier.w("Error saving analytics", ioe);
 		}
 	}
-
+	
 	@Override
 	protected InputStream openInputStream(String filename) throws IOException {
 		if (fm.getFileExists(filename) && fm.getFileSize(filename) > 0) {

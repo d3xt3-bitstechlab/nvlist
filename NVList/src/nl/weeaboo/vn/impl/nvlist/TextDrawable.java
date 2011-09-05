@@ -8,7 +8,6 @@ import nl.weeaboo.styledtext.StyledText;
 import nl.weeaboo.textlayout.TextLayout;
 import nl.weeaboo.vn.IRenderer;
 import nl.weeaboo.vn.impl.base.BaseTextDrawable;
-import nl.weeaboo.vn.math.Matrix;
 
 @LuaSerializable
 public class TextDrawable extends BaseTextDrawable {
@@ -42,7 +41,7 @@ public class TextDrawable extends BaseTextDrawable {
 			if (bgAlpha > 0) {
 				int c = (bgAlpha<<24)|(bgColor&0xFFFFFF);
 				rr.drawQuad((short)(getZ()+1), isClipEnabled(), getBlendMode(), c, null,
-						Matrix.identityMatrix(), getX(), getY(), getWidth(), getHeight(),
+						getTransform(), 0, 0, getWidth(), getHeight(),
 						getPixelShader());
 			}
 		}

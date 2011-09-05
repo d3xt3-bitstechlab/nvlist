@@ -1,14 +1,10 @@
 package nl.weeaboo.vn.impl.nvlist;
 
-import static nl.weeaboo.vn.impl.base.Interpolators.BUTTERWORTH;
-import static nl.weeaboo.vn.impl.base.Interpolators.getInterpolator;
-
 import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Arrays;
 
 import javax.media.opengl.GL;
@@ -22,7 +18,6 @@ import nl.weeaboo.gl.texture.GLGeneratedTexture;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.lua.io.LuaSerializable;
-import nl.weeaboo.lua.platform.LuajavaLib;
 import nl.weeaboo.vn.IImageDrawable;
 import nl.weeaboo.vn.IInterpolator;
 import nl.weeaboo.vn.INotifier;
@@ -33,11 +28,6 @@ import nl.weeaboo.vn.impl.base.BaseRenderer;
 import nl.weeaboo.vn.impl.base.CustomRenderCommand;
 import nl.weeaboo.vn.impl.base.TriangleGrid;
 import nl.weeaboo.vn.math.Matrix;
-
-import org.luaj.vm.LFunction;
-import org.luaj.vm.LTable;
-import org.luaj.vm.LuaErrorException;
-import org.luaj.vm.LuaState;
 
 @LuaSerializable
 public class BitmapTween extends BaseBitmapTween {
@@ -63,12 +53,10 @@ public class BitmapTween extends BaseBitmapTween {
 	}
 	
 	//Functions
-	public static void install(LTable globals, final ImageFactory ifac, final INotifier ntf) {
-		LTable table = new LTable();
-		BitmapTweenLib.install(table, ifac, ntf);
-		globals.put("BitmapTween", table);
+	public static boolean isAvailable(String glslVersion) {
+		return requiredGlslVersion.compareTo(glslVersion) <= 0;
 	}
-				
+	
 	@Override
 	protected void prepareShader() {
 		shader = fac.getGLShader("bitmap-tween");
@@ -86,9 +74,9 @@ public class BitmapTween extends BaseBitmapTween {
 	}
 
 	@Override
-	protected ITexture prepareFadeTexture(String filename, boolean scaleSmooth, Dim targetSize)
-			throws IOException
-	{
+	protected ITexture prepareFadeTexture(String filename, boolean scaleSmooth,
+			boolean tile, Dim targetSize) throws IOException
+	{		
 		BufferedImage src = fac.getBufferedImage(filename);			
 		if (targetSize != null) {
 			//Take the region of the image we want to use
@@ -101,7 +89,7 @@ public class BitmapTween extends BaseBitmapTween {
 		fadeTex = fac.createGLTexture(argb, src.getWidth(), src.getHeight(),
 				(scaleSmooth ? GL.GL_LINEAR : GL.GL_NEAREST),
 				(scaleSmooth ? GL.GL_LINEAR : GL.GL_NEAREST),
-				GL.GL_REPEAT);
+				(tile ? GL.GL_REPEAT : GL.GL_CLAMP_TO_EDGE));
 		
 		return fac.createTexture(fadeTex, 1, 1);
 	}
@@ -213,10 +201,10 @@ public class BitmapTween extends BaseBitmapTween {
 			glm.setShader(shader);
 			
 			//Initialize shader
-			shader.setTextureParam(gl2, 0, "src0", texId(texs[0]));
-			shader.setTextureParam(gl2, 1, "src1", texId(texs[1]));
-			shader.setTextureParam(gl2, 2, "fade", texId(fadeTex));
-			shader.setTextureParam(gl2, 3, "remap", texId(remapTex));
+			shader.setTextureParam(gl2, "src0",  0, texId(texs[0]));
+			shader.setTextureParam(gl2, "src1",  1, texId(texs[1]));
+			shader.setTextureParam(gl2, "fade",  2, texId(fadeTex));
+			shader.setTextureParam(gl2, "remap", 3, texId(remapTex));
 			
 			//Render geometry
 			gl2.glPushMatrix();
@@ -236,65 +224,6 @@ public class BitmapTween extends BaseBitmapTween {
 		}
 		private static final int texId(GLTexture tex) {
 			return (tex != null ? tex.getTexId() : 0);
-		}
-		
-	}
-	
-	@LuaSerializable
-	private static class BitmapTweenLib extends LFunction implements Serializable {
-		
-		private static final long serialVersionUID = NVListImpl.serialVersionUID;
-
-		private static final String[] NAMES = {
-			"new",
-			"isAvailable"
-		};
-
-		private static final int NEW = 0;
-		private static final int IS_AVAILABLE = 1;
-		
-		private final int id;
-		private final ImageFactory fac;
-		private final INotifier ntf;
-		
-		private BitmapTweenLib(int id, ImageFactory fac, INotifier ntf) {
-			this.id = id;
-			this.fac = fac;
-			this.ntf = ntf;
-		}
-		
-		public static void install(LTable table, ImageFactory fac, INotifier ntf) {
-			for (int n = 0; n < NAMES.length; n++) {
-				table.put(NAMES[n], new BitmapTweenLib(n, fac, ntf));
-			}
-		}
-
-		@Override
-		public int invoke(LuaState vm) {
-			switch (id) {
-			case NEW: return newBitmapTween(vm);
-			case IS_AVAILABLE: return isAvailable(vm);
-			default:
-				throw new LuaErrorException("Invalid function id: " + id);
-			}
-		}
-		
-		protected int newBitmapTween(LuaState vm) {
-			String fadeFilename = (vm.isstring(1) ? vm.tostring(1) : null);
-			double duration = vm.tonumber(2);
-			double range = vm.tonumber(3);
-			IInterpolator i = getInterpolator(vm, vm.topointer(4), BUTTERWORTH);
-			vm.resettop();
-			BitmapTween tween = new BitmapTween(fac, ntf, fadeFilename, duration, range,
-					i, true, false);
-			vm.pushlvalue(LuajavaLib.toUserdata(tween, tween.getClass()));
-			return 1;
-		}
-		
-		protected int isAvailable(LuaState vm) {
-			vm.resettop();
-			vm.pushboolean(fac.getGlslVersion().compareTo(requiredGlslVersion) >= 0);
-			return 1;
 		}
 		
 	}

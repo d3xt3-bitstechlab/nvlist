@@ -19,7 +19,7 @@ public class QuitItem extends GameMenuAction {
 	@Override
 	public void actionPerformed(JMenuItem item, ActionEvent e, final Game game, Novel nvl) {
 		if (nvl != null) {
-			nvl.getGuiFactory().exit(false);
+			nvl.getSystemLib().exit(false);
 		} else {
 			game.stop(false, new Runnable() {
 				public void run() {

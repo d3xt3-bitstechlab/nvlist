@@ -91,7 +91,7 @@
     <delete file="${build-res.dir}/installer.ini" />
   </target>
 
-  <target name="make-mac-bundle">
+  <target name="make-installer-mac">
     <echo>Creating Mac OSX application bundle (may take a long time)...</echo>
     
     <tstamp />
@@ -118,10 +118,11 @@
       <javafileset dir="lib/mac/amd64" />
       
       <!-- Include resources -->
+      <resourcefileset dir="${dist.dir}/res" />
       <resourcefileset dir="${dist.dir}" includes="*.zip,*.nvl" />
     </jarbundler>
     
-    <zip destfile="${releases.dir}/${project-name}-MacOSX-${DSTAMP}.zip"
+    <zip destfile="${releases.dir}/${project-name}-mac-${DSTAMP}.zip"
             compress="true" encoding="UTF-8">
             
       <zipfileset dir="${dist.dir}/${project-name}.app" prefix="${project-name}.app"

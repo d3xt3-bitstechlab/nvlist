@@ -4,6 +4,7 @@ import static nl.weeaboo.gl.texture.GLTexUtil.getDefaultPixelFormatARGB;
 import static nl.weeaboo.gl.texture.GLTexUtil.getDefaultPixelTypeARGB;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.nio.IntBuffer;
 import java.util.concurrent.ThreadFactory;
@@ -70,7 +71,11 @@ public final class Movie extends BaseVideo {
 				return new Thread(r, "VideoPlayer-" + (++id));
 			}
 		});				
-		player.setInput(StreamUtil.getOggInput(vfac.getVideoInputStream(filename)));
+		
+		InputStream in = vfac.getVideoInputStream(filename);
+		//in = new ByteArrayInputStream(nl.weeaboo.io.StreamUtil.readFully(in));
+		player.setInput(StreamUtil.getOggInput(in));
+		//player.setInput(new BasicOggInput(vfac.getVideoInputStream(filename)));
 		
 		if (textures == null) {
 			textures = new GLGeneratedTexture[2];

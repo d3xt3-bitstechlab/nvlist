@@ -10,14 +10,14 @@ import nl.weeaboo.io.EnvironmentSerializable;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.vn.IImageFactory;
 import nl.weeaboo.vn.ITexture;
-import nl.weeaboo.vn.impl.base.BaseImageFxFactory;
+import nl.weeaboo.vn.impl.base.BaseImageFxLib;
 
 @LuaSerializable
-public class ImageFxFactory extends BaseImageFxFactory implements Serializable {
+public class ImageFxLib extends BaseImageFxLib implements Serializable {
 
 	private final EnvironmentSerializable es;
 	
-	public ImageFxFactory(IImageFactory imgfac) {
+	public ImageFxLib(IImageFactory imgfac) {
 		super(imgfac);
 		
 		this.es = new EnvironmentSerializable(this);

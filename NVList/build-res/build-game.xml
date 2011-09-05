@@ -34,10 +34,16 @@
         importPackage(java.io);
     
         project.setProperty("project-name-url", escape(project.getProperty("project-name")));
-        var basedir = project.getProperty("basedir");
-        project.setProperty("library.name", basedir.substring(basedir.lastIndexOf(File.separator)+1).toLowerCase());
+        
+        if (project.getProperty("gamedata.dir") == ".") {
+            project.setProperty("jar-lib-basedir", "");
+        } else {
+            project.setProperty("jar-lib-basedir", escape("/" + project.getProperty("basedir")) + "/");
+        }
     ]]>
   </script>
+  
+  <basename property="library.name" file="${basedir}" />
   
   <path id="javasrc">
     <fileset dir="${src.dir}" includes="**/*.java" erroronmissingdir="false" />
@@ -54,13 +60,9 @@
   <path id="classpath">
     <fileset dir="." includes="lib/**/*.jar" />
   </path>
-  
-  <condition property="jar-lib-basedir" value="" else="/${basedir}/">
-    <equals arg1="${gamedata.dir}" arg2="." />
-  </condition>
-  
+    
   <!-- Absolute paths to JARs -->
-  <pathconvert property="jar-classpath" targetos="unix" pathsep=" " dirsep="/" refid="classpath">
+  <pathconvert property="jar-classpath" pathsep=" " dirsep="/" refid="classpath">
     <map from="${basedir}/" to="${jar-lib-basedir}" />
     <map from=" " to="\ " />
   </pathconvert>

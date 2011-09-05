@@ -12,26 +12,26 @@ import nl.weeaboo.lua.LuaRunState;
 import nl.weeaboo.lua.LuaUtil;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.vn.IAnalytics;
-import nl.weeaboo.vn.IGuiFactory;
-import nl.weeaboo.vn.IImageFactory;
-import nl.weeaboo.vn.IImageFxFactory;
+import nl.weeaboo.vn.IImageFxLib;
 import nl.weeaboo.vn.IImageState;
 import nl.weeaboo.vn.IInput;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.INovelConfig;
 import nl.weeaboo.vn.IPersistentStorage;
 import nl.weeaboo.vn.ISaveHandler;
-import nl.weeaboo.vn.IScriptFactory;
+import nl.weeaboo.vn.IScriptLib;
 import nl.weeaboo.vn.ISeenLog;
 import nl.weeaboo.vn.ISoundFactory;
 import nl.weeaboo.vn.ISoundState;
 import nl.weeaboo.vn.IStorage;
+import nl.weeaboo.vn.ISystemLib;
 import nl.weeaboo.vn.ITextState;
 import nl.weeaboo.vn.IVideoFactory;
 import nl.weeaboo.vn.IVideoState;
 import nl.weeaboo.vn.impl.lua.AbstractKeyCodeMetaFunction;
 import nl.weeaboo.vn.impl.lua.LuaMediaPreloader;
 import nl.weeaboo.vn.impl.lua.LuaNovel;
+import nl.weeaboo.vn.impl.lua.LuaTweenLib;
 
 import org.luaj.vm.LInteger;
 import org.luaj.vm.LNil;
@@ -47,14 +47,14 @@ public class Novel extends LuaNovel {
 	
 	// !!WARNING!! Do not add properties without adding code for saving/loading
 	
-	public Novel(INovelConfig nc, IImageFactory imgfac, IImageState is, IImageFxFactory imgfxfac,
+	public Novel(INovelConfig nc, ImageFactory imgfac, IImageState is, IImageFxLib fxlib,
 			ISoundFactory sndfac, ISoundState ss, IVideoFactory vf, IVideoState vs,
-			ITextState ts, INotifier n, IInput in, IGuiFactory guifac, ISaveHandler sh,
-			IScriptFactory scrfac, IPersistentStorage sysVars, IStorage globals,
+			ITextState ts, INotifier n, IInput in, ISystemLib syslib, ISaveHandler sh,
+			IScriptLib scrlib, LuaTweenLib tl, IPersistentStorage sysVars, IStorage globals,
 			ISeenLog seenLog, IAnalytics analytics,
 			FileManager fm, IKeyConfig kc)
 	{
-		super(nc, imgfac, is, imgfxfac, sndfac, ss, vf, vs, ts, n, in, guifac, sh, scrfac,
+		super(nc, imgfac, is, fxlib, sndfac, ss, vf, vs, ts, n, in, syslib, sh, scrlib, tl,
 				sysVars, globals, seenLog, analytics);
 		
 		this.fm = fm;
@@ -105,7 +105,6 @@ public class Novel extends LuaNovel {
 		}
 		
 		LTable globals = vm._G;
-		BitmapTween.install(globals, (ImageFactory)getImageFactory(), getNotifier());
 		GLSLPS.install(globals, (ImageFactory)getImageFactory(), getNotifier());
 	}
 
@@ -123,9 +122,7 @@ public class Novel extends LuaNovel {
 			t = t.getCause();
 		}
 		
-		getNotifier().e(message, t);
-		
-		//printStackTrace(System.out);
+		getNotifier().e(message, t);		
 		
 		setWait(60);
 	}

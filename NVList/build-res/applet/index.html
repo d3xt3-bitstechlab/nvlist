@@ -7,18 +7,38 @@
     
     <script type="text/javascript">        
         function scale(size) {
-            var applet = document.getElementById("applet");
-            applet.style.width  = (applet.width * size / 100) + "px";
-            applet.style.height = (applet.height * size / 100) + "px";
+            var applet = document.getElementById('applet');
+            applet.style.width  = (applet.width  * size / 100) + 'px';
+            applet.style.height = (applet.height * size / 100) + 'px';
         }
+        
         function fullscreen() {
             var applet = document.getElementById("applet");
             applet.toggleFullscreen();
         }
+        
+        function anim() {
+        /*
+            var applet = document.getElementById('applet');
+            var appletMessage = document.getElementById('appletMessage');
+            if (appletMessage) {            
+                appletMessage.innerHTML = applet.getBlockingDownloads();
+            }
+            requestAnimationFrame(anim, 100);
+        */
+        }
+        
+        function init() {
+            var scaleSelect = document.getElementById('appletScaleSelect');
+            if (scaleSelect && scaleSelect.value) {
+                scale(scaleSelect.value);
+            }
+            anim();
+        }
     </script>
   </head>
   
-  <body onload="scale(document.getElementById('scaleSelect').value)">
+  <body onload="init()">
     <div class="container">
       <div class="containerCell">
         <div class="header">
@@ -52,7 +72,7 @@
       <div class="info">
         <span>
           Size: 
-          <select id="scaleSelect" onchange="scale(this.value)">
+          <select id="appletScaleSelect" onchange="scale(this.value)">
             <option value="50">smaller</option>
             <option value="75">small</option>
             <option value="100" selected="selected">normal</option>
@@ -62,7 +82,7 @@
           </select>
           <input type="button" value="Fullscreen" onclick="fullscreen()" />
         </span>
-        <span style="padding-left: 100px; color: #666666;">
+        <span id="appletMessage" style="padding-left: 100px; color: #666666;">
           <!-- Any important messages to the user go here -->
         </span>
       </div>
