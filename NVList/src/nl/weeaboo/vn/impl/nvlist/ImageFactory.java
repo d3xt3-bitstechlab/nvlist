@@ -92,7 +92,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	@Override
 	public ITexture createTexture(IScreenshot ss) {
 		return createTexture(ss.getARGB(), ss.getWidth(), ss.getHeight(),
-				width / ss.getScreenWidth(), height / ss.getScreenHeight());
+				width / (double)ss.getScreenWidth(), height / (double)ss.getScreenHeight());
 	}
 	
 	public ITexture createTexture(GLTexture tex, double sx, double sy) {
