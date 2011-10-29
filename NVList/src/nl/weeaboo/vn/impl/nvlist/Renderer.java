@@ -1,6 +1,5 @@
 package nl.weeaboo.vn.impl.nvlist;
 
-import static com.sun.opengl.util.BufferUtil.copyFloatBuffer;
 import static javax.media.opengl.GL.GL_FLOAT;
 import static javax.media.opengl.GL.GL_TEXTURE0;
 import static javax.media.opengl.GL.GL_TRIANGLE_STRIP;
@@ -13,6 +12,7 @@ import javax.media.opengl.GL2ES1;
 
 import nl.weeaboo.common.Rect;
 import nl.weeaboo.common.Rect2D;
+import nl.weeaboo.gl.Buffers;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.text.ParagraphRenderer;
 import nl.weeaboo.gl.texture.GLTexRect;
@@ -269,10 +269,10 @@ public class Renderer extends BaseRenderer {
 			gl.glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 		}
 		for (int row = 0; row < grid.getRows(); row++) {
-			gl.glVertexPointer(2, GL_FLOAT, 0, copyFloatBuffer(grid.getPos(row)));
+			gl.glVertexPointer(2, GL_FLOAT, 0, Buffers.copyFloatBuffer(grid.getPos(row)));
 			for (int n = 0; n < grid.getTextures(); n++) {
 				gl.glClientActiveTexture(GL_TEXTURE0 + n);
-			    gl.glTexCoordPointer(2, GL_FLOAT, 0, copyFloatBuffer(grid.getTex(n, row)));
+			    gl.glTexCoordPointer(2, GL_FLOAT, 0, Buffers.copyFloatBuffer(grid.getTex(n, row)));
 			}
 		    gl.glDrawArrays(GL_TRIANGLE_STRIP, 0, grid.getVertexCount(row));
 		}

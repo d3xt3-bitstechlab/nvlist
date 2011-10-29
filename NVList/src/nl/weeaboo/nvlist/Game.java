@@ -50,7 +50,6 @@ import nl.weeaboo.vn.IInput;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.INovelConfig;
 import nl.weeaboo.vn.IPersistentStorage;
-import nl.weeaboo.vn.IScriptLib;
 import nl.weeaboo.vn.ISeenLog;
 import nl.weeaboo.vn.IStorage;
 import nl.weeaboo.vn.ITextState;
@@ -197,7 +196,7 @@ public class Game extends BaseGame {
 		ImageFxLib fxlib = new ImageFxLib(imgfac);
 		SoundFactory sndfac = new SoundFactory(sm, an, seenLog, notifier);
 		VideoFactory vidfac = new VideoFactory(fm, texCache, resCache, seenLog, notifier);		
-		IScriptLib scrlib = new ScriptLib(fm, notifier);
+		ScriptLib scrlib = new ScriptLib(fm, notifier);
 		TweenLib tweenLib = new TweenLib(imgfac, notifier);
 		
 		ImageState is = new ImageState(nvlSize.w, nvlSize.h);		

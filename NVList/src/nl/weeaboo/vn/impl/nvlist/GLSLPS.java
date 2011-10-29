@@ -18,10 +18,10 @@ import nl.weeaboo.gl.shader.GLShader;
 import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.lua.platform.LuajavaLib;
-import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.IPixelShader;
 import nl.weeaboo.vn.IRenderer;
 import nl.weeaboo.vn.ITexture;
+import nl.weeaboo.vn.impl.base.BaseNotifier;
 import nl.weeaboo.vn.impl.base.BaseShader;
 
 import org.luaj.vm.LFunction;
@@ -35,14 +35,14 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 	private static final long serialVersionUID = NVListImpl.serialVersionUID;
 
 	protected final ImageFactory imageFactory;
-	protected final INotifier notifier;
+	protected final BaseNotifier notifier;
 	protected final String filename;
 	
 	private final Map<String, Object> params;
 	
 	private transient GLShader shader;
 	
-	public GLSLPS(ImageFactory fac, INotifier ntf, String filename) {
+	public GLSLPS(ImageFactory fac, BaseNotifier ntf, String filename) {
 		this.imageFactory = fac;
 		this.notifier = ntf;
 		this.filename = filename;
@@ -51,7 +51,7 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 	}
 
 	//Functions 
-	public static void install(LTable globals, final ImageFactory ifac, final INotifier ntf) {
+	public static void install(LTable globals, final ImageFactory ifac, final BaseNotifier ntf) {
 		LTable table = new LTable();
 		GLSLLib.install(table, ifac, ntf);
 		globals.put("GLSL", table);
@@ -167,15 +167,15 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 		
 		private final int id;
 		private final ImageFactory fac;
-		private final INotifier ntf;
+		private final BaseNotifier ntf;
 		
-		private GLSLLib(int id, ImageFactory fac, INotifier ntf) {
+		private GLSLLib(int id, ImageFactory fac, BaseNotifier ntf) {
 			this.id = id;
 			this.fac = fac;
 			this.ntf = ntf;
 		}
 		
-		public static void install(LTable table, ImageFactory fac, INotifier ntf) {
+		public static void install(LTable table, ImageFactory fac, BaseNotifier ntf) {
 			for (int n = 0; n < NAMES.length; n++) {
 				table.put(NAMES[n], new GLSLLib(n, fac, ntf));
 			}

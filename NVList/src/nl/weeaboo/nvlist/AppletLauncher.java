@@ -1,7 +1,9 @@
 package nl.weeaboo.nvlist;
 
+import nl.weeaboo.game.BaseAppletLauncher;
+
 @SuppressWarnings("serial")
-public class AppletLauncher extends nl.weeaboo.game.AppletLauncher {
+public class AppletLauncher extends BaseAppletLauncher {
 
 	//Functions
 	@Override	

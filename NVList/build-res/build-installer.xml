@@ -118,7 +118,7 @@
       <javafileset dir="lib/mac/amd64" />
       
       <!-- Include resources -->
-      <resourcefileset dir="${dist.dir}/res" />
+      <resourcefileset dir="${dist.dir}/res" erroronmissingdir="false" />
       <resourcefileset dir="${dist.dir}" includes="*.zip,*.nvl" />
     </jarbundler>
     

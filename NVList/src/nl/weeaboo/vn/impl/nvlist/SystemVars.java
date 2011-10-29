@@ -15,8 +15,6 @@ import nl.weeaboo.vn.impl.base.BasePersistentStorage;
 @LuaSerializable
 public class SystemVars extends BasePersistentStorage implements Serializable {
 
-	private static final long serialVersionUID = NVListImpl.serialVersionUID;
-		
 	private final FileManager fm;
 	private final INotifier notifier;
 	private final EnvironmentSerializable es;
@@ -25,7 +23,8 @@ public class SystemVars extends BasePersistentStorage implements Serializable {
 		super(filename);
 		
 		this.fm = fm;
-		this.notifier = ntf;		
+		this.notifier = ntf;	
+		
 		this.es = new EnvironmentSerializable(this);
 	}
 	

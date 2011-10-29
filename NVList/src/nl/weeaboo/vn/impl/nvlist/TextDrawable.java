@@ -46,11 +46,6 @@ public class TextDrawable extends BaseTextDrawable {
 			}
 		}
 		
-		double u = getLayoutWidth() / (double)getTextureWidth();
-		double v = getLayoutHeight(getStartLine(), getEndLine()) / (double)getTextureHeight();
-		u = Math.max(0, Math.min(1.0, u));
-		v = Math.max(0, Math.min(1.0, v));
-		
 		double w = getInnerWidth();
 		double h = getInnerHeight();
 		double tw = getTextWidth();

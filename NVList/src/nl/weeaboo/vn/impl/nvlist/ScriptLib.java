@@ -9,11 +9,11 @@ import nl.weeaboo.filemanager.IFileManager;
 import nl.weeaboo.io.EnvironmentSerializable;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.vn.INotifier;
-import nl.weeaboo.vn.IScriptLib;
+import nl.weeaboo.vn.impl.base.BaseScriptLib;
 import nl.weeaboo.vn.impl.lua.LuaNovel;
 
 @LuaSerializable
-public class ScriptLib implements IScriptLib, Serializable {
+public class ScriptLib extends BaseScriptLib implements Serializable {
 
 	private static final String prefix = "script/";
 	

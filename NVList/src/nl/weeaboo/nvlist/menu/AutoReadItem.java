@@ -31,7 +31,10 @@ public class AutoReadItem extends GameMenuAction {
 	@Override
 	public <T> void onPropertyChanged(JMenuItem item, Preference<T> p, T oldval, T newval) {
 		if (AUTO_READ.getKey().equals(p.getKey())) {
-			((JCheckBoxMenuItem)item).setSelected(Boolean.TRUE.equals(newval));
+			if (item instanceof JCheckBoxMenuItem) {
+				JCheckBoxMenuItem checkItem = (JCheckBoxMenuItem)item;
+				checkItem.setSelected(Boolean.TRUE.equals(newval));
+			}
 		}
 	}
 

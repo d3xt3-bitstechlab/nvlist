@@ -62,7 +62,9 @@ class ImageDecodingScreenshot extends DecodingScreenshot {
 			} finally {
 				try {
 					if (iin != null) iin.close();
-				} catch (IOException ioe) { }
+				} catch (IOException ioe) {
+					//Ignore
+				}
 			}
 		}
 		

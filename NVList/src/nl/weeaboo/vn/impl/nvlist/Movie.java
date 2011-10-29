@@ -193,7 +193,7 @@ public final class Movie extends BaseVideo {
 		GL2 gl2 = GLManager.getGL2(gl);		
 		if (pbo == null || pbo.isDisposed()) {
 			pbo = vfac.createPBO(gl2);	
-			if (pbo == null) {
+			if (pbo == null || pbo.isDisposed()) {
 				return false;
 			}
 		}

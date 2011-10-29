@@ -2,38 +2,27 @@ package nl.weeaboo.vn.impl.nvlist;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectStreamException;
 import java.io.OutputStream;
-import java.io.Serializable;
 
 import nl.weeaboo.filemanager.FileManager;
-import nl.weeaboo.io.EnvironmentSerializable;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.impl.base.BaseAnalytics;
 
 @LuaSerializable
-public class Analytics extends BaseAnalytics implements Serializable {
-
-	private static final long serialVersionUID = NVListImpl.serialVersionUID;
+public class Analytics extends BaseAnalytics {
 		
 	private final FileManager fm;
 	private final INotifier notifier;
-	private final EnvironmentSerializable es;
 	
 	public Analytics(FileManager fm, String filename, INotifier ntf) {
 		super(filename);
 		
 		this.fm = fm;
 		this.notifier = ntf;		
-		this.es = new EnvironmentSerializable(this);
 	}
 	
-	//Functions
-	private Object writeReplace() throws ObjectStreamException {	
-		return es.writeReplace();
-	}
-	
+	//Functions	
 	@Override
 	protected void onChanged() {
 		try {

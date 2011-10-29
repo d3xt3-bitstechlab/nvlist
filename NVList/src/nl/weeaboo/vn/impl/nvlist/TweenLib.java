@@ -1,7 +1,6 @@
 package nl.weeaboo.vn.impl.nvlist;
 
 import java.io.ObjectStreamException;
-import java.io.Serializable;
 
 import nl.weeaboo.io.EnvironmentSerializable;
 import nl.weeaboo.lua.io.LuaSerializable;
@@ -13,9 +12,7 @@ import nl.weeaboo.vn.impl.base.CrossFadeTween;
 import nl.weeaboo.vn.impl.lua.LuaTweenLib;
 
 @LuaSerializable
-public class TweenLib extends LuaTweenLib implements Serializable {
-
-	private static final long serialVersionUID = NVListImpl.serialVersionUID;
+public class TweenLib extends LuaTweenLib {
 
 	private final ImageFactory fac;
 	private final EnvironmentSerializable es;

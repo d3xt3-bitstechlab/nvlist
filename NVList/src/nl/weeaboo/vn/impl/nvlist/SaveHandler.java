@@ -32,7 +32,7 @@ public class SaveHandler extends LuaSaveHandler implements Serializable {
 	
 	private final EnvironmentSerializable es;
 	
-	private final String pathPrefix = "";
+	private static final String pathPrefix = "";
 	private final FileManager fm;
 	private final INotifier notifier;
 	

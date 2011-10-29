@@ -229,6 +229,16 @@ public class DebugImagePanel extends JPanel {
 		}
 		
 		@Override
+		public int hashCode() {
+			return super.hashCode();
+		}
+		
+		@Override
+		public boolean equals(Object other) {
+			return super.equals(other);
+		}
+		
+		@Override
 		public String toString() {
 			return "imageState";
 		}
@@ -288,6 +298,16 @@ public class DebugImagePanel extends JPanel {
 			super(d);
 			
 			drawable = d;
+		}
+		
+		@Override
+		public int hashCode() {
+			return super.hashCode();
+		}
+		
+		@Override
+		public boolean equals(Object other) {
+			return super.equals(other);
 		}
 		
 		@Override

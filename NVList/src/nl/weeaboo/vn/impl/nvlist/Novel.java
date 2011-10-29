@@ -12,26 +12,18 @@ import nl.weeaboo.lua.LuaRunState;
 import nl.weeaboo.lua.LuaUtil;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.vn.IAnalytics;
-import nl.weeaboo.vn.IImageFxLib;
 import nl.weeaboo.vn.IImageState;
 import nl.weeaboo.vn.IInput;
-import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.INovelConfig;
 import nl.weeaboo.vn.IPersistentStorage;
-import nl.weeaboo.vn.ISaveHandler;
-import nl.weeaboo.vn.IScriptLib;
 import nl.weeaboo.vn.ISeenLog;
-import nl.weeaboo.vn.ISoundFactory;
 import nl.weeaboo.vn.ISoundState;
 import nl.weeaboo.vn.IStorage;
-import nl.weeaboo.vn.ISystemLib;
 import nl.weeaboo.vn.ITextState;
-import nl.weeaboo.vn.IVideoFactory;
 import nl.weeaboo.vn.IVideoState;
 import nl.weeaboo.vn.impl.lua.AbstractKeyCodeMetaFunction;
 import nl.weeaboo.vn.impl.lua.LuaMediaPreloader;
 import nl.weeaboo.vn.impl.lua.LuaNovel;
-import nl.weeaboo.vn.impl.lua.LuaTweenLib;
 
 import org.luaj.vm.LInteger;
 import org.luaj.vm.LNil;
@@ -47,10 +39,10 @@ public class Novel extends LuaNovel {
 	
 	// !!WARNING!! Do not add properties without adding code for saving/loading
 	
-	public Novel(INovelConfig nc, ImageFactory imgfac, IImageState is, IImageFxLib fxlib,
-			ISoundFactory sndfac, ISoundState ss, IVideoFactory vf, IVideoState vs,
-			ITextState ts, INotifier n, IInput in, ISystemLib syslib, ISaveHandler sh,
-			IScriptLib scrlib, LuaTweenLib tl, IPersistentStorage sysVars, IStorage globals,
+	public Novel(INovelConfig nc, ImageFactory imgfac, IImageState is, ImageFxLib fxlib,
+			SoundFactory sndfac, ISoundState ss, VideoFactory vf, IVideoState vs,
+			ITextState ts, NovelNotifier n, IInput in, SystemLib syslib, SaveHandler sh,
+			ScriptLib scrlib, TweenLib tl, IPersistentStorage sysVars, IStorage globals,
 			ISeenLog seenLog, IAnalytics analytics,
 			FileManager fm, IKeyConfig kc)
 	{
@@ -112,17 +104,19 @@ public class Novel extends LuaNovel {
 	protected void onScriptError(Exception e) {		
 		Throwable t = e;
 		
-		String message = "Script Error";
+		StringBuilder message = new StringBuilder("Script Error");
 		if (t instanceof LuaException && t.getCause() != null) {
-			message += " :: " + t.getMessage();
+			message.append(" :: ");
+			message.append(t.getMessage());
 			t = t.getCause();
 		}
 		while (t instanceof LuaErrorException && t.getCause() != null) {
-			message += " :: " + t.getMessage();
+			message.append(" :: ");
+			message.append(t.getMessage());
 			t = t.getCause();
 		}
 		
-		getNotifier().e(message, t);		
+		getNotifier().e(message.toString(), t);		
 		
 		setWait(60);
 	}

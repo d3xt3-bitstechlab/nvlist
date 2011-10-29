@@ -3,6 +3,7 @@ package nl.weeaboo.nvlist;
 import java.util.concurrent.ExecutorService;
 
 import nl.weeaboo.filemanager.FileManager;
+import nl.weeaboo.game.BaseLauncher;
 import nl.weeaboo.game.GameDisplay;
 import nl.weeaboo.game.IGame;
 import nl.weeaboo.game.input.IKeyConfig;
@@ -16,11 +17,10 @@ import nl.weeaboo.settings.IConfig;
 import nl.weeaboo.sound.SoundManager;
 import nl.weeaboo.vn.impl.base.Obfuscator;
 
-public class Launcher extends nl.weeaboo.game.Launcher {
+public class Launcher extends BaseLauncher {
 	
 	public Launcher() {
 		super();
-		
 		setObfuscator(Obfuscator.getInstance());
 	}
 	

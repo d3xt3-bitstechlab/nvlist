@@ -1,7 +1,6 @@
 package nl.weeaboo.vn.impl.nvlist;
 
 import java.io.ObjectStreamException;
-import java.io.Serializable;
 
 import nl.weeaboo.game.GameLog;
 import nl.weeaboo.gl.texture.GLTexRect;
@@ -13,7 +12,7 @@ import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.BaseImageFxLib;
 
 @LuaSerializable
-public class ImageFxLib extends BaseImageFxLib implements Serializable {
+public class ImageFxLib extends BaseImageFxLib {
 
 	private final EnvironmentSerializable es;
 	

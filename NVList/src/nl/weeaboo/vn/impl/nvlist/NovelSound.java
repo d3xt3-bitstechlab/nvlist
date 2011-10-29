@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.sound.ISound;
+import nl.weeaboo.sound.SoundDesc;
 import nl.weeaboo.sound.SoundManager;
 import nl.weeaboo.sound.SoundManager.SoundInput;
 import nl.weeaboo.vn.SoundType;
@@ -30,13 +31,22 @@ public final class NovelSound extends BaseSound {
 	@Override
 	protected void _start() throws IOException {
 		SoundManager sm = soundFactory.getSoundManager();
+
+		String filename = getFilename();
+		SoundDesc desc = sm.getSoundDesc(filename);
+		long loopStart = -1, loopEnd = -1;
+		if (desc != null) {
+			if (desc.getLoopStart() != null) loopStart = desc.getLoopStart().getTimeNanos();
+			if (desc.getLoopEnd() != null)   loopEnd   = desc.getLoopEnd().getTimeNanos();
+		}
 		
 		boolean ok = false;
-		SoundInput sin = sm.getSoundInput(getFilename());
+		SoundInput sin = sm.getSoundInput(filename);
 		try {
 			int ch = sm.findFreeChannel(100, 999);
 			sound = sm.play(ch, SoundFactory.convertSoundType(getSoundType()),
-					sin.in, sin.length, getLoopsLeft(), getPrivateVolume());
+					sin.in, sin.length, getPrivateVolume(), getLoopsLeft(),
+					loopStart, loopEnd);
 			ok = true;
 		} finally {			
 			if (!ok) sin.close();
