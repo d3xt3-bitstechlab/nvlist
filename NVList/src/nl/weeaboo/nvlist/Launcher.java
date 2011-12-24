@@ -1,5 +1,11 @@
 package nl.weeaboo.nvlist;
 
+import static nl.weeaboo.game.BaseGameConfig.HEIGHT;
+import static nl.weeaboo.game.BaseGameConfig.WIDTH;
+
+import java.awt.Container;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import nl.weeaboo.filemanager.FileManager;
@@ -16,11 +22,13 @@ import nl.weeaboo.gl.texture.TextureCache;
 import nl.weeaboo.settings.IConfig;
 import nl.weeaboo.sound.SoundManager;
 import nl.weeaboo.vn.impl.base.Obfuscator;
+import nl.weeaboo.vn.vnds.VNDSUtil;
 
 public class Launcher extends BaseLauncher {
 	
 	public Launcher() {
 		super();
+		
 		setObfuscator(Obfuscator.getInstance());
 	}
 	
@@ -32,20 +40,72 @@ public class Launcher extends BaseLauncher {
 	}
 	
 	@Override
+	protected IGame startGame(Container container) {
+		if (isVNDS()) {
+			setPreference(WIDTH.getKey(), "256");
+			setPreference(HEIGHT.getKey(), "192");			
+		}
+		
+		return super.startGame(container);
+	}
+
+	@Override
+	protected FolderSet newFolderSet() {
+		FolderSet folders = super.newFolderSet();
+		if (isVNDS()) {
+			folders.image = "";
+			folders.sound = "";
+			folders.video = "";
+			folders.font  = "";
+			folders.read  = "";
+			folders.write = "nvlist_save";
+		}
+		return folders;
+	}
+	
+	@Override
 	protected IGame newGame(IConfig config, ExecutorService executor, GameDisplay display,
 			FileManager fm, FontManager fontManager, TextureCache tc, ShaderCache sc,
 			GLResourceCache rc, GLTextRendererStore trs, SoundManager sm, UserInput in,
-			IKeyConfig kc)
-	{		
-		return new Game(config, executor, display, fm, fontManager, tc, sc, rc, trs, sm, in, kc);
+			IKeyConfig kc, FolderSet folders)
+	{
+		return new Game(config, executor, display, fm, fontManager, tc, sc, rc, trs, sm, in, kc,
+				folders.image, folders.video);
 	}
 	
 	//Getters
+	@Override
+	protected Class<?>[] getJarArchiveSources() {
+		List<Class<?>> result = new ArrayList<Class<?>>();
+		for (Class<?> c : super.getJarArchiveSources()) {
+			result.add(c);
+		}
+		//result.add(LuaNovel.class);
+		return result.toArray(new Class<?>[result.size()]);
+	}
+	
+	@Override
 	protected String[] getZipFilenames(String gameId) {
-		return new String[] {"res.zip", "res.nvl",
-				gameId+".zip", gameId+".nvl"};		
+		List<String> files = new ArrayList<String>();
+		if (isVNDS()) {
+			for (String filename : VNDSUtil.getZipFilenames()) {
+				files.add(filename);
+			}
+		} else {
+			files.add("res.zip");
+			files.add(gameId+".nvl");
+		}
+		//files.add("lightnvl.jar");
+		return files.toArray(new String[files.size()]);
+	}
+
+	protected boolean isVNDS() {
+		return "true".equalsIgnoreCase(getPreference(VNDSUtil.VNDS.getKey()));
 	}
 	
 	//Setters
+	public void setVNDS(boolean vnds) {
+		setPreference(VNDSUtil.VNDS.getKey(), Boolean.toString(vnds));
+	}
 	
 }

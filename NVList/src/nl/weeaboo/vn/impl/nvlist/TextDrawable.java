@@ -65,7 +65,7 @@ public class TextDrawable extends BaseTextDrawable {
 		} else if (anchor >= 1 && anchor <= 3) {
 			ty += (h-th);
 		}
-				
+		
 		double pad = getPadding();
 		rr.drawText(getZ(), isClipEnabled(), getBlendMode(), getColor(),
 				getLayout(), getStartLine(), getEndLine(), getVisibleChars(),

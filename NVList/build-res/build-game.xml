@@ -15,6 +15,7 @@
   <property name="dist.dir" value="${gamedata.dir}/dist" />
 
   <property file="${build-res.dir}/build.properties"/>
+  <property file="${res.dir}/game.ini"/>
 
   <!-- Ensure required properties exist -->
   <fail>
@@ -23,7 +24,6 @@
         <not><isset property="project-name"/></not>
         <not><isset property="main-class"/></not>
         <not><isset property="exclude-libs"/></not>
-        <not><isset property="exclude-installer-cd"/></not>
         <not><isset property="program-args"/></not>
       </or>
     </condition>
@@ -134,7 +134,7 @@
       </copy>
 
       <!-- Create launcher scripts -->      
-      <chmod dir="${gamedata.dir}" includes="*.sh" perm="ugo+rx"/>
+      <chmod dir="${gamedata.dir}" includes="*.sh,*.command" perm="ugo+rx"/>
                     
       <!-- Create a win32 executable -->
       <create-exe dir="@{dir}" icon="${res.dir}/icon.ico" jvm-args="${jvm-args} ${jvm-args-win32}"
@@ -158,11 +158,7 @@
 <!-- === Basic Targets ==================================================== -->
 <!-- ====================================================================== -->
 
-  <target name="init">    
-    <condition property="exclude-dist-src" value="*.exe,*.lzma">
-      <istrue value="${exclude-installer-cd}"/>
-    </condition>
-    
+  <target name="init">        
     <tstamp />
   </target>
 
@@ -243,7 +239,7 @@
   <!-- Prepare the dist folder for source code distribution -->
   <target name="dist-src" depends="dist-common">
     <copy todir="${dist.dir}/build-res">
-      <fileset dir="build-res" excludes="${exclude-dist-src}" />
+      <fileset dir="build-res" excludes="jre*" /> <!-- Don't include JRE installer -->
     </copy>
     <copy todir="${dist.dir}/tools">
       <fileset dir="${tools.dir}" />
@@ -263,7 +259,12 @@
     <delete includeemptydirs="true">
       <fileset dir="${dist.dir}/src" includes="**/*" />
     </delete>
-  
+
+    <!-- Copy extra-dist-files to the main folder -->
+    <copy todir="${dist.dir}">
+      <fileset dir="${build-res.dir}/extra-dist-files" />
+    </copy>
+    
     <!-- Move Build.jar to the main folder -->
     <move todir="${dist.dir}">
       <fileset dir="${dist.dir}/tools" includes="Build*.*" />
@@ -285,6 +286,12 @@
     <zip basedir="src" destfile="${dist.dir}/${project-name}-src.zip" />
     <delete file="${dist.dir}/src" />
   
+    <!-- Copy extra-dist-files to the main folder -->
+    <copy todir="${dist.dir}">
+      <fileset dir="${build-res.dir}/extra-dist-files" />
+    </copy>
+      
+    <!-- Zippable resources -->
     <path id="zippableFiles">
       <dirset dir="${dist.dir}/res" />
       <fileset dir="${dist.dir}/res" excludes="video" />

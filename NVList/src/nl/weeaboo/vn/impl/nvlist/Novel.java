@@ -1,5 +1,6 @@
 package nl.weeaboo.vn.impl.nvlist;
 
+import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,6 +21,7 @@ import nl.weeaboo.vn.ISeenLog;
 import nl.weeaboo.vn.ISoundState;
 import nl.weeaboo.vn.IStorage;
 import nl.weeaboo.vn.ITextState;
+import nl.weeaboo.vn.ITimer;
 import nl.weeaboo.vn.IVideoState;
 import nl.weeaboo.vn.impl.lua.AbstractKeyCodeMetaFunction;
 import nl.weeaboo.vn.impl.lua.LuaMediaPreloader;
@@ -43,11 +45,11 @@ public class Novel extends LuaNovel {
 			SoundFactory sndfac, ISoundState ss, VideoFactory vf, IVideoState vs,
 			ITextState ts, NovelNotifier n, IInput in, SystemLib syslib, SaveHandler sh,
 			ScriptLib scrlib, TweenLib tl, IPersistentStorage sysVars, IStorage globals,
-			ISeenLog seenLog, IAnalytics analytics,
+			ISeenLog seenLog, IAnalytics analytics, ITimer tmr,
 			FileManager fm, IKeyConfig kc)
 	{
 		super(nc, imgfac, is, fxlib, sndfac, ss, vf, vs, ts, n, in, syslib, sh, scrlib, tl,
-				sysVars, globals, seenLog, analytics);
+				sysVars, globals, seenLog, analytics, tmr);
 		
 		this.fm = fm;
 		this.keyConfig = kc;
@@ -59,7 +61,7 @@ public class Novel extends LuaNovel {
 		preloader.clear();
 		try {
 			try {
-				InputStream in = fm.getInputStream("preloader-default.bin");
+				InputStream in = new BufferedInputStream(fm.getInputStream("preloader-default.bin"), 4096);
 				try {
 					preloader.load(in);
 				} finally {
@@ -70,7 +72,7 @@ public class Novel extends LuaNovel {
 			}
 			
 			try {
-				InputStream in = fm.getInputStream("preloader.bin");
+				InputStream in = new BufferedInputStream(fm.getInputStream("preloader.bin"), 4096);
 				try {
 					preloader.load(in);
 				} finally {
@@ -97,6 +99,11 @@ public class Novel extends LuaNovel {
 		}
 		
 		LTable globals = vm._G;
+		try {
+			globals.put("VNDS", createVNDSLib(globals));
+		} catch (LuaException e) {
+			onScriptError(e);
+		}
 		GLSLPS.install(globals, (ImageFactory)getImageFactory(), getNotifier());
 	}
 

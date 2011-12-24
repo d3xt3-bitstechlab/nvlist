@@ -50,7 +50,7 @@
         id="applet"
         code="org.jdesktop.applet.util.JNLPAppletLauncher"
         width="${applet-width}" height="${applet-height}"
-        archive="${webstart-applet-launcher}, ${webstart-native-window}, ${webstart-jogl-all}, ${webstart-gluegen-rt},${project-name-url}.jar">
+        archive="${webstart-applet-launcher}, ${webstart-jogl-all}, ${webstart-gluegen-rt}, ${project-name-url}.jar">
                
         <param name="cache_archive" value="${project-name-url}.jar" />
         <param name="codebase_lookup" value="false" />
@@ -62,7 +62,7 @@
         <param name="splash" value="splash.jpg" />
         <param name="progressbar" value="true" />
         <param name="jnlpNumExtensions" value="1" />
-        <param name="jnlpExtension1" value="${jnlp-jogl-core}" />
+        <param name="jnlpExtension1" value="${jnlp-jogl-all-awt}" />
         <param name="jnlp_href" value="applet.jnlp" />
          
         <param name="java_arguments" value="-Djnlp.packEnabled=true ${jvm-args}" />

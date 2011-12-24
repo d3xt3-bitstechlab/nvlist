@@ -10,7 +10,6 @@ import javax.media.opengl.GL2ES1;
 import nl.weeaboo.awt.ImageUtil;
 import nl.weeaboo.common.Rect2D;
 import nl.weeaboo.gl.GLManager;
-import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.vn.BlendMode;
 import nl.weeaboo.vn.IPixelShader;
@@ -58,10 +57,11 @@ public class FadeQuadCommand extends CustomRenderCommand {
 		
 		//Set texture
 		GLTexture oldtex = glm.getTexture();
-		GLTexRect tr = ((TextureAdapter)itex).getTexRect();
-		GLTexture tex = tr.getTexture();
-		tex.forceLoad(glm);
-		glm.setTexture(tex);
+		
+		TextureAdapter ta = (TextureAdapter)itex;
+		ta.forceLoad(glm);		
+		Rect2D uv = ta.getUV();
+		glm.setTexture(ta.getTexture());
 		
 		//Draw geometry		
 		double a, b;
@@ -86,7 +86,7 @@ public class FadeQuadCommand extends CustomRenderCommand {
 		if (geometry == null) {
 			geometry = new Geometry();
 		}		
-		geometry.set(tex, dir == 4 || dir == 6, (float)a, (float)b,
+		geometry.set(uv, dir == 4 || dir == 6, (float)a, (float)b,
 				(float)x, (float)y, (float)w, (float)h, c0, c1);
 		geometry.draw(gl);
 		gl.glPopMatrix();
@@ -142,7 +142,7 @@ public class FadeQuadCommand extends CustomRenderCommand {
 	        gl.glDisableClientState(GL2ES1.GL_COLOR_ARRAY);	        
 	    }
 	    
-	    public void set(GLTexture tex, boolean horizontal, float start, float end,
+	    public void set(Rect2D uv, boolean horizontal, float start, float end,
 	    		float x, float y, float w, float h, int c0, int c1)
 	    {
 	    	start = Math.max(0f, Math.min(1f, start));
@@ -153,7 +153,6 @@ public class FadeQuadCommand extends CustomRenderCommand {
     		float y0 = y;
     		float y1 = y + h;
 
-    		Rect2D uv = tex.getUV();    		
 	    	float u0 = (float)(uv.x);
 	    	float v0 = (float)(uv.y);
 	    	float u1 = (float)(uv.x+uv.w);

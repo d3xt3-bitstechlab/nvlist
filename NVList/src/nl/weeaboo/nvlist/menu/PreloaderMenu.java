@@ -1,6 +1,6 @@
 package nl.weeaboo.nvlist.menu;
 
-import static nl.weeaboo.nvlist.NovelPrefs.PRELOADER_LOOK_AHEAD;
+import static nl.weeaboo.vn.NovelPrefs.PRELOADER_LOOK_AHEAD;
 
 public class PreloaderMenu extends RangeMenu<Integer> {
 

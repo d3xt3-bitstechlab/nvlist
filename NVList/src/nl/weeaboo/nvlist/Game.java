@@ -3,23 +3,28 @@ package nl.weeaboo.nvlist;
 import static nl.weeaboo.game.BaseGameConfig.HEIGHT;
 import static nl.weeaboo.game.BaseGameConfig.TITLE;
 import static nl.weeaboo.game.BaseGameConfig.WIDTH;
-import static nl.weeaboo.nvlist.NovelPrefs.AUTO_READ;
-import static nl.weeaboo.nvlist.NovelPrefs.AUTO_READ_WAIT;
-import static nl.weeaboo.nvlist.NovelPrefs.EFFECT_SPEED;
-import static nl.weeaboo.nvlist.NovelPrefs.ENGINE_MIN_VERSION;
-import static nl.weeaboo.nvlist.NovelPrefs.PRELOADER_LOOK_AHEAD;
-import static nl.weeaboo.nvlist.NovelPrefs.PRELOADER_MAX_PER_LINE;
-import static nl.weeaboo.nvlist.NovelPrefs.TEXTLOG_PAGE_LIMIT;
-import static nl.weeaboo.nvlist.NovelPrefs.TEXT_SPEED;
+import static nl.weeaboo.vn.NovelPrefs.AUTO_READ;
+import static nl.weeaboo.vn.NovelPrefs.AUTO_READ_WAIT;
+import static nl.weeaboo.vn.NovelPrefs.EFFECT_SPEED;
+import static nl.weeaboo.vn.NovelPrefs.ENGINE_MIN_VERSION;
+import static nl.weeaboo.vn.NovelPrefs.PRELOADER_LOOK_AHEAD;
+import static nl.weeaboo.vn.NovelPrefs.PRELOADER_MAX_PER_LINE;
+import static nl.weeaboo.vn.NovelPrefs.TEXTLOG_PAGE_LIMIT;
+import static nl.weeaboo.vn.NovelPrefs.TEXT_SPEED;
+import static nl.weeaboo.vn.NovelPrefs.TIMER_IDLE_TIMEOUT;
+import static nl.weeaboo.vn.vnds.VNDSUtil.VNDS;
 
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import nl.weeaboo.awt.AwtUtil;
+import nl.weeaboo.common.Benchmark;
 import nl.weeaboo.common.Dim;
+import nl.weeaboo.common.StringUtil;
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.game.BaseGame;
 import nl.weeaboo.game.DebugPanel;
@@ -53,11 +58,13 @@ import nl.weeaboo.vn.IPersistentStorage;
 import nl.weeaboo.vn.ISeenLog;
 import nl.weeaboo.vn.IStorage;
 import nl.weeaboo.vn.ITextState;
+import nl.weeaboo.vn.ITimer;
 import nl.weeaboo.vn.IVideoState;
 import nl.weeaboo.vn.impl.base.BaseAnalytics;
 import nl.weeaboo.vn.impl.base.BaseNovelConfig;
 import nl.weeaboo.vn.impl.base.NullAnalytics;
 import nl.weeaboo.vn.impl.base.PreloaderData;
+import nl.weeaboo.vn.impl.base.Timer;
 import nl.weeaboo.vn.impl.lua.EnvLuaSerializer;
 import nl.weeaboo.vn.impl.lua.LuaMediaPreloader;
 import nl.weeaboo.vn.impl.nvlist.Analytics;
@@ -99,13 +106,14 @@ public class Game extends BaseGame {
 	
 	public Game(IConfig cfg, ExecutorService e, GameDisplay gd, FileManager fm,
 			FontManager fontman, TextureCache tc, ShaderCache sc, GLResourceCache rc,
-			GLTextRendererStore trs, SoundManager sm, UserInput in, IKeyConfig kc)
+			GLTextRendererStore trs, SoundManager sm, UserInput in, IKeyConfig kc,
+			String imageF, String videoF)
 	{
-		super(cfg, e, gd, fm, fontman, tc, sc, rc, trs, sm, in, kc);
+		super(cfg, e, gd, fm, fontman, tc, sc, rc, trs, sm, in, kc, imageF, videoF);
 		
 		gd.setJMenuBar(GameMenuFactory.createPlaceholderJMenuBar()); //Forces GameDisplay to use a JFrame
 		gd.setRenderMode(RenderMode.MANUAL);
-		
+				
 		pr = trs.createParagraphRenderer();
 	}
 
@@ -154,7 +162,6 @@ public class Game extends BaseGame {
 		GLTextRendererStore trStore = getTextRendererStore();
 		SoundManager sm = getSoundManager();
 		INovelConfig novelConfig = new BaseNovelConfig(config.get(TITLE), config.get(WIDTH), config.get(HEIGHT));
-		Dim imgSize = NovelUtil.getImageSize(fm, config);
 		Dim nvlSize = new Dim(novelConfig.getWidth(), novelConfig.getHeight());
 				
 		NovelNotifier notifier = new NovelNotifier(getNotifier());
@@ -164,18 +171,26 @@ public class Game extends BaseGame {
 		try {
 			sysVars.load();
 		} catch (IOException ioe) {
-			notifier.fnf("Error loading sysVars", ioe);
+			notifier.d("Error loading sysVars", ioe);
 			try { sysVars.save(); } catch (IOException e) { }
+		}
+		
+		ITimer timer = new Timer();
+		try {
+			timer.load(sysVars);
+		} catch (IOException ioe) {
+			notifier.d("Error loading timer", ioe);
+			try { timer.save(sysVars); } catch (IOException e) { }
 		}
 		
 		ISeenLog seenLog = new SeenLog(fm, "seen.bin");
 		try {
 			seenLog.load();
 		} catch (IOException ioe) {
-			notifier.fnf("Error loading seenLog", ioe);
+			notifier.d("Error loading seenLog", ioe);
 			try { seenLog.save(); } catch (IOException e) { }
 		}
-		
+				
 		IAnalytics an;
 		if (!isDebug()) {
 			an = new NullAnalytics();
@@ -184,20 +199,25 @@ public class Game extends BaseGame {
 			try {
 				an.load();
 			} catch (IOException ioe) {
-				notifier.fnf("Error loading analytics", ioe);
+				notifier.d("Error loading analytics", ioe);
 				try { an.save(); } catch (IOException e) { }
 			}
 		}
-		
+				
 		SystemLib syslib = new SystemLib(this);
 		ImageFactory imgfac = new ImageFactory(texCache, shCache, trStore,
-				an, seenLog, notifier, syslib.isTouchScreen(),
-				imgSize.w, imgSize.h, nvlSize.w, nvlSize.h);
+				an, seenLog, notifier, syslib.isTouchScreen(), nvlSize.w, nvlSize.h);
 		ImageFxLib fxlib = new ImageFxLib(imgfac);
 		SoundFactory sndfac = new SoundFactory(sm, an, seenLog, notifier);
 		VideoFactory vidfac = new VideoFactory(fm, texCache, resCache, seenLog, notifier);		
 		ScriptLib scrlib = new ScriptLib(fm, notifier);
 		TweenLib tweenLib = new TweenLib(imgfac, notifier);
+		
+		if (isDebug() && !config.get(VNDS)) {
+			imgfac.setCheckFileExt(true);
+			sndfac.setCheckFileExt(true);
+			vidfac.setCheckFileExt(true);
+		}
 		
 		ImageState is = new ImageState(nvlSize.w, nvlSize.h);		
 		SoundState ss = new SoundState(sndfac);
@@ -205,11 +225,14 @@ public class Game extends BaseGame {
 		TextState ts = new TextState();
 		IInput in = new InputAdapter(getInput());	
 		IStorage globals = new Globals();
-				
+		
 		novel = new Novel(novelConfig, imgfac, is, fxlib, sndfac, ss, vidfac, vs, ts,
 				notifier, in, syslib, saveHandler, scrlib, tweenLib, sysVars, globals,
-				seenLog, an,
+				seenLog, an, timer,
 				fm, getKeyConfig());
+		if (config.get(VNDS)) {
+			novel.setBootstrapScripts("builtin/vnds/main.lua");
+		}
         luaSerializer = new EnvLuaSerializer();
         saveHandler.setNovel(novel, luaSerializer);
         
@@ -218,7 +241,7 @@ public class Game extends BaseGame {
 		restart("main");
 		
 		onConfigPropertiesChanged(); //Needs to be called again now novel is initialized		
-		generatePreloaderData(); //Generate a preloader info from analytics
+		generatePreloaderData();     //Generate a preloader info from analytics
 	}
 	
 	public void restart() {
@@ -267,14 +290,32 @@ public class Game extends BaseGame {
 		}
 		
 		if (isDebug()) {
-			if (input.consumeKey(KeyEvent.VK_ASTERISK)) {
+			if (input.consumeKey(KeyEvent.VK_MULTIPLY)) {
 				int a = 0;
 				a = 0 / a; //Boom shakalaka
 			}
 			
+			if (input.consumeKey(KeyEvent.VK_ADD)) {
+				try {
+					Benchmark.tick();
+					novel.getSaveHandler().save(901, null, null);
+					getNotifier().addMessage(this, "Quicksave took " + StringUtil.formatTime(Benchmark.tock(false), TimeUnit.NANOSECONDS));
+				} catch (Exception e) {
+					GameLog.w("Error quicksaving", e);
+				}
+			} else if (input.consumeKey(KeyEvent.VK_SUBTRACT)) {
+				try {
+					novel.getSaveHandler().load(901, null);
+				} catch (Exception e) {
+					GameLog.w("Error quickloading", e);
+				}
+			}
+			
 			if (input.consumeKey(KeyEvent.VK_F2)) {
 				novel.printStackTrace(System.out);
-			} else if (input.consumeKey(KeyEvent.VK_F3)) {				
+			}
+			
+			if (input.consumeKey(KeyEvent.VK_F3)) {				
 				IAnalytics an = novel.getAnalytics();
 				if (an instanceof BaseAnalytics) {
 					getNotifier().addMessage(this, "Dumping analytics");
@@ -350,6 +391,7 @@ public class Game extends BaseGame {
 			is.draw(renderer);
 	        renderer.render(null);
 			renderer.reset();
+			renderer.onFrameRenderDone();
 		}
 		
 		super.draw(glm);
@@ -360,6 +402,7 @@ public class Game extends BaseGame {
 		super.onConfigPropertiesChanged();
 
 		IConfig config = getConfig();
+		
 		if (novel != null) {
 			INotifier ntf = novel.getNotifier();
 			
@@ -370,6 +413,11 @@ public class Game extends BaseGame {
 			if (ts != null) {
 				ts.setBaseTextSpeed(config.get(TEXT_SPEED));
 				ts.getTextLog().setPageLimit(config.get(TEXTLOG_PAGE_LIMIT));
+			}
+			
+			ITimer timer = novel.getTimer();
+			if (timer != null) {
+				timer.setIdleTimeout(config.get(TIMER_IDLE_TIMEOUT));
 			}
 			
 			LuaMediaPreloader preloader = novel.getPreloader();
@@ -400,9 +448,9 @@ public class Game extends BaseGame {
 		DebugPanel debugPanel = super.createDebugPanel();
 		debugPanel.addTab("Lua", new DebugLuaPanel(this, getNovel()));
 		debugPanel.addTab("Image", new DebugImagePanel(this, getNovel()));
-		debugPanel.addTab("Log Output", new DebugOutputPanel(this, getNovel()));
+		debugPanel.addTab("Log", new DebugOutputPanel(this, getNovel()));
 		return debugPanel;
-	}
+	}	
 	
 	//Getters
 	public Novel getNovel() { return novel; }
@@ -410,12 +458,32 @@ public class Game extends BaseGame {
 	//Setters
 	@Override
 	public void setScreenBounds(int rx, int ry, int rw, int rh, int sw, int sh) {
-		if (rx != getRealX() || ry != getRealY() || rw != getRealW() || rh != getRealH()
+		if (rx != getRealX()   || ry != getRealY() || rw != getRealW()   || rh != getRealH()
 				|| sw != getScreenW() || sh != getScreenH())
 		{
 			super.setScreenBounds(rx, ry, rw, rh, sw, sh);
-			
+						
 			renderer = null;
+		}
+	}
+	
+	@Override
+	public void setImageFolder(String folder, int w, int h) throws IOException {
+		super.setImageFolder(folder, w, h);
+		
+		if (novel != null) {
+			ImageFactory imgfac = (ImageFactory)novel.getImageFactory();
+			imgfac.setImageSize(w, h);
+		}		
+	}
+	
+	@Override
+	public void setVideoFolder(String folder, int w, int h) throws IOException {
+		super.setVideoFolder(folder, w, h);
+		
+		if (novel != null) {
+			VideoFactory vfac = (VideoFactory)novel.getVideoFactory();
+			vfac.setVideoFolder(folder, w, h);
 		}
 	}
 	

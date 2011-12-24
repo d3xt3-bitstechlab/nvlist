@@ -1,6 +1,7 @@
 package nl.weeaboo.vn.impl.nvlist;
 
 import java.awt.image.BufferedImage;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
@@ -15,6 +16,7 @@ import nl.weeaboo.gl.texture.GLGeneratedTexture;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.gl.texture.TextureCache;
+import nl.weeaboo.gl.texture.loader.ImageFormatException;
 import nl.weeaboo.io.EnvironmentSerializable;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.vn.IAnalytics;
@@ -36,18 +38,25 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	private final GLTextRendererStore trStore;
 	private final boolean isTouchScreen;
 	
+	private int imgWidth, imgHeight;
+	
 	public ImageFactory(TextureCache tc, ShaderCache sc, GLTextRendererStore trStore,
 			IAnalytics an, ISeenLog sl, INotifier ntf, boolean isTouchScreen,
-			int iw, int ih, int w, int h)
+			int w, int h)
 	{
-		super(sl, ntf, iw, ih, w, h);
+		super(sl, ntf, w, h);
 		
 		this.analytics = an;
 		this.texCache = tc;
 		this.shCache = sc;
 		this.trStore = trStore;		
 		this.isTouchScreen = isTouchScreen;
+		this.imgWidth = w;
+		this.imgHeight = h;
+		
 		this.es = new EnvironmentSerializable(this);
+
+		setDefaultExts("ktx", "png", "jpg");
 	}
 	
 	//Functions
@@ -82,24 +91,24 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	
 	@Override
 	public ITexture createTexture(int[] argb, int w, int h, double sx, double sy) {
-		GLTexture tex = createGLTexture(argb, w, h);
-		if (tex == null) {
-			return null;
-		}
-		return new TextureAdapter(tex.getTexRect(null), sx, sy);
+		return createTexture(createGLTexture(argb, w, h), sx, sy);
 	}
 	
 	@Override
 	public ITexture createTexture(IScreenshot ss) {
 		return createTexture(ss.getARGB(), ss.getWidth(), ss.getHeight(),
-				width / (double)ss.getScreenWidth(), height / (double)ss.getScreenHeight());
+				width / (double)ss.getScreenWidth(),
+				height / (double)ss.getScreenHeight());
 	}
 	
 	public ITexture createTexture(GLTexture tex, double sx, double sy) {
 		if (tex == null) {
 			return null;
 		}
-		return new TextureAdapter(tex.getTexRect(null), sx, sy);
+		
+		TextureAdapter ta = new TextureAdapter(this);
+		ta.setTexRect(tex.getTexRect(null), sx, sy);
+		return ta;
 	}
 	
 	public GLGeneratedTexture createGLTexture(int[] argb, int w, int h) {
@@ -115,15 +124,24 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	//Getters
 	@Override
 	protected boolean isValidFilename(String filename) {
+		if (filename == null) return false;
+		
 		return texCache.getImageFileExists(filename);
 	}
+
+	public GLTexRect getTexRect(String filename, String[] luaStack) {
+		return getTexRectNormalized(filename, normalizeFilename(filename), luaStack);
+	}
 	
-	@Override
-	public ITexture getTextureNormalized(String filename, String[] luaStack) {
+	protected GLTexRect getTexRectNormalized(String filename, String normalized, String[] luaStack) {
+		if (normalized == null) {
+			return null;
+		}
+		
 		GLTexRect tr;
-		if (!texCache.isLoaded(filename)) {
+		if (!texCache.isLoaded(normalized)) {
 			long t0 = System.nanoTime();			
-			tr = texCache.get(filename);
+			tr = texCache.get(normalized);
 			long t1 = System.nanoTime();
 			
 			if (tr != null) {
@@ -134,19 +152,37 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 				}
 			}
 		} else {
-			tr = texCache.get(filename);
-		}
+			tr = texCache.get(normalized);
+		}		
+		return tr;
+	}
+	
+	@Override
+	protected ITexture getTextureNormalized(String filename, String normalized, String[] luaStack) {
+		GLTexRect tr = getTexRectNormalized(filename, normalized, luaStack);
 
-		if (tr == null) {
-			return null;
-		}
-				
-		return new TextureAdapter(tr, width / (double)imgWidth, height / (double)imgHeight);
+		//Returning null prevents reloading the image if it's available in a different resolution only
+		//if (tr == null) {
+		//	return null;
+		//}
+		
+		ImageTextureAdapter ita = new ImageTextureAdapter(this, normalized);
+		double scale = getImageScale();
+		ita.setTexRect(tr, scale, scale);
+		return ita;
 	}
 		
 	public BufferedImage getBufferedImage(String filename) throws IOException {
-		filename = normalizeFilename(filename);
-		return texCache.loadBufferedImage(filename);
+		String normalized = normalizeFilename(filename);
+		if (normalized == null) {
+			throw new FileNotFoundException(filename);
+		}
+		
+		try {
+			return texCache.loadBufferedImage(normalized);
+		} catch (ImageFormatException e) {
+			throw new IOException("Unsupported image format: " + filename, e);
+		}
 	}
 	
 	public GLShader getGLShader(String filename) {
@@ -167,9 +203,19 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 		try {
 			return texCache.getImageFiles(folder, true);
 		} catch (IOException e) {
-			notifier.fnf("Folder doesn't exist or can't be read: " + folder, e);
+			notifier.d("Folder doesn't exist or can't be read: " + folder, e);
 		}
 		return Collections.emptyList();
+	}
+	
+	public double getImageScale() {
+		return Math.min(width / (double)imgWidth, height / (double)imgHeight);
+	}
+	
+	//Setters
+	public void setImageSize(int iw, int ih) {
+		imgWidth = iw;
+		imgHeight = ih;
 	}
 	
 }

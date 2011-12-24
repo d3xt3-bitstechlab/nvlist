@@ -121,10 +121,12 @@ public class GameMenuFactory {
 		GameMenu menu = createMenu("Advanced", 'A');
 		menu.add(new ImageCacheMenu());
 		menu.add(new MaxTexSizeMenu());
+		menu.add(new ImageFolderSelectorMenu());
 		menu.add(new FBOMenu());
 		menu.add(new PreloaderMenu());
 		menu.add(new PreloadGLTexturesItem());
 		menu.add(new GLSLItem());
+		menu.add(new LegacyGPUItem());
 		menu.add(new TrueFullscreenItem());
 		menu.add(new VSyncItem());
 		return menu;

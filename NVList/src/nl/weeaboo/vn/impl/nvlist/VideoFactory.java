@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.util.Collection;
+import java.util.Collections;
 
 import javax.media.opengl.GL2;
 
@@ -25,8 +27,10 @@ public class VideoFactory extends BaseVideoFactory implements Serializable {
 	private final FileManager fm;
 	private final TextureCache texCache;
 	private final GLResourceCache resCache;
-	private final String pathPrefix;
 	private final EnvironmentSerializable es;
+
+	private String pathPrefix;
+	private int videoWidth, videoHeight;
 	
 	public VideoFactory(FileManager fm, TextureCache tc, GLResourceCache rc,
 			ISeenLog sl, INotifier ntf)
@@ -37,12 +41,18 @@ public class VideoFactory extends BaseVideoFactory implements Serializable {
 		this.texCache = tc;
 		this.resCache = rc;
 		this.pathPrefix = "video/";
+		
 		this.es = new EnvironmentSerializable(this);
 	}
 	
 	//Functions
 	private Object writeReplace() throws ObjectStreamException {	
 		return es.writeReplace();
+	}
+	
+	@Override
+	protected void preloadNormalized(String filename) {
+		//We stream video's directly from disk, nothing to preload...
 	}
 	
 	@Override
@@ -53,11 +63,25 @@ public class VideoFactory extends BaseVideoFactory implements Serializable {
 	}
 		
 	public GLGeneratedTexture generateTexture(int w, int h) {
-		return texCache.generateTexture(w, h);
+		return generateTexture(null, w, h);
+	}
+	public GLGeneratedTexture generateTexture(int[] argb, int w, int h) {
+		return generateTexture(argb, w, h, 0, 0, 0);
+	}
+	public GLGeneratedTexture generateTexture(int[] argb, int w, int h,
+			int glMinFilter, int glMagFilter, int glWrap)
+	{
+		return texCache.generateTexture(argb, w, h, glMinFilter, glMagFilter, glWrap);
 	}
 	
 	public PBO createPBO(GL2 gl) {
 		return resCache.createPBO(gl);
+	}
+	
+	protected void onVideoFolderChanged(String folder, int w, int h) {
+		pathPrefix = folder;
+		videoWidth = w;
+		videoHeight = h;
 	}
 	
 	//Getters
@@ -67,9 +91,31 @@ public class VideoFactory extends BaseVideoFactory implements Serializable {
 	
 	@Override
 	protected boolean isValidFilename(String filename) {
+		if (filename == null) return false;
+
 		return fm.getFileExists(pathPrefix + filename);
+	}
+
+	@Override
+	protected Collection<String> getFiles(String folder) {
+		try {
+			return fm.getFolderContents(pathPrefix, true);
+		} catch (IOException e) {
+			notifier.d("Folder doesn't exist or can't be read: " + folder, e);
+		}
+		return Collections.emptyList();
 	}
 	
 	//Setters
-	
+	public void setVideoFolder(String folder, int w, int h) {
+		if (!folder.endsWith("/")) {
+			folder += "/";
+		}
+		
+		if (!pathPrefix.equals(folder) || videoWidth != w || videoHeight != h) {
+			pathPrefix = folder;
+			onVideoFolderChanged(pathPrefix, w, h);
+		}
+	}
+
 }

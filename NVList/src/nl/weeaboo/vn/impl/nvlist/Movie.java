@@ -1,8 +1,5 @@
 package nl.weeaboo.vn.impl.nvlist;
 
-import static nl.weeaboo.gl.texture.GLTexUtil.getDefaultPixelFormatARGB;
-import static nl.weeaboo.gl.texture.GLTexUtil.getDefaultPixelTypeARGB;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -12,17 +9,24 @@ import java.util.concurrent.ThreadFactory;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GL2ES1;
 
+import nl.weeaboo.common.Rect2D;
+import nl.weeaboo.game.GameLog;
+import nl.weeaboo.gl.GLInfo;
 import nl.weeaboo.gl.GLManager;
+import nl.weeaboo.gl.GLUtil;
 import nl.weeaboo.gl.PBO;
 import nl.weeaboo.gl.texture.GLGeneratedTexture;
 import nl.weeaboo.gl.texture.GLTexture;
-import nl.weeaboo.io.BufferUtil;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.ogg.StreamUtil;
-import nl.weeaboo.ogg.player.DefaultVideoSink;
 import nl.weeaboo.ogg.player.Player;
 import nl.weeaboo.ogg.player.PlayerListener;
+import nl.weeaboo.ogg.player.RGBVideoSink;
+import nl.weeaboo.ogg.player.VideoSink;
+import nl.weeaboo.ogg.player.YUVVideoSink;
 import nl.weeaboo.vn.impl.base.BaseVideo;
+
+import com.fluendo.jheora.YUVBuffer;
 
 @LuaSerializable
 public final class Movie extends BaseVideo {
@@ -36,7 +40,7 @@ public final class Movie extends BaseVideo {
 	private transient int readIndex;
 	private transient PBO pbo;
 	private transient Player player;
-	private transient DefaultVideoSink videoSink;
+	private transient VideoSink videoSink;
 	
 	public Movie(VideoFactory vfac, String filename) {
 		this.vfac = vfac;
@@ -57,7 +61,9 @@ public final class Movie extends BaseVideo {
 	}	
 	
 	protected void createPlayer() throws IOException {
-		videoSink = new DefaultVideoSink();		
+		videoSink = new RGBVideoSink();		
+		//videoSink = new YUVVideoSink();
+		
 		player = new Player(new PlayerListener() {
 			public void onPauseChanged(boolean p) {
 				//Ignore
@@ -73,12 +79,20 @@ public final class Movie extends BaseVideo {
 		});				
 		
 		InputStream in = vfac.getVideoInputStream(filename);
-		//in = new ByteArrayInputStream(nl.weeaboo.io.StreamUtil.readFully(in));
 		player.setInput(StreamUtil.getOggInput(in));
-		//player.setInput(new BasicOggInput(vfac.getVideoInputStream(filename)));
 		
 		if (textures == null) {
 			textures = new GLGeneratedTexture[2];
+		}
+		
+		int w = player.getWidth();
+		int h = player.getHeight();
+		double fps = player.getFPS();
+		
+		GameLog.v(String.format("Starting video playback: %dx%d %.2ffps", w, h, fps));
+		
+		if (w > 1280 || h > 720) {
+			GameLog.d("Video sizes over 1280x720 aren't recommended, video decoding is too slow");
 		}
 	}
 	
@@ -150,7 +164,20 @@ public final class Movie extends BaseVideo {
 		int w = player.getWidth();
 		int h = player.getHeight();
 		
-		IntBuffer pixels = videoSink.get();
+		IntBuffer pixels = null;
+		if (videoSink instanceof YUVVideoSink) {
+			YUVVideoSink vs = (YUVVideoSink)videoSink;
+			YUVBuffer yuvPixels = vs.get();
+			if (yuvPixels != null) {
+				//synchronized (yuvPixels) {
+					pixels = vs.convertToRGB(yuvPixels);
+				//}
+			}
+		} else {
+			RGBVideoSink vs = (RGBVideoSink)videoSink;
+			pixels = vs.get();
+		}
+
 		if (pixels != null && w > 0 && h > 0) {
 			readIndex = (readIndex + 1) % textures.length;			
 
@@ -162,11 +189,12 @@ public final class Movie extends BaseVideo {
 			}
 				
 			if (writeTex == null) {
-				writeTex = textures[(readIndex + 1) % textures.length] = vfac.generateTexture(w, h);
+				writeTex = vfac.generateTexture(null, w, h);
+				textures[(readIndex + 1) % textures.length] = writeTex;
 			}
 			
 			if (writeTex.isDisposed()) {
-				writeTex.forceLoad(glm);
+				writeTex = writeTex.forceLoad(glm);
 			}
 
 			if (!uploadPixelsPBO(glm, pixels, w, h, writeTex)) {
@@ -175,9 +203,10 @@ public final class Movie extends BaseVideo {
 		}
 
 		GLTexture readTex = textures[readIndex];
-		if (readTex != null && !readTex.isDisposed()) {	
-			glm.setTexture(readTex);
-			glm.fillRect(0, 0, drawW, drawH);
+		if (readTex != null && !readTex.isDisposed()) {
+			glm.setTexture(readTex);			
+			Rect2D uv = readTex.getUV();
+			glm.fillRect(0, 0, drawW, drawH, uv.x, uv.y, uv.w, uv.h);
 			glm.setTexture(null);
 		}		
 	}
@@ -190,6 +219,7 @@ public final class Movie extends BaseVideo {
 			return false;
 		}
 		
+		GLInfo info = glm.getGLInfo();
 		GL2 gl2 = GLManager.getGL2(gl);		
 		if (pbo == null || pbo.isDisposed()) {
 			pbo = vfac.createPBO(gl2);	
@@ -201,15 +231,18 @@ public final class Movie extends BaseVideo {
 		
 		try {
 			//long t0 = System.nanoTime();
+			if (info.getDefaultPixelFormatARGB() != GL2.GL_BGRA) {
+				//Should never happen, BGRA is preferred and should always be supported when PBO's are available
+				GLUtil.swapRedBlue(pixels, pixels);
+			}
 			pbo.setData(gl2, pixels, w*h*4);
 			
 			//long t1 = System.nanoTime();
 			
 			//Stream PBO data to texture
 			glm.setTexture(writeTex);
-			gl2.glTexImage2D(GL2.GL_TEXTURE_2D, 0, GL2.GL_RGBA8,
-					w, h, 0, getDefaultPixelFormatARGB(gl2),
-					getDefaultPixelTypeARGB(gl2), 0);
+			gl2.glTexImage2D(GL2.GL_TEXTURE_2D, 0, GL2.GL_RGBA8, w, h, 0,
+					info.getDefaultPixelFormatARGB(), info.getDefaultPixelTypeARGB(), 0);
 			glm.setTexture(null);
 			
 			//long t2 = System.nanoTime();
@@ -224,15 +257,8 @@ public final class Movie extends BaseVideo {
 	protected void uploadPixels(GLManager glm, IntBuffer pixels, int w, int h,
 			GLGeneratedTexture writeTex)
 	{
-		int[] arr;
-		if (pixels.hasArray() && pixels.arrayOffset() == 0) {
-			arr = pixels.array();
-		} else {
-			arr = BufferUtil.toArray(pixels);
-		}
-		
-		writeTex.setARGB(arr);
-		writeTex.forceLoad(glm);		
+		writeTex.setARGB(pixels);
+		writeTex = writeTex.forceLoad(glm);		
 	}
 	
 	//Getters

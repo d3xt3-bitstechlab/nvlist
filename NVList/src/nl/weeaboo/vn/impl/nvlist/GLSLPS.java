@@ -1,7 +1,6 @@
 package nl.weeaboo.vn.impl.nvlist;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -102,7 +101,7 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 			shader.setTextureParam(gl2, name, 0, ((GLTexture)value).getTexId());
 		} else if (value instanceof float[]) {			
 			float[] f = (float[])value;
-			System.out.println(name + " " + Arrays.toString(f));
+			//System.out.println(name + " " + Arrays.toString(f));
 			if (f.length == 1) {
 				shader.setFloatParam(gl2, name, f[0]);
 			} else if (f.length == 2) {

@@ -4,7 +4,7 @@
 <!-- Properties -->
   <fail>
     <condition>
-	  <or>
+      <or>
         <not><isset property="project-name"/></not>
         <not><isset property="main-class"/></not>
         <not><isset property="dist.dir"/></not>
@@ -15,10 +15,43 @@
   </fail>
 
   <property name="releases.dir" value="${gamedata.dir}/releases" />
+  <property name="executable-filter" value="**/*.jar, **/*.exe, **/*.bat, **/*.sh, **/*.command" />
   
 <!-- Imports -->
   
 <!-- Tasks -->
+  <macrodef name="create-application-bundle">
+    <attribute name="dir" default="${dist.dir}" />
+
+    <sequential>
+		<chmod dir="${build-res.dir}/mac" includes="JavaApplicationStub*" perm="ugo+rx"/>
+
+		<!-- Create Mac OSX launcher -->
+		<jarbundler dir="@{dir}"
+			name="${project-name}"
+			mainclass="${main-class}"
+			icon="${res.dir}/icon.icns"
+			stubfile="${build-res.dir}/mac/JavaApplicationStub"
+			jvmversion="1.6+"
+			jvmarchs="x86_64 i386 ppc"
+			vmoptions="${jvm-args}"
+			arguments="-reparseArgs -id &quot;${project-name}&quot; ${program-args} $APP_PACKAGE/Contents/Resources">
+				
+		  <!-- Include jars to classpath -->
+		  <jarfileset dir="lib" includes="**/*.jar" />        
+		  <jarfilelist dir="${dist.dir}" >
+			  <file name="${project-name}.jar" />
+		  </jarfilelist>
+			
+		  <!-- Include native libs -->
+		  <javafileset dir="lib/mac/amd64" />
+		  
+		  <!-- Include resources -->
+		  <resourcefileset dir="${dist.dir}/res" erroronmissingdir="false" />
+		  <resourcefileset dir="${dist.dir}" includes="*.zip,*.nvl" />
+		</jarbundler>					
+    </sequential>
+  </macrodef>
 
 <!-- Targets -->
 
@@ -29,13 +62,15 @@
   <target name="clean-releases">
     <delete>
       <fileset dir="${releases.dir}">
-        <include name="${project-name}-install-*.jar" />
+        <include name="${project-name}-*.jar" />
         <include name="${project-name}-*.zip" />
+        <include name="${project-name}-*.iso" />
       </fileset>
     </delete>
   </target>
   
   <target name="make-installer-common">
+    <tstamp />
     <copy tofile="${build-res.dir}/installer.ini" file="${build-res.dir}/installer-config.ini">
       <filterChain>
         <expandProperties />
@@ -48,10 +83,12 @@
   <target name="make-installer-zip" depends="make-installer-common">  
     <echo>Creating no-installer ZIP archive (may take a long time)...</echo>
     
-    <tstamp />
-
-    <zip destfile="${releases.dir}/${project-name}-${DSTAMP}.zip" basedir="${dist.dir}"
-            compress="true" encoding="UTF-8" />
+    <zip destfile="${releases.dir}/${project-name}-${DSTAMP}.zip"
+            compress="true" encoding="UTF-8">
+			
+      <zipfileset dir="${dist.dir}" prefix="${project-name}" excludes="${executable-filter}" />
+      <zipfileset dir="${dist.dir}" prefix="${project-name}" includes="${executable-filter}" filemode="755" />
+    </zip>
             
     <delete file="${build-res.dir}/installer.ini" />
   </target>
@@ -61,8 +98,6 @@
   <target name="make-installer" depends="make-installer-common">  
     <echo>Creating installer (may take a long time)...</echo>
     
-    <tstamp />
-
     <java jar="${tools.dir}/MakeInstaller.jar" fork="true">
       <arg value="${dist.dir}" />
       <arg value="${releases.dir}/${project-name}-install-${DSTAMP}.jar" />
@@ -74,9 +109,7 @@
 
   <target name="make-installer-cd" depends="make-installer-common">
     <echo>Creating installer (may take a long time)...</echo>
-
-    <tstamp />
-    
+    	
     <java jar="${tools.dir}/MakeInstaller.jar" fork="true">
       <arg value="-pack-disk" />
       <arg value="${dist.dir}" />
@@ -84,54 +117,49 @@
       <arg value="${build-res.dir}/installer.ini" />
     </java>
     
-    <zip destfile="${releases.dir}/${project-name}-CD-${DSTAMP}.zip" basedir="${dist.dir}/CDROOT"
+    <!-- Create application bundle in CDROOT folder -->
+    <create-application-bundle dir="${dist.dir}/CDROOT" />
+    
+    <!-- Package CDROOT folder -->
+    <exec executable="${tools.dir}/mkisofs/${os.family}/mkisofs" resultproperty="mkisofs-result">	  
+      <arg line="-J -R -hfs -iso-level 2" />
+      <arg value="-V" />
+      <arg value="${project-name}" />
+      <!-- File hiding rules -->
+      <arg line="-hidden .data -hidden *.inf" />
+      <arg line="-hide *.app -hide-joliet *.app" />
+      <arg line="-hide-hfs *.inf -hide-hfs *.jar" />
+      <!-- Output file and inputs -->
+      <arg value="-o" />
+      <arg value="${releases.dir}/${project-name}-cd-${DSTAMP}.iso" />
+      <arg value="${dist.dir}/CDROOT" />
+    </exec>
+	
+    <zip destfile="${releases.dir}/${project-name}-cd-${DSTAMP}.zip" basedir="${dist.dir}/CDROOT"
             compress="false" encoding="UTF-8" />
-            
+		
+	<!-- Delete temp files -->
     <delete dir="${dist.dir}/CDROOT" />
     <delete file="${build-res.dir}/installer.ini" />
   </target>
 
-  <target name="make-installer-mac">
+  <target name="make-installer-mac" depends="make-installer-common">
     <echo>Creating Mac OSX application bundle (may take a long time)...</echo>
     
-    <tstamp />
-    <chmod dir="${build-res.dir}/mac" includes="JavaApplicationStub*" perm="ugo+rx"/>
-
-    <!-- Create Mac OSX launcher -->
-    <jarbundler dir="${dist.dir}"
-        name="${project-name}"
-        mainclass="${main-class}"
-        icon="${res.dir}/icon.icns"
-        stubfile="${build-res.dir}/mac/JavaApplicationStub"
-        jvmversion="1.6+"
-        jvmarchs="x86_64 i386 ppc"
-        vmoptions="${jvm-args}"
-        arguments="-reparseArgs -id &quot;${project-name}&quot; ${program-args} $APP_PACKAGE/Contents/Resources">
-            
-      <!-- Include jars to classpath -->
-      <jarfileset dir="lib" includes="**/*.jar" />        
-      <jarfilelist dir="${dist.dir}" >
-        <file name="${project-name}.jar" />
-      </jarfilelist>
-        
-      <!-- Include native libs -->
-      <javafileset dir="lib/mac/amd64" />
-      
-      <!-- Include resources -->
-      <resourcefileset dir="${dist.dir}/res" erroronmissingdir="false" />
-      <resourcefileset dir="${dist.dir}" includes="*.zip,*.nvl" />
-    </jarbundler>
-    
+    <create-application-bundle dir="${dist.dir}" />
+	
+    <!-- Zip application bundle -->
     <zip destfile="${releases.dir}/${project-name}-mac-${DSTAMP}.zip"
-            compress="true" encoding="UTF-8">
-            
+      compress="true" encoding="UTF-8">
+			
       <zipfileset dir="${dist.dir}/${project-name}.app" prefix="${project-name}.app"
-            filemode="755" includes="Contents/MacOS/**,Contents/Resources/Java/**" />
+        filemode="755" includes="Contents/MacOS/**,Contents/Resources/Java/**" />
       <zipfileset dir="${dist.dir}/${project-name}.app" prefix="${project-name}.app"
-            includes="**"  excludes="Contents/MacOS/**,Contents/Resources/Java/**" />
+        includes="**"  excludes="Contents/MacOS/**,Contents/Resources/Java/**" />
     </zip>
-        
-    <delete dir="${dist.dir}/${project-name}.app" />        
+    <delete dir="${dist.dir}/${project-name}.app" />        	
+
+    <delete file="${build-res.dir}/installer.ini" />
   </target>
   
 </project>

@@ -33,7 +33,6 @@ import javax.media.opengl.GL2ES1;
 
 import nl.weeaboo.common.Rect2D;
 import nl.weeaboo.gl.GLManager;
-import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.vn.BlendMode;
 import nl.weeaboo.vn.IPixelShader;
@@ -92,19 +91,17 @@ public class BlendQuadCommand extends CustomRenderCommand {
 		GLTexture oldtex = glm.getTexture();
 		
 		TextureAdapter ta0 = (TextureAdapter)itex0;
-		GLTexRect tr0 = ta0.getTexRect();
-		GLTexture tex0 = tr0.getTexture();
-		tex0.forceLoad(glm);
+		ta0.forceLoad(glm);
+		GLTexture tex0 = ta0.getTexture();
 				
 		TextureAdapter ta1 = (TextureAdapter)itex1;
-		GLTexRect tr1 = ta1.getTexRect();
-		GLTexture tex1 = tr1.getTexture();
-		tex1.forceLoad(glm);
+		ta1.forceLoad(glm);
+		GLTexture tex1 = ta1.getTexture();
 		
 		Rect2D bounds0 = LayoutUtil.getBounds(itex0, alignX0, alignY0);
-		Rect2D texBounds0 = tr0.getUV();
+		Rect2D texBounds0 = ta0.getUV();
 		Rect2D bounds1 = LayoutUtil.getBounds(itex1, alignX1, alignY1);
-		Rect2D texBounds1 = tr1.getUV();
+		Rect2D texBounds1 = ta1.getUV();
 		
 		//Check if all extensions are available
 		boolean extensionsAvailable = true;

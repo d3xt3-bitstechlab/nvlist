@@ -1,6 +1,7 @@
 package nl.weeaboo.vn.impl.nvlist;
 
 import nl.weeaboo.common.Rect2D;
+import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.lua.io.LuaSerializable;
@@ -11,28 +12,46 @@ public class TextureAdapter implements ITexture {
 
 	private static final long serialVersionUID = NVListImpl.serialVersionUID;
 	
-	private final GLTexRect tr;
-	private final double scaleX, scaleY;
+	protected final ImageFactory imgfac;
+	protected GLTexRect tr;
+	private double scaleX, scaleY;
 	
-	public TextureAdapter(GLTexRect tr, double sx, double sy) {
-		this.tr = tr;
-		this.scaleX = sx;
-		this.scaleY = sy;
+	public TextureAdapter(ImageFactory fac) {
+		this.imgfac = fac;
+	}
+	
+	public void forceLoad(GLManager glm) {
+		if (tr != null) {
+			tr = tr.forceLoad(glm);
+			setTexRect(tr, scaleX, scaleY);			
+		}
 	}
 	
 	@Override
 	public String toString() {
-		return String.format("TextureAdapter(%s)", (tr.getPath() != null ? tr.getPath() : tr.getWidth()+"x"+tr.getHeight()));
+		String trString = "null";
+		if (tr != null) {
+			if (tr.getPath() != null) {
+				trString = tr.getPath();
+			} else {
+				trString = tr.getWidth() + "x" + tr.getHeight();
+			}
+		}
+		return String.format("TextureAdapter(%s)", trString);
 	}
 	
 	public int getTexId() {
-		GLTexture tex = (tr != null ? tr.getTexture() : null);
+		GLTexture tex = getTexture();
 		return (tex != null ? tex.getTexId() : 0);
 	}
 	
+	public GLTexture getTexture() {
+		if (tr == null) return null;
+		return tr.getTexture();
+	}
 	public GLTexRect getTexRect() {
 		return tr;
-	}
+	}	
 	
 	@Override
 	public Rect2D getUV() {
@@ -42,11 +61,13 @@ public class TextureAdapter implements ITexture {
 	
 	@Override
 	public double getWidth() {
+		if (tr == null) return 0;
 		return tr.getWidth() * scaleX;
 	}
 			
 	@Override
 	public double getHeight() {
+		if (tr == null) return 0;
 		return tr.getHeight() * scaleY;
 	}
 	
@@ -56,6 +77,12 @@ public class TextureAdapter implements ITexture {
 	
 	public double getScaleY() {
 		return scaleY;
+	}
+	
+	void setTexRect(GLTexRect tr, double sx, double sy) {
+		this.tr = tr;
+		this.scaleX = sx;
+		this.scaleY = sy;
 	}
 	
 }

@@ -2,22 +2,33 @@ package nl.weeaboo.vn.impl.nvlist;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectStreamException;
 import java.io.OutputStream;
+import java.io.Serializable;
 
 import nl.weeaboo.filemanager.FileManager;
+import nl.weeaboo.io.EnvironmentSerializable;
+import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.vn.impl.base.BaseSeenLog;
 
-public class SeenLog extends BaseSeenLog {
+@LuaSerializable
+public class SeenLog extends BaseSeenLog implements Serializable {
 
+	private final EnvironmentSerializable es;
 	private final FileManager fm;
 	
 	public SeenLog(FileManager fm, String filename) {
 		super(filename);
 		
 		this.fm = fm;
+		this.es = new EnvironmentSerializable(this);
 	}
 	
 	//Functions
+	private Object writeReplace() throws ObjectStreamException {	
+		return es.writeReplace();
+	}
+	
 	@Override
 	protected InputStream openInputStream(String filename) throws IOException {
 		if (fm.getFileExists(filename) && fm.getFileSize(filename) > 0) {

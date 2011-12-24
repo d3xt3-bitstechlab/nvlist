@@ -91,6 +91,8 @@ public class SoundFactory extends BaseSoundFactory implements Serializable {
 
 	@Override
 	protected boolean isValidFilename(String filename) {
+		if (filename == null) return false;
+
 		return sm.getSoundFileExists(filename);
 	}
 	
@@ -99,7 +101,7 @@ public class SoundFactory extends BaseSoundFactory implements Serializable {
 		try {
 			return sm.getSoundFiles(folder, true);
 		} catch (IOException e) {
-			notifier.fnf("Folder doesn't exist or can't be read: " + folder, e);
+			notifier.d("Folder doesn't exist or can't be read: " + folder, e);
 		}
 		return Collections.emptyList();
 	}

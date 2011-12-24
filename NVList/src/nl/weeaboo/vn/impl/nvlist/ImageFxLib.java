@@ -1,7 +1,10 @@
 package nl.weeaboo.vn.impl.nvlist;
 
+import java.awt.image.BufferedImage;
 import java.io.ObjectStreamException;
+import java.nio.IntBuffer;
 
+import nl.weeaboo.awt.ImageUtil;
 import nl.weeaboo.game.GameLog;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.TextureException;
@@ -34,10 +37,10 @@ public class ImageFxLib extends BaseImageFxLib {
 			GLTexRect tr = adapter.getTexRect();
 			if (tr != null) {
 				try {
-					int[] argb = tr.getARGB();
-					if (argb != null) {
-						return new Bitmap(argb, tr.getWidth(), tr.getHeight());
-					}
+					BufferedImage image = tr.toBufferedImage();
+					int[] argb = new int[image.getWidth() * image.getHeight()];
+					ImageUtil.getPixels(image, IntBuffer.wrap(argb), 0, image.getWidth());
+					return new Bitmap(argb, image.getWidth(), image.getHeight());
 				} catch (TextureException e) {
 					GameLog.w("Error getting pixels from texture", e);
 					return null;

@@ -72,7 +72,7 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 	public boolean isMousePressed() {
 		return input.isMousePressed();
 	}
-
+	
 	@Override
 	public boolean consumeConfirm() {
 		return consumeKey(KeyEvent.VK_ENTER)
@@ -128,6 +128,11 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 			|| getKeyHeldTime(VKey.BUTTON2.toKeyCode(1)) > 1500
 			|| isKeyHeld(VKey.BUTTON3.toKeyCode(1))
 			|| isKeyHeld(KeyEvent.VK_CONTROL);
+	}
+	
+	@Override
+	public boolean isIdle() {
+		return input.isIdle();
 	}
 	
 	@Override

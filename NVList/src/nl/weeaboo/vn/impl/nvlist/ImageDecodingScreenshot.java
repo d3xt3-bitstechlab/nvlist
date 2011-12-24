@@ -4,6 +4,7 @@ import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.Iterator;
 
 import javax.imageio.ImageIO;
@@ -74,8 +75,7 @@ class ImageDecodingScreenshot extends DecodingScreenshot {
 			int w = image.getWidth();
 			int h = image.getHeight();
 			int argb[] = new int[w * h];
-			//image.getRGB(0, 0, w, h, argb, 0, w);
-			ImageUtil.getPixels(image, argb, 0, w);			
+			ImageUtil.getPixels(image, IntBuffer.wrap(argb), 0, w);			
 			set(argb, w, h, w, h);
 		}
 	}

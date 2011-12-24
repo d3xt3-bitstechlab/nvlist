@@ -5,6 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.io.IOException;
+import java.nio.IntBuffer;
 import java.util.Arrays;
 
 import javax.media.opengl.GL;
@@ -137,7 +138,7 @@ public class BitmapTween extends BaseBitmapTween {
 
 	@Override
 	protected void updateRemapTex(int[] argb) {
-		remapTex.setARGB(argb);
+		remapTex.setARGB(IntBuffer.wrap(argb));
 	}
 
 	@Override
@@ -153,9 +154,9 @@ public class BitmapTween extends BaseBitmapTween {
 	protected static final class RenderCommand extends CustomRenderCommand {
 
 		private final Matrix transform;
-		private final GLTexRect[] texs;
-		private final GLTexture fadeTex;
-		private final GLTexture remapTex;
+		private GLTexRect[] texs;
+		private GLTexture fadeTex;
+		private GLTexture remapTex;
 		private final GLShader shader;
 		private final TriangleGrid grid;
 		
@@ -184,16 +185,13 @@ public class BitmapTween extends BaseBitmapTween {
 			
 			//Force load textures
 			for (int n = 0; n < texs.length; n++) {
-				GLTexture t = null;
-				if (texs[n] != null) {
-					t = texs[n].getTexture();
-				}
-				if (t != null) {
-					t.forceLoad(glm);
+				GLTexRect tr = texs[n];
+				if (tr != null) {
+					texs[n] = tr.forceLoad(glm);
 				}
 			}
-			fadeTex.forceLoad(glm);
-			remapTex.forceLoad(glm);
+			fadeTex = fadeTex.forceLoad(glm);
+			remapTex = remapTex.forceLoad(glm);
 			
 			//Force load shader
 			shader.forceLoad(glm);

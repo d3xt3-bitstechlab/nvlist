@@ -10,7 +10,6 @@ import nl.weeaboo.io.EnvironmentSerializable;
 import nl.weeaboo.lua.io.LuaSerializable;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.impl.base.BaseScriptLib;
-import nl.weeaboo.vn.impl.lua.LuaNovel;
 
 @LuaSerializable
 public class ScriptLib extends BaseScriptLib implements Serializable {
@@ -31,20 +30,13 @@ public class ScriptLib extends BaseScriptLib implements Serializable {
 	}
 
 	@Override
-	public InputStream openScriptFile(String filename) throws IOException {
-		if (LuaNovel.isBuiltInScript(filename)) {
-			return LuaNovel.openBuiltInScript(filename);
-		} else {
-			return fm.getInputStream(prefix + filename);
-		}
+	protected InputStream openExternalScriptFile(String filename) throws IOException {
+		return fm.getInputStream(prefix + filename);
 	}
 	
 	//Getters
 	@Override
-	public long getScriptModificationTime(String filename) throws IOException {
-		if (LuaNovel.isBuiltInScript(filename)) {
-			return 0;
-		}		
+	protected long getExternalScriptModificationTime(String filename) throws IOException {
 		return fm.getFileModifiedTime(prefix + filename);
 	}
 	

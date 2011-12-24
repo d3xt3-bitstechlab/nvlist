@@ -24,11 +24,11 @@ public class NovelNotifier extends BaseNotifier implements Serializable {
 	@Override
 	public void log(ErrorLevel level, String message, Throwable t) {
 		switch (level) {
-		case VERBOSE:      GameLog.v(message, t); break;
-		case FILENOTFOUND: GameLog.fnf(message, t); break;
-		case WARNING:      GameLog.w(message, t); break;
-		case MESSAGE:      notifier.addMessage(this, message); break;
-		case ERROR:        GameLog.e(message, t); break;
+		case VERBOSE: GameLog.v(message, t); break;
+		case DEBUG:   GameLog.d(message, t); break;
+		case WARNING: GameLog.w(message, t); break;
+		case ERROR:   GameLog.e(message, t); break;
+		case MESSAGE: notifier.addMessage(this, message); break;
 		}
 	}
 

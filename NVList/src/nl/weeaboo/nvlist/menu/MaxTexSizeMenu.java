@@ -5,11 +5,11 @@ import static nl.weeaboo.game.BaseGameConfig.MAX_TEX_SIZE;
 public class MaxTexSizeMenu extends RangeMenu<Integer> {
 
 	private static final String labels[] = {
-		"64x64", "128x128", "256x256", "512x512", "1024x1024", "2048x2048", "4096x4096"
+		"64x64", "128x128", "256x256", "512x512", "1024x1024", "2048x2048", "4096x4096", "8192x8192"
 	};
 	
 	private static final Integer values[] = {
-		64, 128, 256, 512, 1024, 2048, 4096
+		64, 128, 256, 512, 1024, 2048, 4096, 8192
 	};
 	
 	public MaxTexSizeMenu() {

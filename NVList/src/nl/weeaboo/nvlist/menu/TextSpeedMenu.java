@@ -1,6 +1,6 @@
 package nl.weeaboo.nvlist.menu;
 
-import static nl.weeaboo.nvlist.NovelPrefs.TEXT_SPEED;
+import static nl.weeaboo.vn.NovelPrefs.TEXT_SPEED;
 
 public class TextSpeedMenu extends RangeMenu<Double> {
 

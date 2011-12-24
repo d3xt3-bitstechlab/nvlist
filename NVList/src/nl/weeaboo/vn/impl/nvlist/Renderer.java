@@ -10,13 +10,11 @@ import java.util.Arrays;
 
 import javax.media.opengl.GL2ES1;
 
+import nl.weeaboo.collections.MergeSort;
 import nl.weeaboo.common.Rect;
 import nl.weeaboo.common.Rect2D;
-import nl.weeaboo.gl.Buffers;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.text.ParagraphRenderer;
-import nl.weeaboo.gl.texture.GLTexRect;
-import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.io.BufferUtil;
 import nl.weeaboo.textlayout.TextLayout;
 import nl.weeaboo.vn.BlendMode;
@@ -30,10 +28,13 @@ import nl.weeaboo.vn.impl.base.ScreenshotRenderCommand;
 import nl.weeaboo.vn.impl.base.TriangleGrid;
 import nl.weeaboo.vn.math.Matrix;
 
+import com.jogamp.common.nio.Buffers;
+
 public class Renderer extends BaseRenderer {
 
 	private final GLManager glm;
 	private final ParagraphRenderer pr;
+	private final RenderStats renderStats;
 	
 	private transient BaseRenderCommand[] tempArray;
 	
@@ -44,6 +45,7 @@ public class Renderer extends BaseRenderer {
 		
 		this.glm = glm;
 		this.pr = pr;
+		this.renderStats = null; //new RenderStats();
 	}
 	
 	//Functions
@@ -76,10 +78,20 @@ public class Renderer extends BaseRenderer {
 				frac, trans, ps));
 	}
 	
+	public void onFrameRenderDone() {
+		if (renderStats != null) {
+			renderStats.onFrameRenderDone();
+		}
+	}		
+	
 	@Override
 	public void render(Rect2D bounds) {
 		if (commands.isEmpty()) {
 			return;
+		}
+		
+		if (renderStats != null) {
+			renderStats.startRender();
 		}
 		
 		final int rx = getRealX();
@@ -94,8 +106,12 @@ public class Renderer extends BaseRenderer {
 		}
 		tempArray = commands.toArray(tempArray);
 		final int len = commands.size();
-		Arrays.sort(tempArray, 0, len);
-				
+		
+		// Merge sort is only faster than Arrays.sort() for small (up to ~1000
+		// elements) arrays or when the input is nearly sorted. Since both of
+		// these are typically the case...
+		MergeSort.sort(tempArray, 0, len);
+
 		GL2ES1 gl = glm.getGL();
 		gl.glPushMatrix();
 		if (bounds != null) {
@@ -127,8 +143,9 @@ public class Renderer extends BaseRenderer {
 		glm.setColor(foreground);
 		
 		//Render buffered commands
+		long renderStatsTimestamp = 0;
 		for (int n = 0; n < len; n++) {
-			BaseRenderCommand cmd = tempArray[n];
+			BaseRenderCommand cmd = tempArray[n];			
 			
 			//Clipping changed
 			if (cmd.clipEnabled != clipping) {
@@ -162,6 +179,12 @@ public class Renderer extends BaseRenderer {
 				continue;
 			}
 			
+			//Set pre-command execute timestamp
+			if (renderStats != null) {
+				renderStatsTimestamp = System.nanoTime();
+			}
+			
+			//Handle commands
 			if (cmd.id == QuadRenderCommand.id) {
 				QuadRenderCommand qrc = (QuadRenderCommand)cmd;
 				renderQuad(glm, qrc.tex, qrc.transform,
@@ -172,31 +195,22 @@ public class Renderer extends BaseRenderer {
 				Screenshot ss = (Screenshot)src.ss;
 				
 				nl.weeaboo.gl.capture.Screenshot gss = new nl.weeaboo.gl.capture.Screenshot();
-				gss.set(gl, new Rect(rx, ry, rw, rh));
+				gss.set(glm, new Rect(rx, ry, rw, rh));
 				
 				ss.set(BufferUtil.toArray(gss.getARGB()), gss.getWidth(), gss.getHeight(), rw, rh);
 			} else if (cmd.id == RenderTextCommand.id) {
 				RenderTextCommand rtc = (RenderTextCommand)cmd;
-
-				IPixelShader ps = rtc.ps;				
-				if (ps != null) ps.preDraw(this);
-				
-				gl.glPushMatrix();
-				glm.translate(rtc.x, rtc.y);
-				glm.translate(0, -rtc.textLayout.getLineTop(rtc.lineStart));
-				
-				pr.setVisibleChars(rtc.visibleChars);
-				pr.setLineOffset(rtc.lineStart);
-				pr.setVisibleLines(rtc.lineEnd - rtc.lineStart);
-				pr.drawLayout(glm, rtc.textLayout);
-				gl.glPopMatrix();
-				
-				if (ps != null) ps.postDraw(this);
+				renderText(glm, rtc.textLayout, rtc.x, rtc.y - rtc.textLayout.getLineTop(rtc.lineStart),
+						rtc.lineStart, rtc.lineEnd, rtc.visibleChars, rtc.ps);
 			} else if (cmd.id == CustomRenderCommand.id) {
 				CustomRenderCommand crc = (CustomRenderCommand)cmd;
 				crc.render(this);
 			} else {
 				throw new RuntimeException("Unsupported command type: " + cmd.id);
+			}
+			
+			if (renderStats != null) {
+				renderStats.log(cmd, System.nanoTime()-renderStatsTimestamp);
 			}
 		}
 		
@@ -205,7 +219,11 @@ public class Renderer extends BaseRenderer {
 		gl.glDisable(GL2ES1.GL_SCISSOR_TEST);
 		gl.glPopMatrix();
 		
-		Arrays.fill(tempArray, 0, len, null);
+		Arrays.fill(tempArray, 0, len, null); //Null array to allow garbage collection
+		
+		if (renderStats != null) {
+			renderStats.stopRender();
+		}		
 	}
 	
 	void renderQuad(GLManager glm, ITexture itex, Matrix t,
@@ -215,25 +233,18 @@ public class Renderer extends BaseRenderer {
 		if (itex == null) {
 			glm.setTexture(null);
 		} else {
-			GLTexRect tr = ((TextureAdapter)itex).getTexRect();
-			GLTexture tex = tr.getTexture();
-			tex.forceLoad(glm);
-			glm.setTexture(tex);
-
-			Rect2D uv = tr.getUV();
-			u  = uv.x + u * uv.w;
-			v  = uv.y + v * uv.h;
-			uw = uv.w * uw;
-			vh = uv.h * vh;
-			
-			/*
-			int tw = tex.getTexWidth();
-			int th = tex.getTexHeight();
-			u  = (tr.getX() + u * tr.getWidth()) / tw;
-			v  = (tr.getY() + v * tr.getHeight()) / th;
-			uw = (uw * tr.getWidth()) / tw;
-			vh = (vh * tr.getHeight()) / th;
-			*/
+			TextureAdapter ta = (TextureAdapter)itex;
+			ta.forceLoad(glm);
+			if (ta.getTexId() != 0) {
+				glm.setTexture(ta.getTexture());
+				Rect2D uv = ta.getUV();
+				u  = uv.x + u * uv.w;
+				v  = uv.y + v * uv.h;
+				uw = uv.w * uw;
+				vh = uv.h * vh;
+			} else {				
+				glm.setTexture(null);
+			}
 		}
 
 		renderQuad(glm, t, x, y, w, h, ps, u, v, uw, vh);
@@ -253,9 +264,33 @@ public class Renderer extends BaseRenderer {
 		} else {
 			double sx = t.getScaleX();
 			double sy = t.getScaleY();
-			glm.fillRect(x * sx + t.getTranslationX(), y * sy + t.getTranslationY(),
-					w * sx, h * sy, u, v, uw, vh);
+			x = x * sx + t.getTranslationX();
+			y = y * sy + t.getTranslationY();
+			w = w * sx;
+			h = h * sy;
+			glm.fillRect(x, y, w, h, u, v, uw, vh);
+			//System.out.printf("%.2f, %.2f, %.2f, %.2f\n", x, y, w, h);
 		}		
+		
+		if (ps != null) ps.postDraw(this);		
+	}
+	
+	void renderText(GLManager glm, TextLayout layout, double x, double y,
+			int lineStart, int lineEnd, double visibleChars, IPixelShader ps)
+	{
+		if (ps != null) ps.preDraw(this);
+		
+		//GL2ES1 gl = glm.getGL();		
+		//gl.glPushMatrix();
+		glm.translate(x, y);
+		
+		pr.setLineOffset(lineStart);
+		pr.setVisibleLines(lineEnd - lineStart);
+		pr.setVisibleChars(visibleChars);
+		pr.drawLayout(glm, layout);
+
+		glm.translate(-x, -y);
+		//gl.glPopMatrix();
 		
 		if (ps != null) ps.postDraw(this);		
 	}

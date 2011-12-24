@@ -5,7 +5,7 @@ import static nl.weeaboo.game.BaseGameConfig.IMAGE_CACHE_SIZE;
 public class ImageCacheMenu extends RangeMenu<Integer> {
 
 	private static final String labels[] = {
-		"Off", "4MB", "8MB", "16MB", "32MB", "64MB", "128MB", "256MB"
+		"Off", "4MiB", "8MiB", "16MiB", "32MiB", "64MiB", "128MiB", "256MiB"
 	};
 	
 	private static final Integer values[] = {

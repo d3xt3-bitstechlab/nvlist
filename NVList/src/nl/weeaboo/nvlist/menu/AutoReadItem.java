@@ -1,6 +1,6 @@
 package nl.weeaboo.nvlist.menu;
 
-import static nl.weeaboo.nvlist.NovelPrefs.AUTO_READ;
+import static nl.weeaboo.vn.NovelPrefs.AUTO_READ;
 
 import java.awt.event.ActionEvent;
 

@@ -37,7 +37,6 @@ import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 
-import nl.weeaboo.awt.ImageUtil;
 import nl.weeaboo.common.Dim;
 import nl.weeaboo.common.ScaleUtil;
 import nl.weeaboo.game.GameLog;
@@ -374,12 +373,10 @@ public class DebugImagePanel extends JPanel {
 				if (tr != null) {
 					synchronized (lock) {
 						try {
-							int w = tr.getWidth();
-							int h = tr.getHeight();
-							int[] argb = tr.getARGB();
-							
-							icon = ImageUtil.createBufferedImage(w, h, argb);
+							icon = tr.toBufferedImage();
 						} catch (TextureException e) {
+							GameLog.w("Error getting pixels from texture", e);
+						} catch (RuntimeException e) {
 							GameLog.w("Error getting pixels from texture", e);
 						}
 					}
