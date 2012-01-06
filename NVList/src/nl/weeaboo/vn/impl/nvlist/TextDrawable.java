@@ -177,7 +177,11 @@ public class TextDrawable extends BaseTextDrawable {
 		if (el <= 0) {
 			return 0;
 		} else {
-			return layout.getLineTop(el-1);
+			double cursorHeight = 0;
+			if (getCursor() != null) {
+				cursorHeight = getCursor().getHeight();
+			}
+			return layout.getLineBottom(el) - cursorHeight;
 		}
 	}
 	

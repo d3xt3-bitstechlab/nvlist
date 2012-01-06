@@ -111,20 +111,20 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 			} else if (f.length >= 4) {
 				shader.setVec4Param(gl2, name, f, 0);
 			}
-		} else if (value instanceof Number) {
-			shader.setFloatParam(gl2, name, ((Number)value).floatValue());
-		} else if (value instanceof Rect) {
-			Rect r = (Rect)value;
-			shader.setVec4Param(gl2, name, r.x, r.y, r.w, r.h);
 		} else if (value instanceof Rect2D) {
 			Rect2D r = (Rect2D)value;
 			shader.setVec4Param(gl2, name, (float)r.x, (float)r.y, (float)r.w, (float)r.h);
-		} else if (value instanceof Dim) {
-			Dim d = (Dim)value;
-			shader.setVec2Param(gl2, name, d.w, d.h);
+		} else if (value instanceof Rect) {
+			Rect r = (Rect)value;
+			shader.setVec4Param(gl2, name, r.x, r.y, r.w, r.h);
 		} else if (value instanceof Dim2D) {
 			Dim2D d = (Dim2D)value;
 			shader.setVec2Param(gl2, name, (float)d.w, (float)d.h);
+		} else if (value instanceof Dim) {
+			Dim d = (Dim)value;
+			shader.setVec2Param(gl2, name, d.w, d.h);
+		} else if (value instanceof Number) {
+			shader.setFloatParam(gl2, name, ((Number)value).floatValue());
 		} else {
 			throw new IllegalArgumentException("Unsupported param type: " + (value != null ? value.getClass() : null));
 		}

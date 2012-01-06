@@ -93,13 +93,12 @@ public class BlendQuadCommand extends CustomRenderCommand {
 		TextureAdapter ta0 = (TextureAdapter)itex0;
 		ta0.forceLoad(glm);
 		GLTexture tex0 = ta0.getTexture();
-				
+		Rect2D bounds0 = LayoutUtil.getBounds(itex0, alignX0, alignY0);
+		Rect2D texBounds0 = ta0.getUV();
+		
 		TextureAdapter ta1 = (TextureAdapter)itex1;
 		ta1.forceLoad(glm);
 		GLTexture tex1 = ta1.getTexture();
-		
-		Rect2D bounds0 = LayoutUtil.getBounds(itex0, alignX0, alignY0);
-		Rect2D texBounds0 = ta0.getUV();
 		Rect2D bounds1 = LayoutUtil.getBounds(itex1, alignX1, alignY1);
 		Rect2D texBounds1 = ta1.getUV();
 		
@@ -114,8 +113,8 @@ public class BlendQuadCommand extends CustomRenderCommand {
 		
 		gl.glPushMatrix();
 		gl.glMultMatrixf(transform.toGLMatrix(), 0);		
-		if (!extensionsAvailable) {
-			//Fallback for OpenGL < 1.4			
+		if (tex0 == null || tex1 == null || !extensionsAvailable) {
+			//Fallback for OpenGL < 1.4 or when some textures aren't available
 			glm.setTexture(tex0);
 			glm.pushColor();
 			glm.mixColor(1, 1, 1, f);
@@ -129,8 +128,6 @@ public class BlendQuadCommand extends CustomRenderCommand {
 			glm.fillRect(bounds1.x, bounds1.y, bounds1.w, bounds1.h,
 					texBounds1.x, texBounds1.y, texBounds1.w, texBounds1.h);
 			glm.popColor();
-
-			glm.setTexture(tex0);
 		} else {		
 			//Set texture 0		
 			gl.glActiveTexture(GL_TEXTURE0);
