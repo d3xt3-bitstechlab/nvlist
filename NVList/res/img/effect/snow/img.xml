@@ -1,0 +1,6 @@
+<images>
+  <image filename="snow.png" width="256" height="256">
+    <subrect id="i1" rect="  0,  0,32,32" />
+    <subrect id="i2" rect=" 32,  0,32,32" />
+  </image>
+</images>
