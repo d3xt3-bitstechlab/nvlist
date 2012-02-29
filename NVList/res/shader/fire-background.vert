@@ -10,10 +10,9 @@ void main() {
     gl_Position = ftransform(); //gl_ProjectionMatrix * gl_ModelViewMatrix * gl_Vertex;
 	gl_FrontColor = gl_Color;
 	
-    vec2 screenPos = (gl_Position.x, screen.a - gl_Position.y) - screen.xy;
-    vec2 normScreenPos = screenPos.xy / screen.ba;
+    vec2 normScreenPos = (gl_Position.xy - screen.xy) / screen.zw;
     
-	vec2 tpos = normScreenPos.xy * gl_TexCoord[0].st;
-	float s = (0.5 + 0.3 * tpos.y) + sin(time * 0.1) * 0.3;
-	fc = s * vec3(0.6 + tpos.y * 0.3, tpos.y * 0.1, 0);
+	vec2 tpos = normScreenPos.xy * gl_MultiTexCoord0.st;
+	float s = (0.8 - 0.3 * tpos.y) + sin(time * 0.1) * 0.3;
+	fc = s * vec3(0.9 - tpos.y * 0.3, 0.2 - tpos.y * 0.5, 0);
 }

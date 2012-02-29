@@ -5,9 +5,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 
 import nl.weeaboo.io.ByteChunkOutputStream;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.tga.TGAUtil;
 import nl.weeaboo.vn.impl.base.BaseScreenshot;
 
@@ -22,12 +23,12 @@ public class Screenshot extends BaseScreenshot {
 	
 	//Functions				
 	@Override
-	protected void serializePixels(ObjectOutputStream out, int argb[]) throws IOException {
+	protected void serializePixels(ObjectOutputStream out, int[] argb) throws IOException {
 		if (argb != null && getWidth() > 0 && getHeight() > 0) {
 			ByteChunkOutputStream bout = new ByteChunkOutputStream();
 			TGAUtil.writeTGA(bout, argb, getWidth(), getHeight(), true, true);
 			out.writeInt(bout.size());
-			bout.writeContentsTo(out);
+			bout.writeContentsTo((OutputStream)out);
 		} else {
 			out.writeInt(argb != null ? 0 : -1);
 		}

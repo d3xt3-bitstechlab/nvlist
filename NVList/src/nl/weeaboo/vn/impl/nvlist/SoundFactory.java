@@ -7,7 +7,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import nl.weeaboo.io.EnvironmentSerializable;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.sound.SoundDesc;
 import nl.weeaboo.sound.SoundManager;
 import nl.weeaboo.sound.SoundManager.SoundInput;
@@ -49,20 +49,20 @@ public class SoundFactory extends BaseSoundFactory implements Serializable {
 	public ISound createSoundNormalized(SoundType stype, String filename,
 			String[] luaStack) throws IOException
 	{
-		if (!sm.isSoundLoaded(filename) && sm.isSoundCacheable(filename)) {
-			long t0 = System.nanoTime();
-			SoundInput sin = sm.getSoundInput(filename);
-			try {
-				long t1 = System.nanoTime();			
-				if (sin != null) {
-					String callSite = LuaNovelUtil.getNearestLVNSrcloc(luaStack);
-					if (callSite != null) {
-						analytics.logSoundLoad(filename, callSite, t1-t0);
-						//System.out.println("Sound Load: " + filename);
-					}
-				}
-			} finally {
+		long loadNanos = 0L;
+		boolean cacheable = sm.isSoundCacheable(filename);
+		if (cacheable) {
+			if (!sm.isSoundLoaded(filename)) {
+				long t0 = System.nanoTime();
+				SoundInput sin = sm.getSoundInput(filename);
+				loadNanos = System.nanoTime() - t0;			
 				if (sin != null) sin.close();
+			}
+		
+			String callSite = LuaNovelUtil.getNearestLVNSrcloc(luaStack);
+			if (callSite != null) {
+				analytics.logSoundLoad(callSite, filename, loadNanos);
+				//System.out.println("Sound Load: " + filename);
 			}
 		}
 		

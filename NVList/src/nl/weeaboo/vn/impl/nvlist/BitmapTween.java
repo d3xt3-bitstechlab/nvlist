@@ -18,7 +18,7 @@ import nl.weeaboo.gl.shader.GLShader;
 import nl.weeaboo.gl.texture.GLGeneratedTexture;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.IImageDrawable;
 import nl.weeaboo.vn.IInterpolator;
 import nl.weeaboo.vn.INotifier;

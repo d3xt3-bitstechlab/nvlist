@@ -7,51 +7,33 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 
 import javax.swing.JComponent;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
-import javax.swing.border.EmptyBorder;
 import javax.swing.undo.UndoManager;
 
+import nl.weeaboo.awt.LogPane;
 import nl.weeaboo.awt.TTextField;
-import nl.weeaboo.lua.LuaException;
-import nl.weeaboo.string.HtmlUtil;
+import nl.weeaboo.lua2.LuaException;
 import nl.weeaboo.vn.impl.nvlist.Novel;
+
+import org.luaj.vm2.LuaError;
+import org.luaj.vm2.Varargs;
 
 @SuppressWarnings("serial")
 public class DebugLuaPanel extends JPanel {
 
 	private final Object lock;
 	private final Novel novel;
-	private final StringBuilder outputBuffer;
-	private final JLabel outputArea;
-	private final JScrollPane outputScrollPane;
+	private final LogPane logPane;
 	private final TTextField commandField;
 	
 	public DebugLuaPanel(Object l, Novel nvl) {
 		lock = l;
 		novel = nvl;
 		
-		outputBuffer = new StringBuilder();
-		
-		outputArea = new JLabel() {
-			public void setBounds(int x, int y, int w, int h) {
-				int oldWidth = getWidth();
-				
-				super.setBounds(x, y, w, h);
-
-				if (w != oldWidth) {										
-					updateOutputArea();
-				}
-			}
-		};
-		outputArea.setBorder(new EmptyBorder(5, 5, 5, 5));
-		outputArea.setVerticalTextPosition(JLabel.TOP);
-		outputArea.setVerticalAlignment(JLabel.TOP);
-				
-		outputScrollPane = new JScrollPane(outputArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+		logPane = new LogPane();
+		JScrollPane logScrollPane = new JScrollPane(logPane, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		
 		//Command field
@@ -76,43 +58,38 @@ public class DebugLuaPanel extends JPanel {
 		
 		commandField.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
-				String text = "return (" + commandField.getText() + ")";
+				String code = commandField.getText();
+				if (code.trim().length() == 0) {
+					return;
+				}
+				code = String.format("return (%s)", code);
 				commandField.setText("");
 				
 				synchronized (lock) {
 					try {
-						Object result = novel.exec(text);
-						if (result != null) {
-							outputBuffer.append(HtmlUtil.escapeHtml(String.valueOf(result)));
-							outputBuffer.append("<br>");
+						Varargs result = novel.exec(code);
+						if (result != null && result.narg() > 0) {
+							logPane.append(result.tojstring());
 						}
 					} catch (LuaException e) {
-						outputBuffer.append("<font color=red>");
-						outputBuffer.append(HtmlUtil.escapeHtml(e.toString()));
-						outputBuffer.append("</font><br>");
+						Throwable t = e;
+						while ((t instanceof LuaException || t instanceof LuaError) && t.getCause() != null) {
+							t = t.getCause();
+						}
+						String message = "Error evaluating Lua code";
+						//GameLog.w(message, t);
+						logPane.append(LogPane.STYLE_ERROR, message, t);
 					}
 				}
-				
-				updateOutputArea();
 			}
 		});
 		
 		setLayout(new BorderLayout(5, 5));
-		add(outputScrollPane, BorderLayout.CENTER);
+		add(logScrollPane, BorderLayout.CENTER);
 		add(commandField, BorderLayout.SOUTH);
 	}
 	
 	//Functions
-	public void updateOutputArea() {
-		JScrollBar vbar = outputScrollPane.getVerticalScrollBar();
-		
-		int w = outputArea.getWidth();
-		outputArea.setText("<html><div width=" + (w-11) + ">"
-				+ outputBuffer.toString() + "</div></html>");
-		outputScrollPane.revalidate();
-		
-		vbar.setValue(vbar.getMaximum());
-	}
 	
 	//Getters
 	

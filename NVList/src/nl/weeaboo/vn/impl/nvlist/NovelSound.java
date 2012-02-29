@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.sound.ISound;
 import nl.weeaboo.sound.SoundDesc;
 import nl.weeaboo.sound.SoundManager;

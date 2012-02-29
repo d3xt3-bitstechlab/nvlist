@@ -3,7 +3,7 @@ package nl.weeaboo.vn.impl.nvlist;
 import java.io.ObjectStreamException;
 
 import nl.weeaboo.io.EnvironmentSerializable;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.IImageFactory;
 import nl.weeaboo.vn.IImageTween;
 import nl.weeaboo.vn.IInterpolator;

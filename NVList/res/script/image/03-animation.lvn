@@ -1,0 +1,55 @@
+
+@@
+
+local frames = {}
+for i=1,4 do
+    frames[i] = tex("anim/anim01#" .. i)
+end
+
+local drawable = img(frames[1])
+
+local texAnimThread = newThread(function()
+    local f = 1
+    while not drawable:isDestroyed() do
+        --Change the displayed frame
+        drawable:setTexture(frames[f])
+        
+        --Pause for 15 frames (0.25 seconds)
+        yield(15)
+        
+        --Increase frame number, looping
+        f = f + 1
+        if f > #frames then
+            f = 1
+        end
+    end
+end)
+
+local moveThread = newThread(function()
+    while not drawable:isDestroyed() do
+        translateTo(drawable, screenWidth-drawable:getWidth(), 0, 180)
+        translateRelative(drawable, -screenWidth/2, screenHeight*.6, 60)
+        
+        --Outwards spiraling motion
+        local cx = drawable:getX()
+        local cy = drawable:getY()
+        for i=1,240 do
+            local r = i
+            drawable:setPos(cx + r * math.cos(i * math.pi / 60), cy + r * math.sin(i * math.pi / 60))
+            yield()
+        end
+        
+        --Back to the origin for another loop
+        translateTo(drawable, 0, 0, 120)
+    end
+end)
+
+@@
+
+Click to end the animation
+
+@@
+
+drawable:destroy()
+
+@@

@@ -8,10 +8,10 @@ import java.io.InputStream;
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.game.input.IKeyConfig;
 import nl.weeaboo.game.input.Keys;
-import nl.weeaboo.lua.LuaException;
-import nl.weeaboo.lua.LuaRunState;
-import nl.weeaboo.lua.LuaUtil;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.LuaException;
+import nl.weeaboo.lua2.LuaRunState;
+import nl.weeaboo.lua2.LuaUtil;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.IAnalytics;
 import nl.weeaboo.vn.IImageState;
 import nl.weeaboo.vn.IInput;
@@ -27,12 +27,9 @@ import nl.weeaboo.vn.impl.lua.AbstractKeyCodeMetaFunction;
 import nl.weeaboo.vn.impl.lua.LuaMediaPreloader;
 import nl.weeaboo.vn.impl.lua.LuaNovel;
 
-import org.luaj.vm.LInteger;
-import org.luaj.vm.LNil;
-import org.luaj.vm.LTable;
-import org.luaj.vm.LValue;
-import org.luaj.vm.LuaErrorException;
-import org.luaj.vm.LuaState;
+import org.luaj.vm2.LuaError;
+import org.luaj.vm2.LuaTable;
+import org.luaj.vm2.LuaValue;
 
 public class Novel extends LuaNovel {
 
@@ -91,20 +88,17 @@ public class Novel extends LuaNovel {
 		super.initLuaRunState();
 		
 		LuaRunState lrs = getLuaRunState();
-		LuaState vm = lrs.vm;
+		LuaValue globals = lrs.getGlobalEnvironment();
 		try {
-			LuaUtil.registerClass(lrs, vm, FreeRotationGS.class);
+			//Register types
+			LuaUtil.registerClass(globals, FreeRotationGS.class);
+
+			//Register libraries
+			GLSLPS.install(globals, (ImageFactory)getImageFactory(), getNotifier());
+			registerVNDSLib();
 		} catch (LuaException e) {
 			onScriptError(e);
-		}
-		
-		LTable globals = vm._G;
-		try {
-			globals.put("VNDS", createVNDSLib(globals));
-		} catch (LuaException e) {
-			onScriptError(e);
-		}
-		GLSLPS.install(globals, (ImageFactory)getImageFactory(), getNotifier());
+		}		
 	}
 
 	@Override
@@ -112,12 +106,12 @@ public class Novel extends LuaNovel {
 		Throwable t = e;
 		
 		StringBuilder message = new StringBuilder("Script Error");
+		message.append(" :: ");
+		message.append(t.getMessage());
 		if (t instanceof LuaException && t.getCause() != null) {
-			message.append(" :: ");
-			message.append(t.getMessage());
 			t = t.getCause();
 		}
-		while (t instanceof LuaErrorException && t.getCause() != null) {
+		while (t instanceof LuaError && t.getCause() != null) {
 			message.append(" :: ");
 			message.append(t.getMessage());
 			t = t.getCause();
@@ -129,10 +123,10 @@ public class Novel extends LuaNovel {
 	}
 
 	@Override
-	protected void addKeyCodeConstants(LTable table) throws LuaException {
+	protected void addKeyCodeConstants(LuaTable table) throws LuaException {
 		Keys keys = keyConfig.getKeys();
 		//for (Entry<String, Integer> entry : keys) {
-		//	table.put(LString.valueOf(entry.getKey()), LInteger.valueOf(entry.getValue()));
+		//	table.put(valueOf(entry.getKey()), valueOf(entry.getValue()));
 		//}
 		addKeyCodeConstants(table, new KeyCodeMetaFunction(keys, table));
 	}
@@ -149,16 +143,16 @@ public class Novel extends LuaNovel {
 		
 		private static Keys keys;
 		
-		public KeyCodeMetaFunction(Keys k, LTable t) {
+		public KeyCodeMetaFunction(Keys k, LuaTable t) {
 			super(t);
 			
 			keys = k;
 		}
 
 		@Override
-		protected LValue getKeyCode(String name) {
+		protected LuaValue getKeyCode(String name) {
 			int retval = keys.get(name);
-			return (retval == 0 ? LNil.NIL : LInteger.valueOf(retval));
+			return (retval == 0 ? NIL : valueOf(retval));
 		}
 		
 	}

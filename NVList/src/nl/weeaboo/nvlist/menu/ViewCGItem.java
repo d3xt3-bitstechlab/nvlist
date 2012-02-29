@@ -4,7 +4,7 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.JMenuItem;
 
-import nl.weeaboo.lua.LuaException;
+import nl.weeaboo.lua2.LuaException;
 import nl.weeaboo.nvlist.Game;
 import nl.weeaboo.vn.impl.nvlist.Novel;
 

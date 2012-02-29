@@ -40,6 +40,10 @@
         failonerror="false" />        
   </target>
 
+  <target name="dist-src" depends="Game.dist-src">
+    <delete file="${dist.dir}/res/preloader-default.bin" failonerror="false" />
+  </target>
+  
   <target name="dist" depends="Game.dist">
     <delete file="${dist.dir}/${project-name}-src.zip" />
 

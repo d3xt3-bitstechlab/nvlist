@@ -8,37 +8,26 @@ import java.io.Serializable;
 
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.io.EnvironmentSerializable;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.INotifier;
-import nl.weeaboo.vn.impl.base.BaseAnalytics;
+import nl.weeaboo.vn.impl.base.BaseLoggingAnalytics;
 
 @LuaSerializable
-public class Analytics extends BaseAnalytics implements Serializable {
+public class Analytics extends BaseLoggingAnalytics implements Serializable {
 		
 	private final FileManager fm;
-	private final INotifier notifier;
 	private final EnvironmentSerializable es;
 	
 	public Analytics(FileManager fm, String filename, INotifier ntf) {
 		super(filename);
 		
 		this.fm = fm;
-		this.notifier = ntf;
 		this.es = new EnvironmentSerializable(this);
 	}
 	
 	//Functions	
 	private Object writeReplace() throws ObjectStreamException {	
 		return es.writeReplace();
-	}
-	
-	@Override
-	protected void onChanged() {
-		try {
-			save();
-		} catch (IOException ioe) {
-			notifier.w("Error saving analytics", ioe);
-		}
 	}
 	
 	@Override
@@ -53,8 +42,8 @@ public class Analytics extends BaseAnalytics implements Serializable {
 	}
 
 	@Override
-	protected OutputStream openOutputStream(String filename) throws IOException {
-		return fm.getOutputStream(filename);
+	protected OutputStream openOutputStream(String filename, boolean append) throws IOException {
+		return fm.getOutputStream(filename, append);
 	}
 
 	@Override
@@ -68,6 +57,14 @@ public class Analytics extends BaseAnalytics implements Serializable {
 	}
 	
 	//Getters
+	@Override
+	protected long getFileSize(String filename) {
+		try {
+			return fm.getFileSize(filename);
+		} catch (IOException e) {
+			return 0L;
+		}
+	}
 	
 	//Setters
 	

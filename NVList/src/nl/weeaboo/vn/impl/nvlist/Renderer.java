@@ -242,7 +242,7 @@ public class Renderer extends BaseRenderer {
 				v  = uv.y + v * uv.h;
 				uw = uv.w * uw;
 				vh = uv.h * vh;
-			} else {				
+			} else {
 				glm.setTexture(null);
 			}
 		}

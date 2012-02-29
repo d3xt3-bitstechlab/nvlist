@@ -14,8 +14,10 @@ import javax.imageio.stream.ImageInputStream;
 
 import nl.weeaboo.awt.ImageUtil;
 import nl.weeaboo.io.ByteBufferInputStream;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.impl.base.DecodingScreenshot;
 
+@LuaSerializable
 class ImageDecodingScreenshot extends DecodingScreenshot {
 	
 	private static final long serialVersionUID = 1L;
@@ -30,8 +32,6 @@ class ImageDecodingScreenshot extends DecodingScreenshot {
 		this.targetW = targetW;
 		this.targetH = targetH;
 	}
-	
-	static long total = 0;
 	
 	@Override
 	protected void tryLoad(ByteBuffer data) {

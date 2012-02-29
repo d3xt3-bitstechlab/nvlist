@@ -1,7 +1,10 @@
 package nl.weeaboo.vn.impl.nvlist;
 
-class NVListImpl {
+final class NVListImpl {
 
-	public static final long serialVersionUID = 1L;
+	private NVListImpl() {		
+	}
+	
+	static final long serialVersionUID = 1L;
 	
 }

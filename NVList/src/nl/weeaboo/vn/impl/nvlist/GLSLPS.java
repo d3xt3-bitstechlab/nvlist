@@ -1,6 +1,5 @@
 package nl.weeaboo.vn.impl.nvlist;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -14,19 +13,17 @@ import nl.weeaboo.common.Rect;
 import nl.weeaboo.common.Rect2D;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.shader.GLShader;
-import nl.weeaboo.gl.texture.GLTexture;
-import nl.weeaboo.lua.io.LuaSerializable;
-import nl.weeaboo.lua.platform.LuajavaLib;
+import nl.weeaboo.lua2.io.LuaSerializable;
+import nl.weeaboo.lua2.lib.LuaLibrary;
+import nl.weeaboo.lua2.lib.LuajavaLib;
 import nl.weeaboo.vn.IPixelShader;
 import nl.weeaboo.vn.IRenderer;
 import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.BaseNotifier;
 import nl.weeaboo.vn.impl.base.BaseShader;
 
-import org.luaj.vm.LFunction;
-import org.luaj.vm.LTable;
-import org.luaj.vm.LuaErrorException;
-import org.luaj.vm.LuaState;
+import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.Varargs;
 
 @LuaSerializable
 public class GLSLPS extends BaseShader implements IPixelShader {
@@ -38,6 +35,7 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 	protected final String filename;
 	
 	private final Map<String, Object> params;
+	private final ITexture[] textures;
 	
 	private transient GLShader shader;
 	
@@ -47,13 +45,12 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 		this.filename = filename;
 		
 		params = new HashMap<String, Object>();
+		textures = new ITexture[3];
 	}
 
 	//Functions 
-	public static void install(LTable globals, final ImageFactory ifac, final BaseNotifier ntf) {
-		LTable table = new LTable();
-		GLSLLib.install(table, ifac, ntf);
-		globals.put("GLSL", table);
+	public static void install(LuaValue globals, final ImageFactory ifac, final BaseNotifier ntf) {
+		globals.load(new GLSLLib(ifac, ntf));
 	}
 	
 	@Override
@@ -66,13 +63,19 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 		}
 		
 		if (shader != null) {
-			Rect screen = new Rect(r.getRealX(), r.getRealY(), r.getRealWidth(), r.getRealHeight());
+			int rx = r.getRealX();
+			int ry = r.getRealY();
+			int rw = r.getRealWidth();
+			int rh = r.getRealHeight();
+			double sw = r.getScreenWidth();
+			double sh = r.getScreenHeight();
+			Rect2D screen = new Rect2D(-1+2*rx/sw, -1+2*ry/sh, 2*rw/sw, 2*rh/sh);
 			
 			shader.forceLoad(glm);
 			glm.setShader(shader);
 
 			GL2 gl2 = GLManager.getGL2(glm.getGL());
-			applyShaderParam(gl2, shader, "tex", glm.getTexture());
+			shader.setTextureParam(gl2, "tex", 0, glm.getTexture() != null ? glm.getTexture().getTexId() : 0);			
 			applyShaderParam(gl2, shader, "time", getTime());
 			applyShaderParam(gl2, shader, "screen", screen);
 			for (Entry<String, Object> entry : params.entrySet()) {
@@ -96,9 +99,9 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 
 	protected void applyShaderParam(GL2ES2 gl2, GLShader shader, String name, Object value) {
 		if (value instanceof TextureAdapter) {
-			shader.setTextureParam(gl2, name, 0, ((TextureAdapter)value).getTexId());
-		} else if (value instanceof GLTexture) {
-			shader.setTextureParam(gl2, name, 0, ((GLTexture)value).getTexId());
+			TextureAdapter ta = (TextureAdapter)value;
+			int slot = 1 + onTexParamAdded(ta);
+			shader.setTextureParam(gl2, name, slot, ta.getTexId());
 		} else if (value instanceof float[]) {			
 			float[] f = (float[])value;
 			//System.out.println(name + " " + Arrays.toString(f));
@@ -130,27 +133,70 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 		}
 	}
 	
+	private void onTexParamRemoved(ITexture tex) {
+		if (!params.values().contains(tex)) {
+			//Texture is no longer used, we can clear its slot
+			for (int n = 0; n < textures.length; n++) {
+				if (textures[n] == tex) {
+					textures[n] = null;
+				}
+			}
+		}		
+	}
+	
+	private int onTexParamAdded(ITexture tex) {
+		//Check if already added
+		for (int n = 0; n < textures.length; n++) {
+			if (textures[n] == tex) {
+				return n;
+			}
+		}
+		
+		//Add to empty slot
+		for (int n = 0; n < textures.length; n++) {
+			if (textures[n] == null) {
+				textures[n] = tex;
+				return n;
+			}
+		}
+		
+		throw new IllegalStateException("Max number of texture params reached: " + textures.length);
+	}
+	
 	//Getters
 	
 	//Setters
 	public void setParam(String name, ITexture tex) {
+		Object removed;
 		if (tex == null) {
-			params.remove(name);
+			removed = params.remove(name);
 		} else {
-			params.put(name, tex);
+			removed = params.put(name, tex);
+		}
+		
+		if (removed instanceof ITexture) {
+			onTexParamRemoved((ITexture)removed);
+		}
+		if (tex != null) {
+			onTexParamAdded(tex);
 		}
 	}
 	public void setParam(String name, float[] values) {
+		Object removed;
 		if (values == null) {
-			params.remove(name);
+			removed = params.remove(name);
 		} else {
-			params.put(name, values);
+			removed = params.put(name, values);
+		}
+
+		if (removed instanceof ITexture) {
+			onTexParamRemoved((ITexture)removed);
 		}
 	}
 	
 	//Inner Classes
 	@LuaSerializable
-	private static class GLSLLib extends LFunction implements Serializable {
+	private static class GLSLLib extends LuaLibrary {
 		
 		private static final long serialVersionUID = NVListImpl.serialVersionUID;
 
@@ -160,57 +206,49 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 			"isVersionSupported"
 		};
 
-		private static final int NEW                   = 0;
-		private static final int GET_VERSION           = 1;
-		private static final int IS_VERSION_SUPPORTED  = 2;
+		private static final int INIT                  = 0;
+		private static final int NEW                   = 1;
+		private static final int GET_VERSION           = 2;
+		private static final int IS_VERSION_SUPPORTED  = 3;
 		
-		private final int id;
 		private final ImageFactory fac;
 		private final BaseNotifier ntf;
 		
-		private GLSLLib(int id, ImageFactory fac, BaseNotifier ntf) {
-			this.id = id;
+		private GLSLLib(ImageFactory fac, BaseNotifier ntf) {
 			this.fac = fac;
 			this.ntf = ntf;
 		}
 		
-		public static void install(LTable table, ImageFactory fac, BaseNotifier ntf) {
-			for (int n = 0; n < NAMES.length; n++) {
-				table.put(NAMES[n], new GLSLLib(n, fac, ntf));
-			}
+		@Override
+		protected LuaLibrary newInstance() {
+			return new GLSLLib(fac, ntf);
 		}
 
 		@Override
-		public int invoke(LuaState vm) {
-			switch (id) {
-			case NEW: return newInstance(vm);
-			case GET_VERSION: return getVersion(vm);
-			case IS_VERSION_SUPPORTED: return isVersionSupported(vm);
-			default:
-				throw new LuaErrorException("Invalid function id: " + id);
+		public Varargs invoke(Varargs args) {
+			switch (opcode) {
+			case INIT: return initLibrary("GLSL", NAMES, 1);
+			case NEW: return newInstance(args);
+			case GET_VERSION: return getVersion(args);
+			case IS_VERSION_SUPPORTED: return isVersionSupported(args);
+			default: return super.invoke(args);
 			}
 		}
 		
-		protected int newInstance(LuaState vm) {
-			String filename = vm.optstring(1, null);
-			vm.resettop();
+		protected Varargs newInstance(Varargs args) {
+			String filename = args.checkjstring(1);
 			GLSLPS shader = new GLSLPS(fac, ntf, filename);
-			vm.pushlvalue(LuajavaLib.toUserdata(shader, shader.getClass()));
-			return 1;
+			return LuajavaLib.toUserdata(shader, shader.getClass());
 		}
 		
-		protected int getVersion(LuaState vm) {
-			vm.resettop();
-			vm.pushstring(fac.getGlslVersion());
-			return 1;
+		protected Varargs getVersion(Varargs args) {
+			return valueOf(fac.getGlslVersion());
 		}
 		
-		protected int isVersionSupported(LuaState vm) {
-			String a = vm.tostring(1);
+		protected Varargs isVersionSupported(Varargs args) {
+			String a = args.tojstring(1);
 			String b = fac.getGlslVersion();
-			vm.resettop();
-			vm.pushboolean(b != null && !b.equals("") && a.compareTo(b) <= 0);
-			return 1;
+			return valueOf(b != null && !b.equals("") && a.compareTo(b) <= 0);
 		}
 		
 	}

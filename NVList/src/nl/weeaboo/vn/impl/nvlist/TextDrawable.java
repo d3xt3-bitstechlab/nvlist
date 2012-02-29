@@ -2,7 +2,7 @@ package nl.weeaboo.vn.impl.nvlist;
 
 import nl.weeaboo.gl.text.GLTextRendererStore;
 import nl.weeaboo.gl.text.ParagraphRenderer;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.styledtext.MutableTextStyle;
 import nl.weeaboo.styledtext.StyledText;
 import nl.weeaboo.textlayout.TextLayout;
@@ -92,11 +92,13 @@ public class TextDrawable extends BaseTextDrawable {
 				scale = 1.0;
 			}
 			
-			ParagraphRenderer pr = trStore.createParagraphRenderer();
+			ParagraphRenderer pr = trStore.createParagraphRenderer();			
 			MutableTextStyle mts = pr.getDefaultStyle().extend(getDefaultStyle()).mutableCopy();
 			mts.setFontSize(mts.getFontSize(12) / scale);
 			pr.setDefaultStyle(mts.immutableCopy());
 			textLayout = pr.getLayout(getText(), getInnerWidth());
+			
+			updateCursorPos();
 		}
 		return textLayout;
 	}
@@ -136,6 +138,7 @@ public class TextDrawable extends BaseTextDrawable {
 			return layout.getNumLines();
 		}
 		
+		/*
 		double startTop = layout.getLineTop(startLine);
 		
 		int endLine = startLine;
@@ -144,7 +147,18 @@ public class TextDrawable extends BaseTextDrawable {
 		{
 			endLine++;
 		}
+		return endLine;
+		*/
+		
+		int lineCount = getLineCount();
+		double startTop = layout.getLineTop(startLine);
+		double limit = startTop + iheight;
+		int endLine = startLine;
+		while (endLine < lineCount && layout.getLineBottom(endLine) <= limit) {
+			endLine++;
+		}
 		return endLine; 
+		
 	}
 
 	@Override
@@ -159,30 +173,41 @@ public class TextDrawable extends BaseTextDrawable {
 		return layout.getCharOffset(Math.max(0, Math.min(layout.getNumLines(), line)));
 	}
 	
+	private int getCursorLine() {
+		TextLayout layout = getLayout();
+		int sl = getStartLine();
+		int el = getEndLine();
+		for (int i = el-1; i >= sl; i--) {
+			double w = layout.getLine(i).getWidth();
+			if (w > 0) {
+				return i;
+			}
+		}
+		return sl;
+	}
+	
 	@Override
 	protected double getCursorX() {
+		if (getLineCount() == 0) return 0;
+
 		TextLayout layout = getLayout();
-		int el = getEndLine();
-		if (el <= 0 || el > layout.getNumLines()) {
-			return 0;
-		} else {
-			return layout.getLine(el-1).getWidth();
-		}
+		return layout.getLine(getCursorLine()).getWidth();
 	}
 
 	@Override
 	protected double getCursorY() {
-		TextLayout layout = getLayout();
-		int el = getEndLine();
-		if (el <= 0) {
-			return 0;
-		} else {
-			double cursorHeight = 0;
-			if (getCursor() != null) {
-				cursorHeight = getCursor().getHeight();
-			}
-			return layout.getLineBottom(el) - cursorHeight;
+		if (getLineCount() == 0) return 0;
+		
+		TextLayout layout = getLayout();		
+		double top = layout.getLineTop(getStartLine());
+		double bottom = layout.getLineBottom(getCursorLine());
+		
+		double cursorHeight = 0;
+		if (getCursor() != null) {
+			cursorHeight = getCursor().getHeight();
 		}
+		
+		return bottom - top - cursorHeight;
 	}
 	
 	//Setters

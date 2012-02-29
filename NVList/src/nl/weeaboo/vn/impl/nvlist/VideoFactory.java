@@ -15,7 +15,7 @@ import nl.weeaboo.gl.PBO;
 import nl.weeaboo.gl.texture.GLGeneratedTexture;
 import nl.weeaboo.gl.texture.TextureCache;
 import nl.weeaboo.io.EnvironmentSerializable;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.ISeenLog;
 import nl.weeaboo.vn.IVideo;

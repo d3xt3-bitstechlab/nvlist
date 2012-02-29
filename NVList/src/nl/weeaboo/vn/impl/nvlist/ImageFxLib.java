@@ -9,7 +9,7 @@ import nl.weeaboo.game.GameLog;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.TextureException;
 import nl.weeaboo.io.EnvironmentSerializable;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.IImageFactory;
 import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.BaseImageFxLib;
@@ -39,7 +39,7 @@ public class ImageFxLib extends BaseImageFxLib {
 				try {
 					BufferedImage image = tr.toBufferedImage();
 					int[] argb = new int[image.getWidth() * image.getHeight()];
-					ImageUtil.getPixels(image, IntBuffer.wrap(argb), 0, image.getWidth());
+					ImageUtil.getPixelsPre(image, IntBuffer.wrap(argb), 0, image.getWidth());
 					return new Bitmap(argb, image.getWidth(), image.getHeight());
 				} catch (TextureException e) {
 					GameLog.w("Error getting pixels from texture", e);

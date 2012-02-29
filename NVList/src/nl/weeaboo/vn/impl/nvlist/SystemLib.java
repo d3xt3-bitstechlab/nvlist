@@ -4,7 +4,7 @@ import java.io.ObjectStreamException;
 import java.io.Serializable;
 
 import nl.weeaboo.io.EnvironmentSerializable;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.nvlist.Game;
 import nl.weeaboo.vn.IChoice;
 import nl.weeaboo.vn.ISaveLoadScreen;
@@ -35,7 +35,7 @@ public class SystemLib extends BaseSystemLib implements Serializable {
 	
 	@Override
 	public void exit(boolean force) {
-		game.stop(false, new Runnable() {
+		game.stop(force, new Runnable() {
 			public void run() {
 				game.dispose();
 			}

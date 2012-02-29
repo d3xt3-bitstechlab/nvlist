@@ -4,7 +4,7 @@ import nl.weeaboo.common.Rect2D;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.ITexture;
 
 @LuaSerializable
@@ -25,6 +25,22 @@ public class TextureAdapter implements ITexture {
 			tr = tr.forceLoad(glm);
 			setTexRect(tr, scaleX, scaleY);			
 		}
+	}
+	
+	@Override
+	public int hashCode() {
+		return (tr != null ? tr.hashCode() : 0);
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof TextureAdapter && obj.getClass().equals(getClass())) {
+			TextureAdapter ta = (TextureAdapter)obj;
+			return (tr == ta.tr || (tr != null && tr.equals(ta.tr)))
+				&& scaleX == ta.scaleX
+				&& scaleY == ta.scaleY;
+		}
+		return false;
 	}
 	
 	@Override

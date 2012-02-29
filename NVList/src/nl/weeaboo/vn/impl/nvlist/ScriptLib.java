@@ -7,9 +7,10 @@ import java.io.Serializable;
 
 import nl.weeaboo.filemanager.IFileManager;
 import nl.weeaboo.io.EnvironmentSerializable;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.impl.base.BaseScriptLib;
+import nl.weeaboo.vn.impl.lua.LuaNovel;
 
 @LuaSerializable
 public class ScriptLib extends BaseScriptLib implements Serializable {
@@ -28,7 +29,12 @@ public class ScriptLib extends BaseScriptLib implements Serializable {
 	private Object writeReplace() throws ObjectStreamException {	
 		return es.writeReplace();
 	}
-
+	
+	protected boolean getScriptExists(String normalizedFilename) {
+		return LuaNovel.isBuiltInScript(normalizedFilename)
+			|| fm.getFileExists(prefix + normalizedFilename);
+	}
+	
 	@Override
 	protected InputStream openExternalScriptFile(String filename) throws IOException {
 		return fm.getInputStream(prefix + filename);

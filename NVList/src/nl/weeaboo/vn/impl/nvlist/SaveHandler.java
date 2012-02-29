@@ -1,7 +1,6 @@
 package nl.weeaboo.vn.impl.nvlist;
 
 import java.awt.Image;
-import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,7 +17,7 @@ import nl.weeaboo.common.Dim;
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.io.ByteChunkOutputStream;
 import nl.weeaboo.io.EnvironmentSerializable;
-import nl.weeaboo.lua.io.ObjectSerializer;
+import nl.weeaboo.lua2.io.ObjectSerializer;
 import nl.weeaboo.nvlist.Game;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.IScreenshot;
@@ -71,7 +70,7 @@ public class SaveHandler extends LuaSaveHandler implements Serializable {
 		if (screenshotSaveSize != null) {
 			image = ImageUtil.getScaledImageProp(image,
 					screenshotSaveSize.w, screenshotSaveSize.h,
-					Transparency.OPAQUE, Image.SCALE_AREA_AVERAGING);
+					Image.SCALE_AREA_AVERAGING);
 		}
 		
 		ByteChunkOutputStream bout = new ByteChunkOutputStream(32 << 10);

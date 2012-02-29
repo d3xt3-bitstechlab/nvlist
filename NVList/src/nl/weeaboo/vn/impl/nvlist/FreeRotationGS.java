@@ -1,6 +1,6 @@
 package nl.weeaboo.vn.impl.nvlist;
 
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.BlendMode;
 import nl.weeaboo.vn.IGeometryShader;
 import nl.weeaboo.vn.IImageDrawable;

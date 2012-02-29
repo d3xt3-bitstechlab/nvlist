@@ -2,7 +2,7 @@ package nl.weeaboo.vn.impl.nvlist;
 
 import java.io.Serializable;
 
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.impl.base.BaseStorage;
 
 @LuaSerializable

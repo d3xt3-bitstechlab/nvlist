@@ -50,7 +50,6 @@ import nl.weeaboo.vn.ILayer;
 import nl.weeaboo.vn.ITextDrawable;
 import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.Layer;
-import nl.weeaboo.vn.impl.nvlist.ImageState;
 import nl.weeaboo.vn.impl.nvlist.Novel;
 import nl.weeaboo.vn.impl.nvlist.TextureAdapter;
 
@@ -219,7 +218,9 @@ public class DebugImagePanel extends JPanel {
 			List<Entry<String, ILayer>> layers = new ArrayList<Entry<String, ILayer>>(imageState.getLayers().entrySet());
 			Collections.sort(layers, new Comparator<Entry<String, ILayer>>() {
 				public int compare(Entry<String, ILayer> e1, Entry<String, ILayer> e2) {
-					return ImageState.zOrderComparator.compare(e1.getValue(), e2.getValue());
+					ILayer l1 = e1.getValue();
+					ILayer l2 = e2.getValue();
+					return (int)l2.getZ() - (int)l1.getZ();
 				}
 			});			
 			for (Entry<String, ILayer> entry : layers) {
@@ -254,7 +255,7 @@ public class DebugImagePanel extends JPanel {
 			this.layer = layer;
 			
 			IDrawable[] drawables = layer.getDrawables();
-			Arrays.sort(drawables, Layer.zOrderComparator);
+			Arrays.sort(drawables, Layer.zBackToFrontComparator);
 			for (IDrawable d : drawables) {
 				add(new DrawableNode(d));
 			}

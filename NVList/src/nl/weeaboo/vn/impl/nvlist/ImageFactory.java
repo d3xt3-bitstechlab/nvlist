@@ -18,7 +18,7 @@ import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.gl.texture.TextureCache;
 import nl.weeaboo.gl.texture.loader.ImageFormatException;
 import nl.weeaboo.io.EnvironmentSerializable;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.IAnalytics;
 import nl.weeaboo.vn.IButtonDrawable;
 import nl.weeaboo.vn.INotifier;
@@ -56,7 +56,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 		
 		this.es = new EnvironmentSerializable(this);
 
-		setDefaultExts("ktx", "png", "jpg");
+		setDefaultExts("ktx", "png", "jpg", "jng");
 	}
 	
 	//Functions
@@ -66,7 +66,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	
 	@Override
 	protected void preloadNormalized(String filename) {
-		texCache.preload(filename);
+		texCache.preload(filename, false);
 	}
 	
 	@Override
@@ -123,10 +123,10 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	
 	//Getters
 	@Override
-	protected boolean isValidFilename(String filename) {
-		if (filename == null) return false;
+	protected boolean isValidFilename(String id) {
+		if (id == null) return false;
 		
-		return texCache.getImageFileExists(filename);
+		return texCache.getImageExists(id);
 	}
 
 	public GLTexRect getTexRect(String filename, String[] luaStack) {
@@ -138,22 +138,25 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 			return null;
 		}
 		
+		long loadNanos = 0L;
+		
 		GLTexRect tr;
 		if (!texCache.isLoaded(normalized)) {
 			long t0 = System.nanoTime();			
 			tr = texCache.get(normalized);
-			long t1 = System.nanoTime();
-			
-			if (tr != null) {
-				String callSite = LuaNovelUtil.getNearestLVNSrcloc(luaStack);
-				if (callSite != null) {
-					analytics.logImageLoad(filename, callSite, t1-t0);
-					//System.out.println("Image Load: " + filename);
-				}
-			}
+			loadNanos = System.nanoTime() - t0;			
 		} else {
 			tr = texCache.get(normalized);
-		}		
+		}
+		
+		if (tr != null) {
+			String callSite = LuaNovelUtil.getNearestLVNSrcloc(luaStack);
+			if (callSite != null) {
+				analytics.logImageLoad(callSite, filename, loadNanos);
+				//System.out.println("Image Load: " + filename);
+			}
+		}
+		
 		return tr;
 	}
 	

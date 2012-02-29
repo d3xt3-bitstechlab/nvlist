@@ -16,8 +16,6 @@ import static nl.weeaboo.vn.vnds.VNDSUtil.VNDS;
 
 import java.awt.event.KeyEvent;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -31,6 +29,7 @@ import nl.weeaboo.game.DebugPanel;
 import nl.weeaboo.game.GameDisplay;
 import nl.weeaboo.game.GameLog;
 import nl.weeaboo.game.IGameDisplay;
+import nl.weeaboo.game.Notifier;
 import nl.weeaboo.game.RenderMode;
 import nl.weeaboo.game.input.IKeyConfig;
 import nl.weeaboo.game.input.UserInput;
@@ -41,8 +40,8 @@ import nl.weeaboo.gl.text.FontManager;
 import nl.weeaboo.gl.text.GLTextRendererStore;
 import nl.weeaboo.gl.text.ParagraphRenderer;
 import nl.weeaboo.gl.texture.TextureCache;
-import nl.weeaboo.lua.LuaException;
-import nl.weeaboo.lua.io.LuaSerializer;
+import nl.weeaboo.lua2.LuaException;
+import nl.weeaboo.lua2.io.LuaSerializer;
 import nl.weeaboo.nvlist.debug.DebugImagePanel;
 import nl.weeaboo.nvlist.debug.DebugLuaPanel;
 import nl.weeaboo.nvlist.debug.DebugOutputPanel;
@@ -55,15 +54,15 @@ import nl.weeaboo.vn.IInput;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.INovelConfig;
 import nl.weeaboo.vn.IPersistentStorage;
+import nl.weeaboo.vn.ISaveHandler;
 import nl.weeaboo.vn.ISeenLog;
 import nl.weeaboo.vn.IStorage;
 import nl.weeaboo.vn.ITextState;
 import nl.weeaboo.vn.ITimer;
 import nl.weeaboo.vn.IVideoState;
-import nl.weeaboo.vn.impl.base.BaseAnalytics;
+import nl.weeaboo.vn.impl.base.BaseLoggingAnalytics;
 import nl.weeaboo.vn.impl.base.BaseNovelConfig;
 import nl.weeaboo.vn.impl.base.NullAnalytics;
-import nl.weeaboo.vn.impl.base.PreloaderData;
 import nl.weeaboo.vn.impl.base.Timer;
 import nl.weeaboo.vn.impl.lua.EnvLuaSerializer;
 import nl.weeaboo.vn.impl.lua.LuaMediaPreloader;
@@ -92,7 +91,7 @@ import nl.weeaboo.vn.impl.nvlist.VideoState;
 public class Game extends BaseGame {
 
 	public static final int VERSION_MAJOR = 2;
-	public static final int VERSION_MINOR = 0;
+	public static final int VERSION_MINOR = 1;
 	public static final int VERSION = 10000 * VERSION_MAJOR + 100 * VERSION_MINOR;
 	public static final String VERSION_STRING = VERSION_MAJOR + "." + VERSION_MINOR;
 	
@@ -124,6 +123,7 @@ public class Game extends BaseGame {
 			public void run() {				
 				if (novel != null) {
 					novel.savePersistent();
+					generatePreloaderData(); //Generate a preloader info from analytics					
 					novel.reset();
 					novel = null;
 				}
@@ -241,7 +241,6 @@ public class Game extends BaseGame {
 		restart("main");
 		
 		onConfigPropertiesChanged(); //Needs to be called again now novel is initialized		
-		generatePreloaderData();     //Generate a preloader info from analytics
 	}
 	
 	public void restart() {
@@ -290,22 +289,31 @@ public class Game extends BaseGame {
 		}
 		
 		if (isDebug()) {
+			Notifier ntf = getNotifier();
+
 			if (input.consumeKey(KeyEvent.VK_MULTIPLY)) {
 				int a = 0;
 				a = 0 / a; //Boom shakalaka
 			}
 			
+			ISaveHandler sh = novel.getSaveHandler();
 			if (input.consumeKey(KeyEvent.VK_ADD)) {
 				try {
 					Benchmark.tick();
-					novel.getSaveHandler().save(901, null, null);
-					getNotifier().addMessage(this, "Quicksave took " + StringUtil.formatTime(Benchmark.tock(false), TimeUnit.NANOSECONDS));
+					int slot = sh.getQuickSaveSlot(1);
+					String filename = String.format("save-%03d.sav", slot);
+					sh.save(slot, null, null);
+					long bytes = (getFileManager().getFileExists(filename) ? getFileManager().getFileSize(filename) : 0);
+					ntf.addMessage(this, String.format("Quicksave took %s (%s)",
+							StringUtil.formatTime(Benchmark.tock(false), TimeUnit.NANOSECONDS),
+							StringUtil.formatMemoryAmount(bytes)));					
 				} catch (Exception e) {
 					GameLog.w("Error quicksaving", e);
 				}
 			} else if (input.consumeKey(KeyEvent.VK_SUBTRACT)) {
 				try {
-					novel.getSaveHandler().load(901, null);
+					int slot = sh.getQuickSaveSlot(1);
+					novel.getSaveHandler().load(slot, null);
 				} catch (Exception e) {
 					GameLog.w("Error quickloading", e);
 				}
@@ -313,65 +321,15 @@ public class Game extends BaseGame {
 			
 			if (input.consumeKey(KeyEvent.VK_F2)) {
 				novel.printStackTrace(System.out);
-			}
-			
-			if (input.consumeKey(KeyEvent.VK_F3)) {				
-				IAnalytics an = novel.getAnalytics();
-				if (an instanceof BaseAnalytics) {
-					getNotifier().addMessage(this, "Dumping analytics");
-					
-					BaseAnalytics ba = (BaseAnalytics)an;
-					
-					try {
-						OutputStream out = getFileManager().getOutputStream("imageload.csv");
-						try {
-							out.write(ba.getImageLoadCSV().getBytes("UTF-8"));
-						} finally {
-							out.close();
-						}
-					} catch (IOException ioe) {
-						GameLog.w("Error dumping analytics", ioe);
-					}
-					try {
-						OutputStream out = getFileManager().getOutputStream("soundload.csv");
-						try {
-							out.write(ba.getSoundLoadCSV().getBytes("UTF-8"));
-						} finally {
-							out.close();
-						}
-					} catch (IOException ioe) {
-						GameLog.w("Error dumping analytics", ioe);
-					}
-					
-					generatePreloaderData();
-				}
+			} else if (input.consumeKey(KeyEvent.VK_F3)) {
+				ntf.addMessage(this, "Generating preloader data");
+				generatePreloaderData();
+			} else if (input.consumeKey(KeyEvent.VK_F5)) {
+				//In-place reload in some way???
 			}
 		}
-		
-		IVideoState vs = novel.getVideoState();
-		changed |= vs.isBlocking();
 		
 		return changed;
-	}
-	
-	protected void generatePreloaderData() {
-		IAnalytics an = novel.getAnalytics();
-		if (an instanceof BaseAnalytics) {
-			BaseAnalytics ba = (BaseAnalytics)an;
-			try {
-				PreloaderData pd = new PreloaderData();
-				ba.getPreloaderData(pd);						
-				ObjectOutputStream out = new ObjectOutputStream(
-						getFileManager().getOutputStream("preloader.bin"));
-				try {
-					out.writeObject(pd);
-				} finally {
-					out.close();
-				}
-			} catch (IOException ioe) {
-				GameLog.w("Error dumping analytics", ioe);
-			}
-		}
 	}
 	
 	@Override
@@ -451,6 +409,18 @@ public class Game extends BaseGame {
 		debugPanel.addTab("Log", new DebugOutputPanel(this, getNovel()));
 		return debugPanel;
 	}	
+	
+	protected void generatePreloaderData() {
+		IAnalytics an = novel.getAnalytics();
+		if (an instanceof BaseLoggingAnalytics) {			
+			BaseLoggingAnalytics ba = (BaseLoggingAnalytics)an;
+			try {
+				ba.optimizeLog(true);
+			} catch (IOException ioe) {
+				GameLog.w("Error dumping analytics", ioe);
+			}
+		}		
+	}
 	
 	//Getters
 	public Novel getNovel() { return novel; }

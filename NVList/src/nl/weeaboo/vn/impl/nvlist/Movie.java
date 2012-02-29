@@ -17,7 +17,7 @@ import nl.weeaboo.gl.GLUtil;
 import nl.weeaboo.gl.PBO;
 import nl.weeaboo.gl.texture.GLGeneratedTexture;
 import nl.weeaboo.gl.texture.GLTexture;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.ogg.StreamUtil;
 import nl.weeaboo.ogg.player.Player;
 import nl.weeaboo.ogg.player.PlayerListener;
@@ -80,11 +80,7 @@ public final class Movie extends BaseVideo {
 		
 		InputStream in = vfac.getVideoInputStream(filename);
 		player.setInput(StreamUtil.getOggInput(in));
-		
-		if (textures == null) {
-			textures = new GLGeneratedTexture[2];
-		}
-		
+				
 		int w = player.getWidth();
 		int h = player.getHeight();
 		double fps = player.getFPS();
@@ -157,12 +153,16 @@ public final class Movie extends BaseVideo {
 	}
 	
 	public void draw(GLManager glm, int drawW, int drawH) {
-		if (player == null || textures == null) {
+		if (player == null || player.isEnded()) {
 			return;
 		}
 
 		int w = player.getWidth();
 		int h = player.getHeight();
+		
+		if (textures == null) {
+			textures = new GLGeneratedTexture[2];
+		}
 		
 		IntBuffer pixels = null;
 		if (videoSink instanceof YUVVideoSink) {
@@ -204,7 +204,7 @@ public final class Movie extends BaseVideo {
 
 		GLTexture readTex = textures[readIndex];
 		if (readTex != null && !readTex.isDisposed()) {
-			glm.setTexture(readTex);			
+			glm.setTexture(readTex);
 			Rect2D uv = readTex.getUV();
 			glm.fillRect(0, 0, drawW, drawH, uv.x, uv.y, uv.w, uv.h);
 			glm.setTexture(null);
@@ -265,6 +265,7 @@ public final class Movie extends BaseVideo {
 	@Override
 	public boolean isStopped() {
 		if (player != null && player.isEnded()) {
+			//System.out.println("STOP " + this);
 			stop();
 		}
 		return super.isStopped();

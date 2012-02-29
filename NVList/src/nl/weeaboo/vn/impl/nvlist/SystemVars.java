@@ -8,7 +8,7 @@ import java.io.Serializable;
 
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.io.EnvironmentSerializable;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.impl.base.BasePersistentStorage;
 

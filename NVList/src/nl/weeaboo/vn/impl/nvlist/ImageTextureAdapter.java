@@ -1,7 +1,7 @@
 package nl.weeaboo.vn.impl.nvlist;
 
 import nl.weeaboo.gl.GLManager;
-import nl.weeaboo.lua.io.LuaSerializable;
+import nl.weeaboo.lua2.io.LuaSerializable;
 
 @LuaSerializable
 public class ImageTextureAdapter extends TextureAdapter {
