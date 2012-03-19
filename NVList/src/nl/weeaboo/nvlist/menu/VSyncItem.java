@@ -14,7 +14,7 @@ public class VSyncItem extends GameMenuAction {
 	
 	@Override
 	public JMenuItem createItem(Game game, Novel nvl) {
-		JCheckBoxMenuItem item = new JCheckBoxMenuItem("Vertical Sync");
+		JCheckBoxMenuItem item = new JCheckBoxMenuItem("Vertical sync");
 		item.setSelected(game.getConfig().get(VSYNC));
 		return item;
 	}

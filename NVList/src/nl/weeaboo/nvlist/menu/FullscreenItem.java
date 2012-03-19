@@ -11,7 +11,7 @@ public class FullscreenItem extends GameMenuAction {
 
 	@Override
 	public JMenuItem createItem(Game game, Novel nvl) {
-		JMenuItem item = new JMenuItem("Toggle Fullscreen");
+		JMenuItem item = new JMenuItem("Toggle fullscreen");
 		return item;
 	}
 

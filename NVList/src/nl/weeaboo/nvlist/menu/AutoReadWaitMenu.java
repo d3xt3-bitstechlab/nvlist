@@ -21,7 +21,7 @@ public class AutoReadWaitMenu extends RangeMenu<Integer> {
 	};
 	
 	public AutoReadWaitMenu() {
-		super(AUTO_READ_WAIT, "Auto Read Delay", '\0', labels, values);
+		super(AUTO_READ_WAIT, "Auto read delay", '\0', labels, values);
 	}
 	
 }

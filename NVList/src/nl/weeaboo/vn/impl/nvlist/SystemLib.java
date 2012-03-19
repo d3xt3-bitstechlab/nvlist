@@ -1,12 +1,16 @@
 package nl.weeaboo.vn.impl.nvlist;
 
+import java.awt.Desktop;
+import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.net.URI;
 
 import nl.weeaboo.io.EnvironmentSerializable;
 import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.nvlist.Game;
 import nl.weeaboo.vn.IChoice;
+import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.ISaveLoadScreen;
 import nl.weeaboo.vn.impl.base.BaseSystemLib;
 
@@ -14,14 +18,16 @@ import nl.weeaboo.vn.impl.base.BaseSystemLib;
 public class SystemLib extends BaseSystemLib implements Serializable {
 
 	private final Game game;
+	private final INotifier notifier;
 	private final boolean isEmbedded;
 	private final boolean isLowEnd;
 	private final boolean isTouchScreen;
 	
 	private final EnvironmentSerializable es;
 	
-	public SystemLib(Game game) {
+	public SystemLib(Game game, INotifier ntf) {
 		this.game = game;
+		this.notifier = ntf;
 		this.isEmbedded = game.getDisplay().isEmbedded();
 		this.isLowEnd = false;
 		this.isTouchScreen = false;
@@ -55,6 +61,16 @@ public class SystemLib extends BaseSystemLib implements Serializable {
 	@Override
 	public ISaveLoadScreen createLoadScreen() {
 		return null;
+	}
+	
+	@Override
+	public void openWebsite(String url) {
+		Desktop desktop = Desktop.getDesktop();
+		try {
+			desktop.browse(URI.create(url));
+		} catch (IOException e) {
+			notifier.w("Error opening URL: " + url, e);
+		}
 	}
 	
 	//Getters

@@ -18,7 +18,7 @@ public class AutoReadItem extends GameMenuAction {
 	
 	@Override
 	public JMenuItem createItem(Game game, Novel nvl) {
-		JCheckBoxMenuItem item = new JCheckBoxMenuItem("Auto Read");
+		JCheckBoxMenuItem item = new JCheckBoxMenuItem("Auto read");
 		item.setSelected(game.getConfig().get(AUTO_READ));
 		return item;
 	}

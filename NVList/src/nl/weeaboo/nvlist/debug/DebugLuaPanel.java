@@ -1,11 +1,15 @@
 package nl.weeaboo.nvlist.debug;
 
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.io.PrintStream;
 
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -14,6 +18,8 @@ import javax.swing.undo.UndoManager;
 
 import nl.weeaboo.awt.LogPane;
 import nl.weeaboo.awt.TTextField;
+import nl.weeaboo.common.StringUtil;
+import nl.weeaboo.io.ByteChunkOutputStream;
 import nl.weeaboo.lua2.LuaException;
 import nl.weeaboo.vn.impl.nvlist.Novel;
 
@@ -25,12 +31,32 @@ public class DebugLuaPanel extends JPanel {
 
 	private final Object lock;
 	private final Novel novel;
+	private JButton printStackTraceButton;
 	private final LogPane logPane;
 	private final TTextField commandField;
 	
 	public DebugLuaPanel(Object l, Novel nvl) {
 		lock = l;
 		novel = nvl;
+		
+		printStackTraceButton = new JButton("Print Stacktrace");
+		printStackTraceButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				synchronized (lock) {
+					try {
+						ByteChunkOutputStream bout = new ByteChunkOutputStream();
+						novel.printStackTrace(new PrintStream(bout, false, "UTF-8"));
+						byte[] bytes = bout.toByteArray();
+						logPane.append(StringUtil.fromUTF8(bytes, 0, bytes.length));
+					} catch (IOException ioe) {
+						logPane.append(LogPane.STYLE_WARNING, "Error printing stack trace", ioe);
+					}
+				}
+			}
+		});
+		
+		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+		buttonPanel.add(printStackTraceButton);
 		
 		logPane = new LogPane();
 		JScrollPane logScrollPane = new JScrollPane(logPane, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
@@ -85,6 +111,7 @@ public class DebugLuaPanel extends JPanel {
 		});
 		
 		setLayout(new BorderLayout(5, 5));
+		add(buttonPanel, BorderLayout.NORTH);
 		add(logScrollPane, BorderLayout.CENTER);
 		add(commandField, BorderLayout.SOUTH);
 	}

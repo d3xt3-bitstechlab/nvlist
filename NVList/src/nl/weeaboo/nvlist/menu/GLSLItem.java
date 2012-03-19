@@ -14,7 +14,7 @@ public class GLSLItem extends GameMenuAction {
 	
 	@Override
 	public JMenuItem createItem(Game game, Novel nvl) {
-		JCheckBoxMenuItem item = new JCheckBoxMenuItem("Enable GLSL Shaders");
+		JCheckBoxMenuItem item = new JCheckBoxMenuItem("Enable GLSL shaders");
 		item.setSelected(game.getConfig().get(ENABLE_SHADERS));
 		return item;
 	}

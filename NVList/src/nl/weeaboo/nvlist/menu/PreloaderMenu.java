@@ -13,7 +13,7 @@ public class PreloaderMenu extends RangeMenu<Integer> {
 	};
 	
 	public PreloaderMenu() {
-		super(PRELOADER_LOOK_AHEAD, "Preloader Look Ahead", '\0', labels, values);
+		super(PRELOADER_LOOK_AHEAD, "Preloader look-ahead", '\0', labels, values);
 	}
 	
 }

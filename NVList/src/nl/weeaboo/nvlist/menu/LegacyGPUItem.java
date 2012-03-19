@@ -14,7 +14,7 @@ public class LegacyGPUItem extends GameMenuAction {
 	
 	@Override
 	public JMenuItem createItem(Game game, Novel nvl) {
-		JCheckBoxMenuItem item = new JCheckBoxMenuItem("Emulate Legacy GPU");
+		JCheckBoxMenuItem item = new JCheckBoxMenuItem("Emulate legacy GPU");
 		item.setSelected(game.getConfig().get(LEGACY_GPU_EMULATION));
 		return item;
 	}

@@ -29,7 +29,7 @@ public class ImageFolderSelectorMenu extends GameMenuAction {
 	@Override
 	protected JMenuItem createItem(Game game, Novel nvl) {
 		if (gmenu == null) {		
-			gmenu = new JGameMenu(game, "Image Folder Selection", '\0');
+			gmenu = new JGameMenu(game, "Image folder selection", '\0');
 			
 			//Generate a list of possible image folder resolutions
 			FileResolutionPicker picker = game.getImageResolutionPicker();

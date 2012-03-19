@@ -13,6 +13,7 @@ import javax.media.opengl.GL2ES1;
 import nl.weeaboo.collections.MergeSort;
 import nl.weeaboo.common.Rect;
 import nl.weeaboo.common.Rect2D;
+import nl.weeaboo.gl.GLBlendMode;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.text.ParagraphRenderer;
 import nl.weeaboo.io.BufferUtil;
@@ -135,8 +136,8 @@ public class Renderer extends BaseRenderer {
 				
 		//Setup blend mode
 		BlendMode blendMode = BlendMode.DEFAULT;
-		glm.setBlendMode(nl.weeaboo.gl.BlendMode.DEFAULT);
-		
+		glm.setBlendMode(GLBlendMode.DEFAULT);
+
 		//Setup color
 		int foreground = 0xFFFFFFFF;
 		glm.pushColor();
@@ -162,8 +163,8 @@ public class Renderer extends BaseRenderer {
 				blendMode = cmd.blendMode;
 				
 				switch (blendMode) {
-				case DEFAULT: glm.setBlendMode(nl.weeaboo.gl.BlendMode.DEFAULT); break;
-				case ADD:     glm.setBlendMode(nl.weeaboo.gl.BlendMode.LIGHT); break;
+				case DEFAULT: glm.setBlendMode(GLBlendMode.DEFAULT); break;
+				case ADD:     glm.setBlendMode(GLBlendMode.ADD); break;
 				case OPAQUE:  glm.setBlendMode(null); break;
 				}
 			}
@@ -215,7 +216,7 @@ public class Renderer extends BaseRenderer {
 		}
 		
 		glm.popColor();
-		glm.setBlendMode(nl.weeaboo.gl.BlendMode.DEFAULT);
+		glm.setBlendMode(GLBlendMode.DEFAULT);
 		gl.glDisable(GL2ES1.GL_SCISSOR_TEST);
 		gl.glPopMatrix();
 		

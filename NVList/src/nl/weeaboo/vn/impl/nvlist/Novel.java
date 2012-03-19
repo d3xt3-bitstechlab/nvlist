@@ -104,13 +104,32 @@ public class Novel extends LuaNovel {
 	@Override
 	protected void onScriptError(Exception e) {		
 		Throwable t = e;
+		String msg = t.getMessage();
 		
-		StringBuilder message = new StringBuilder("Script Error");
-		message.append(" :: ");
-		message.append(t.getMessage());
 		if (t instanceof LuaException && t.getCause() != null) {
 			t = t.getCause();
 		}
+
+		StringBuilder message = new StringBuilder("Script Error");
+		StackTraceElement[] stack = t.getStackTrace();
+		if (stack != null) {
+			StackTraceElement bestEntry = null;
+			for (StackTraceElement entry : stack) {
+				if (entry.getClassName().equals("Lua")) {
+					bestEntry = entry;
+					if (!bestEntry.getFileName().startsWith("?")) {
+						break; //Quit when a real filename is found
+					}
+				}
+			}
+			
+			if (bestEntry != null) {
+				message.append(" at ");
+				message.append(bestEntry.getFileName()+":"+bestEntry.getLineNumber());
+			}
+		}		
+		message.append(" :: ");
+		message.append(msg);
 		while (t instanceof LuaError && t.getCause() != null) {
 			message.append(" :: ");
 			message.append(t.getMessage());

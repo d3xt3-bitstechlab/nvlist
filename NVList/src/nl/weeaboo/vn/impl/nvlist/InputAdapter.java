@@ -1,7 +1,8 @@
 package nl.weeaboo.vn.impl.nvlist;
 
-import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+
+import com.jogamp.newt.event.KeyEvent;
 
 import nl.weeaboo.game.input.UserInput;
 import nl.weeaboo.game.input.VKey;
@@ -74,30 +75,47 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 	}
 	
 	@Override
+	public boolean consumeUp() {
+		return consumeKey(VKey.UP.toKeyCode(1));
+	}
+
+	@Override
+	public boolean consumeDown() {
+		return consumeKey(VKey.DOWN.toKeyCode(1));
+	}
+
+	@Override
+	public boolean consumeLeft() {
+		return consumeKey(VKey.LEFT.toKeyCode(1));
+	}
+
+	@Override
+	public boolean consumeRight() {
+		return consumeKey(VKey.RIGHT.toKeyCode(1));
+	}
+	
+	@Override
 	public boolean consumeConfirm() {
-		return consumeKey(KeyEvent.VK_ENTER)
-			|| consumeKey(VKey.BUTTON2.toKeyCode(1));
+		return consumeKey(VKey.BUTTON2.toKeyCode(1));
 	}
 
 	@Override
 	public boolean consumeCancel() {
-		return consumeKey(KeyEvent.VK_ESCAPE)
-			|| input.consumeMouse(MouseEvent.BUTTON3)
-			|| consumeKey(VKey.BUTTON1.toKeyCode(1));
+		return input.consumeMouse(MouseEvent.BUTTON3)
+			|| consumeKey(VKey.BUTTON3.toKeyCode(1));
 	}
 	
 	@Override
 	public boolean consumeTextLog() {
 		return consumeKey(KeyEvent.VK_LEFT)
-			|| consumeKey(KeyEvent.VK_UP);
+			|| consumeKey(VKey.UP.toKeyCode(1));
 	}
 	
 	@Override
 	public boolean consumeTextContinue() {
 		return consumeMouse()
-			|| consumeKey(KeyEvent.VK_ENTER)
 			|| consumeKey(KeyEvent.VK_RIGHT)
-			|| consumeKey(KeyEvent.VK_DOWN)
+			|| consumeKey(VKey.DOWN.toKeyCode(1))
 			|| consumeKey(VKey.BUTTON2.toKeyCode(1));
 	}
 
@@ -108,26 +126,50 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 
 	@Override
 	public boolean consumeViewCG() {
-		return consumeKey(KeyEvent.VK_SPACE);
+		return consumeKey(VKey.BUTTON4.toKeyCode(1));
+	}
+	
+	@Override
+	public boolean consumeLoadScreen() {
+		return consumeKey(VKey.BUTTON5.toKeyCode(1));
 	}
 	
 	@Override
 	public boolean consumeSaveScreen() {
-		return consumeKey(KeyEvent.VK_S);
+		return consumeKey(VKey.BUTTON6.toKeyCode(1));
+	}
+	
+	@Override
+	public boolean isUpHeld() {
+		return isKeyHeld(VKey.UP.toKeyCode(1));
 	}
 
 	@Override
-	public boolean consumeLoadScreen() {
-		return consumeKey(KeyEvent.VK_L);
+	public boolean isDownHeld() {
+		return isKeyHeld(VKey.DOWN.toKeyCode(1));
+	}
+
+	@Override
+	public boolean isLeftHeld() {
+		return isKeyHeld(VKey.LEFT.toKeyCode(1));
+	}
+
+	@Override
+	public boolean isRightHeld() {
+		return isKeyHeld(VKey.RIGHT.toKeyCode(1));
 	}
 	
 	@Override
 	public boolean isQuickRead() {
 		return getMouseHeldTime() > 1000
-			|| getKeyHeldTime(KeyEvent.VK_ENTER) > 1500
 			|| getKeyHeldTime(VKey.BUTTON2.toKeyCode(1)) > 1500
-			|| isKeyHeld(VKey.BUTTON3.toKeyCode(1))
-			|| isKeyHeld(KeyEvent.VK_CONTROL);
+			|| isKeyHeld(VKey.BUTTON1.toKeyCode(1));
+	}
+	
+	@Override
+	public boolean isQuickReadAlt() {
+		if (!isQuickRead()) return false;
+		return isKeyHeld(VKey.BUTTON7.toKeyCode(1));
 	}
 	
 	@Override

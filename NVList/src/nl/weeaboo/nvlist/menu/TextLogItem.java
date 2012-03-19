@@ -12,7 +12,7 @@ public class TextLogItem extends GameMenuAction {
 
 	@Override
 	public JMenuItem createItem(Game game, Novel nvl) {
-		JMenuItem item = new JMenuItem("Show Text Log");
+		JMenuItem item = new JMenuItem("Show text log");
 		item.setMnemonic('T');
 		return item;
 	}

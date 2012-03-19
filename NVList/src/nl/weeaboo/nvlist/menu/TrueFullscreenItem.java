@@ -15,7 +15,7 @@ public class TrueFullscreenItem extends GameMenuAction {
 	
 	@Override
 	public JMenuItem createItem(Game game, Novel nvl) {
-		JCheckBoxMenuItem item = new JCheckBoxMenuItem("Heavyweight Fullscreen");
+		JCheckBoxMenuItem item = new JCheckBoxMenuItem("Heavyweight fullscreen");
 		item.setSelected(game.getConfig().get(TRUE_FULLSCREEN));
 		return item;
 	}

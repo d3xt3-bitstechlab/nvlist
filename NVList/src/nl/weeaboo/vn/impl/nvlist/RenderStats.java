@@ -39,11 +39,12 @@ public class RenderStats {
 	
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
+		StringBuilder sb = new StringBuilder("[Render Stats]");
 		for (int n = 0; n < cmdStats.length; n++) {
 			if (cmdStats[n] != null) {
 				if (sb.length() > 0) sb.append('\n');
-				sb.append(String.format("ID%03d %s", n, cmdStats[n].toString()));
+				
+				sb.append(cmdStats[n].toString());
 			}
 		}
 		return sb.toString();
@@ -56,20 +57,36 @@ public class RenderStats {
 	//Inner Classes
 	private static class CommandStats {
 	
+		private Class<?> clazz;
+		private String label;
+		
 		private int count;
 		private long durationNanos;
 		
-		public CommandStats() {			
+		public CommandStats() {
 		}
 		
 		public void addRun(RenderCommand cmd, long durationNanos) {
+			if (clazz == null) {
+				clazz = cmd.getClass();
+				label = clazz.getSimpleName();
+			} else if (clazz != cmd.getClass()) {
+				clazz = null;
+				label = null;				
+			}
+			
 			this.count++;
 			this.durationNanos += durationNanos;
 		}
-				
+
 		@Override
 		public String toString() {
-			return String.format("[%03dx] %s", count, StringUtil.formatTime(durationNanos, TimeUnit.NANOSECONDS));
+			String idPrefix = "";
+			if (label != null) {
+				idPrefix = label + " "; 
+			}
+
+			return String.format("%s[%03dx] %s", idPrefix, count, StringUtil.formatTime(durationNanos, TimeUnit.NANOSECONDS));
 		}
 	}
 	

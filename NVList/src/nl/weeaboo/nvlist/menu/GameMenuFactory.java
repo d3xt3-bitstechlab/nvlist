@@ -86,6 +86,8 @@ public class GameMenuFactory {
 
 	protected GameMenu createTextMenu() {
 		GameMenu menu = createMenu("Text", 'T');
+		menu.add(new SkipModeMenu());
+		menu.addSeparator();
 		menu.add(new TextSpeedMenu());
 		menu.add(new AutoReadWaitMenu());
 		menu.add(new AutoReadItem());
@@ -105,9 +107,9 @@ public class GameMenuFactory {
 	
 	protected GameMenu createSoundMenu() {
 		GameMenu menu = createMenu("Sound", 'S');
-		menu.add(new AudioVolumeMenu(MUSIC_VOLUME, "Music Volume"));
-		menu.add(new AudioVolumeMenu(SOUND_VOLUME, "Sound Volume"));
-		menu.add(new AudioVolumeMenu(VOICE_VOLUME, "Voice Volume"));
+		menu.add(new AudioVolumeMenu(MUSIC_VOLUME, "Music volume"));
+		menu.add(new AudioVolumeMenu(SOUND_VOLUME, "Sound volume"));
+		menu.add(new AudioVolumeMenu(VOICE_VOLUME, "Voice volume"));
 		return menu;
 	}
 	
@@ -120,13 +122,16 @@ public class GameMenuFactory {
 	protected GameMenu createAdvancedMenu() {
 		GameMenu menu = createMenu("Advanced", 'A');
 		menu.add(new ImageCacheMenu());
-		menu.add(new MaxTexSizeMenu());
+		menu.add(new MaxTexDimensionsMenu());
 		menu.add(new ImageFolderSelectorMenu());
 		menu.add(new FBOMenu());
 		menu.add(new PreloaderMenu());
+		menu.addSeparator();
 		menu.add(new PreloadGLTexturesItem());
 		menu.add(new GLSLItem());
+		menu.add(new DebugGLItem());
 		menu.add(new LegacyGPUItem());
+		menu.addSeparator();
 		menu.add(new TrueFullscreenItem());
 		menu.add(new VSyncItem());
 		return menu;

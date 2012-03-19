@@ -23,7 +23,7 @@ public class EffectSpeedMenu extends RangeMenu<Double> {
 	};
 	
 	public EffectSpeedMenu() {
-		super(EFFECT_SPEED, "Effect Speed", '\0', labels, values);
+		super(EFFECT_SPEED, "Effect speed", '\0', labels, values);
 	}
 	
 }

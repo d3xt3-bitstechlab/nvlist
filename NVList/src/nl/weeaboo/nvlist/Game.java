@@ -1,5 +1,6 @@
 package nl.weeaboo.nvlist;
 
+import static nl.weeaboo.game.BaseGameConfig.FPS;
 import static nl.weeaboo.game.BaseGameConfig.HEIGHT;
 import static nl.weeaboo.game.BaseGameConfig.TITLE;
 import static nl.weeaboo.game.BaseGameConfig.WIDTH;
@@ -9,6 +10,7 @@ import static nl.weeaboo.vn.NovelPrefs.EFFECT_SPEED;
 import static nl.weeaboo.vn.NovelPrefs.ENGINE_MIN_VERSION;
 import static nl.weeaboo.vn.NovelPrefs.PRELOADER_LOOK_AHEAD;
 import static nl.weeaboo.vn.NovelPrefs.PRELOADER_MAX_PER_LINE;
+import static nl.weeaboo.vn.NovelPrefs.SKIP_UNREAD;
 import static nl.weeaboo.vn.NovelPrefs.TEXTLOG_PAGE_LIMIT;
 import static nl.weeaboo.vn.NovelPrefs.TEXT_SPEED;
 import static nl.weeaboo.vn.NovelPrefs.TIMER_IDLE_TIMEOUT;
@@ -16,6 +18,7 @@ import static nl.weeaboo.vn.vnds.VNDSUtil.VNDS;
 
 import java.awt.event.KeyEvent;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -40,7 +43,6 @@ import nl.weeaboo.gl.text.FontManager;
 import nl.weeaboo.gl.text.GLTextRendererStore;
 import nl.weeaboo.gl.text.ParagraphRenderer;
 import nl.weeaboo.gl.texture.TextureCache;
-import nl.weeaboo.lua2.LuaException;
 import nl.weeaboo.lua2.io.LuaSerializer;
 import nl.weeaboo.nvlist.debug.DebugImagePanel;
 import nl.weeaboo.nvlist.debug.DebugLuaPanel;
@@ -49,9 +51,10 @@ import nl.weeaboo.nvlist.menu.GameMenuFactory;
 import nl.weeaboo.settings.IConfig;
 import nl.weeaboo.sound.SoundManager;
 import nl.weeaboo.vn.IAnalytics;
+import nl.weeaboo.vn.IDrawable;
 import nl.weeaboo.vn.IImageState;
 import nl.weeaboo.vn.IInput;
-import nl.weeaboo.vn.INotifier;
+import nl.weeaboo.vn.ILayer;
 import nl.weeaboo.vn.INovelConfig;
 import nl.weeaboo.vn.IPersistentStorage;
 import nl.weeaboo.vn.ISaveHandler;
@@ -91,7 +94,7 @@ import nl.weeaboo.vn.impl.nvlist.VideoState;
 public class Game extends BaseGame {
 
 	public static final int VERSION_MAJOR = 2;
-	public static final int VERSION_MINOR = 1;
+	public static final int VERSION_MINOR = 2;
 	public static final int VERSION = 10000 * VERSION_MAJOR + 100 * VERSION_MINOR;
 	public static final String VERSION_STRING = VERSION_MAJOR + "." + VERSION_MINOR;
 	
@@ -112,7 +115,7 @@ public class Game extends BaseGame {
 		
 		gd.setJMenuBar(GameMenuFactory.createPlaceholderJMenuBar()); //Forces GameDisplay to use a JFrame
 		gd.setRenderMode(RenderMode.MANUAL);
-				
+
 		pr = trs.createParagraphRenderer();
 	}
 
@@ -204,7 +207,7 @@ public class Game extends BaseGame {
 			}
 		}
 				
-		SystemLib syslib = new SystemLib(this);
+		SystemLib syslib = new SystemLib(this, notifier);
 		ImageFactory imgfac = new ImageFactory(texCache, shCache, trStore,
 				an, seenLog, notifier, syslib.isTouchScreen(), nvlSize.w, nvlSize.h);
 		ImageFxLib fxlib = new ImageFxLib(imgfac);
@@ -235,12 +238,11 @@ public class Game extends BaseGame {
 		}
         luaSerializer = new EnvLuaSerializer();
         saveHandler.setNovel(novel, luaSerializer);
+		onConfigPropertiesChanged();
         
 		super.start();
         
-		restart("main");
-		
-		onConfigPropertiesChanged(); //Needs to be called again now novel is initialized		
+		restart("main");		
 	}
 	
 	public void restart() {
@@ -259,22 +261,41 @@ public class Game extends BaseGame {
 		IGameDisplay display = getDisplay();
 		boolean allowMenuBarToggle = display.isEmbedded() || display.isFullscreen();
 		
+		IInput ninput = novel.getInput();
+		boolean requestMenu = false;
+
+		//Determine the visibility of the menu bar
 		if (display.isMenuBarVisible()) {
-			if (allowMenuBarToggle
-				&& (input.consumeMouse() || display.isFullscreenExclusive()))
-			{
+			if (allowMenuBarToggle && display.isFullscreenExclusive()) {
 				display.setMenuBarVisible(false);
 			}
-		} else if (!allowMenuBarToggle) {
-			if (display.isFullscreenExclusive()) {
-				display.setFullscreen(false);
+		} else {
+			if (!allowMenuBarToggle) {
+				if (display.isFullscreenExclusive()) {
+					display.setFullscreen(false);
+				}
+				display.setMenuBarVisible(true);
 			}
-			display.setMenuBarVisible(true);
 		}
 		
+		//Higher-than-game priority menu bar toggle listener
+		if (allowMenuBarToggle) {
+			if (display.isMenuBarVisible()) {
+				if (ninput.consumeConfirm() || ninput.consumeTextContinue()) {
+					requestMenu = true;
+				}
+			} else {
+				if (input.consumeKey(KeyEvent.VK_ESCAPE)) {
+					requestMenu = true;
+				}
+			}			
+		}
+		
+		//Update novel
 		changed |= novel.update();
 		
-		if (novel.getInput().consumeCancel()) {
+		//Determine if we need to toggle the menu bar based on input
+		if (requestMenu || ninput.consumeCancel()) {
 			if (display.isMenuBarVisible() && allowMenuBarToggle) {
 				display.setMenuBarVisible(false);
 			} else {
@@ -288,6 +309,7 @@ public class Game extends BaseGame {
 			}
 		}
 		
+		//Debug functionality
 		if (isDebug()) {
 			Notifier ntf = getNotifier();
 
@@ -362,8 +384,7 @@ public class Game extends BaseGame {
 		IConfig config = getConfig();
 		
 		if (novel != null) {
-			INotifier ntf = novel.getNotifier();
-			
+			int fps = config.get(FPS);
 			double effectSpeed = config.get(EFFECT_SPEED);
 			novel.setEffectSpeed(effectSpeed, 8 * effectSpeed);
 			
@@ -385,12 +406,8 @@ public class Game extends BaseGame {
 			}
 			
 			novel.setScriptDebug(isDebug());
-			try {
-				novel.setAutoRead(config.get(AUTO_READ),
-						60 * config.get(AUTO_READ_WAIT) / 1000);
-			} catch (LuaException e) {
-				ntf.w("Error occurred when changing auto read", e);
-			}
+			novel.setSkipUnread(config.get(SKIP_UNREAD));
+			novel.setAutoRead(config.get(AUTO_READ), fps * config.get(AUTO_READ_WAIT) / 1000);
 			
 			/*
 			 * LightNVL volume settings aren't used, we instead use the ones in game-core.
@@ -420,6 +437,40 @@ public class Game extends BaseGame {
 				GameLog.w("Error dumping analytics", ioe);
 			}
 		}		
+	}
+	
+	@Override
+	public String generateOSDText() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(super.generateOSDText());
+		if (sb.length() > 0 && sb.charAt(sb.length()-1) != '\n') {
+			sb.append('\n');
+		}
+		
+		String callSite = novel.getCurrentCallSite();
+		if (callSite != null) {
+			sb.append(String.format("script: %s\n", callSite));
+		}
+		
+		int visibleDrawables = 0;
+		IImageState imageState = novel.getImageState();
+		Map<String, ILayer> layers = imageState.getLayers();
+		for (ILayer layer : layers.values()) {
+			if (layer.isDestroyed() || !layer.isVisible()) continue;
+			
+			IDrawable[] drawables = layer.getDrawables();
+			for (IDrawable d : drawables) {
+				if (d == null || d.isDestroyed()) continue;
+				
+				if (d.getAlpha() > 0) {
+					visibleDrawables++;
+				}
+			}
+		}
+		
+		sb.append(String.format("drawables: %d\n", visibleDrawables));
+		
+		return sb.toString();
 	}
 	
 	//Getters

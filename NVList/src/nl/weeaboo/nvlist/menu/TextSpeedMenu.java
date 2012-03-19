@@ -25,7 +25,7 @@ public class TextSpeedMenu extends RangeMenu<Double> {
 	};
 	
 	public TextSpeedMenu() {
-		super(TEXT_SPEED, "Text Speed", '\0', labels, values);
+		super(TEXT_SPEED, "Text speed", '\0', labels, values);
 	}
 	
 }

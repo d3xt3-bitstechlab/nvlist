@@ -1,6 +1,7 @@
 package nl.weeaboo.nvlist;
 
 import static nl.weeaboo.game.BaseGameConfig.HEIGHT;
+import static nl.weeaboo.game.BaseGameConfig.SCALE;
 import static nl.weeaboo.game.BaseGameConfig.WIDTH;
 
 import java.awt.Container;
@@ -40,10 +41,11 @@ public class Launcher extends BaseLauncher {
 	}
 	
 	@Override
-	protected IGame startGame(Container container) {
+	protected IGame startGame(Container container) throws InitException {
 		if (isVNDS()) {
 			setPreference(WIDTH.getKey(), "256");
-			setPreference(HEIGHT.getKey(), "192");			
+			setPreference(HEIGHT.getKey(), "192");
+			setPreference(SCALE.getKey(), "3");
 		}
 		
 		return super.startGame(container);

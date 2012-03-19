@@ -9,13 +9,13 @@ import java.io.InputStream;
 
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.border.EmptyBorder;
 
 import nl.weeaboo.common.StringUtil;
+import nl.weeaboo.game.IGameDisplay;
 import nl.weeaboo.io.StreamUtil;
 import nl.weeaboo.nvlist.Game;
 import nl.weeaboo.vn.impl.nvlist.Novel;
@@ -62,8 +62,8 @@ public class AboutItem extends GameMenuAction {
 		}
 		
 		//Show message box
-		JOptionPane.showMessageDialog(game.getDisplay().getContent(), panel,
-				"About", JOptionPane.PLAIN_MESSAGE);
+		IGameDisplay display = game.getDisplay();
+		display.showMessageDialog(panel, "About");
 	}
 
 	protected String getLicense() {

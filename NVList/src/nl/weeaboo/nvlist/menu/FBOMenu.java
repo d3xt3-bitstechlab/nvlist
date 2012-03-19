@@ -19,7 +19,7 @@ public class FBOMenu extends GameMenuAction {
 	//Functions
 	@Override
 	protected JMenuItem createItem(Game game, Novel nvl) {
-		JMenu menu = new JMenu("Frame Buffer Object");
+		JMenu menu = new JMenu("Frame buffer object (FBO)");
 		
 		ButtonGroup group = new ButtonGroup();
 		
