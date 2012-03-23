@@ -47,7 +47,7 @@ public final class NovelSound extends BaseSound {
 			sound = sm.play(ch, SoundFactory.convertSoundType(getSoundType()),
 					sin.in, sin.length, 0, getLoopsLeft(),
 					loopStart, loopEnd);
-			sound.setPrivateVolume(getPrivateVolume(), fadeTime);
+			sound.setPrivateVolume(getVolume(), fadeTime);
 			ok = true;
 		} finally {			
 			if (!ok) sin.close();
@@ -78,7 +78,7 @@ public final class NovelSound extends BaseSound {
 	@Override
 	protected void onVolumeChanged() {
 		if (sound != null) {
-			sound.setPrivateVolume(getPrivateVolume(), 0);
+			sound.setPrivateVolume(getVolume(), 0);
 		}
 	}
 

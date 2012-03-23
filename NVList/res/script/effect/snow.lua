@@ -36,12 +36,15 @@ function Snowflake.new(cloud, self)
     
     self.sprite = img(self.textures[math.random(1, #self.textures)])
 
-    self.depth = math.random(4, 20) * 0.1
-    cloud.camera:add(self.sprite, self.depth, false)
+    local z = math.random(7, 20)
+    self.depth = z * 0.1
+    cloud.camera:add(self.sprite, self.depth, true, true)
     
     self.speed = 8 + 4 * math.random()
     self:init()
     self:setPos(self:getX(), self:getY() - math.random() * screenHeight * 2)
+    
+    self.sprite:setZ(z)
 
     return self
 end
@@ -50,13 +53,13 @@ function Snowflake:init()
     local zoom = self.depth
     local sw = 64 / zoom
     local sh = 64 / zoom
-    self.minX = (-0.5 * screenWidth ) * zoom - sw
-    self.maxX = ( 1.5 * screenWidth ) * zoom + sw
+    self.minX = (-0.0 * screenWidth ) * zoom - sw
+    self.maxX = ( 1.0 * screenWidth ) * zoom + sw
     local minY= (-0.5 * screenHeight) * zoom - sh
-    self.maxY = ( 1.5 * screenHeight) * zoom + sh
+    self.maxY = ( 1.0 * screenHeight) * zoom + sh
     
     self:setPos(self.minX+math.random()*(self.maxX-self.minX), minY)
-    self.frame = math.random(1, 512)
+    self.frame = math.random(1, 512)    
 end
 
 function Snowflake:destroy()
@@ -75,6 +78,8 @@ function Snowflake:update()
     
     if x < self.minX or x > self.maxX or y > self.maxY then
         self:init()
+        
+        --self.sprite:setColor(0, 1, 0)
     else
         self.dir = self.cloud.windDir + 16 * math.fastSin(self.frame * 2)
     
@@ -82,9 +87,11 @@ function Snowflake:update()
         local cosDir = math.fastCos(self.dir)
         local dx = self.speed * sinDir
         local dy = self.speed * -cosDir    
-        s:setPos(x + dx, y + dy)
-    end
+        s:setPos(x + dx, y + dy)        
 
+        --self.sprite:setColor(s:getY() / self.maxY, 0, 0)
+    end
+    
     self.frame = self.frame + 1
 end
 
@@ -120,8 +127,11 @@ function Snowcloud.new(self)
         end
     end
     
-    self.camera = Image.createCamera() 
-    self.camera:setSubjectDistance(100)
+    local c = createCamera()
+    c:setBlurLevels(2)
+    c:setSubjectDistance(5)
+    self.camera = c
+    
     return self
 end
 
@@ -173,7 +183,7 @@ end
 function startSnow(numSnowflakes)
     stopSnow()
 
-    numSnowflakes = numSnowflakes or 200
+    numSnowflakes = numSnowflakes or 100
     if System.isLowEnd() then
         numSnowflakes = numSnowflakes / 2
     end

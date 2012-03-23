@@ -15,6 +15,7 @@ import nl.weeaboo.common.Rect;
 import nl.weeaboo.common.Rect2D;
 import nl.weeaboo.gl.GLBlendMode;
 import nl.weeaboo.gl.GLManager;
+import nl.weeaboo.gl.capture.GLScreenshot;
 import nl.weeaboo.gl.text.ParagraphRenderer;
 import nl.weeaboo.io.BufferUtil;
 import nl.weeaboo.textlayout.TextLayout;
@@ -127,13 +128,14 @@ public class Renderer extends BaseRenderer {
 		if (bounds == null) {
 			cx = rx; cy = ry; cw = rw; ch = rh;
 		} else {
-			cx = rx + Math.max(0, Math.min(rw, (int)Math.ceil(bounds.x * getScale())));
-			cy = ry + Math.max(0, Math.min(rh, (int)Math.ceil(bounds.y * getScale())));
 			cw = Math.max(0, Math.min(rw, (int)Math.floor(bounds.w * getScale())));
-			ch = Math.max(0, Math.min(rh, (int)Math.floor(bounds.h * getScale())));
+			ch = Math.max(0, Math.min(rh, (int)Math.floor(bounds.h * getScale())));			
+			cx = rx + Math.max(0, Math.min(rw, (int)Math.ceil(bounds.x * getScale())));
+			int ucy = ry + Math.max(0, Math.min(rh, (int)Math.ceil(bounds.y * getScale())));
+			cy = sh - ucy - ch;
 		}
-		gl.glScissor(cx, sh-cy-ch, cw, ch);
-				
+		gl.glScissor(cx, cy, cw, ch);
+		
 		//Setup blend mode
 		BlendMode blendMode = BlendMode.DEFAULT;
 		glm.setBlendMode(GLBlendMode.DEFAULT);
@@ -195,8 +197,8 @@ public class Renderer extends BaseRenderer {
 				ScreenshotRenderCommand src = (ScreenshotRenderCommand)cmd;
 				Screenshot ss = (Screenshot)src.ss;
 				
-				nl.weeaboo.gl.capture.Screenshot gss = new nl.weeaboo.gl.capture.Screenshot();
-				gss.set(glm, new Rect(rx, ry, rw, rh));
+				GLScreenshot gss = new GLScreenshot();
+				gss.set(glm, new Rect(cx, cy, cw, ch));
 				
 				ss.set(BufferUtil.toArray(gss.getARGB()), gss.getWidth(), gss.getHeight(), rw, rh);
 			} else if (cmd.id == RenderTextCommand.id) {

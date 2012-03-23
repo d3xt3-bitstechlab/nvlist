@@ -1,19 +1,9 @@
 package nl.weeaboo.nvlist;
 
-import static nl.weeaboo.game.BaseGameConfig.FPS;
 import static nl.weeaboo.game.BaseGameConfig.HEIGHT;
 import static nl.weeaboo.game.BaseGameConfig.TITLE;
 import static nl.weeaboo.game.BaseGameConfig.WIDTH;
-import static nl.weeaboo.vn.NovelPrefs.AUTO_READ;
-import static nl.weeaboo.vn.NovelPrefs.AUTO_READ_WAIT;
-import static nl.weeaboo.vn.NovelPrefs.EFFECT_SPEED;
 import static nl.weeaboo.vn.NovelPrefs.ENGINE_MIN_VERSION;
-import static nl.weeaboo.vn.NovelPrefs.PRELOADER_LOOK_AHEAD;
-import static nl.weeaboo.vn.NovelPrefs.PRELOADER_MAX_PER_LINE;
-import static nl.weeaboo.vn.NovelPrefs.SKIP_UNREAD;
-import static nl.weeaboo.vn.NovelPrefs.TEXTLOG_PAGE_LIMIT;
-import static nl.weeaboo.vn.NovelPrefs.TEXT_SPEED;
-import static nl.weeaboo.vn.NovelPrefs.TIMER_IDLE_TIMEOUT;
 import static nl.weeaboo.vn.vnds.VNDSUtil.VNDS;
 
 import java.awt.event.KeyEvent;
@@ -28,6 +18,7 @@ import nl.weeaboo.common.Dim;
 import nl.weeaboo.common.StringUtil;
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.game.BaseGame;
+import nl.weeaboo.game.BaseGameConfig;
 import nl.weeaboo.game.DebugPanel;
 import nl.weeaboo.game.GameDisplay;
 import nl.weeaboo.game.GameLog;
@@ -60,15 +51,14 @@ import nl.weeaboo.vn.IPersistentStorage;
 import nl.weeaboo.vn.ISaveHandler;
 import nl.weeaboo.vn.ISeenLog;
 import nl.weeaboo.vn.IStorage;
-import nl.weeaboo.vn.ITextState;
 import nl.weeaboo.vn.ITimer;
 import nl.weeaboo.vn.IVideoState;
+import nl.weeaboo.vn.NovelPrefs;
 import nl.weeaboo.vn.impl.base.BaseLoggingAnalytics;
 import nl.weeaboo.vn.impl.base.BaseNovelConfig;
 import nl.weeaboo.vn.impl.base.NullAnalytics;
 import nl.weeaboo.vn.impl.base.Timer;
 import nl.weeaboo.vn.impl.lua.EnvLuaSerializer;
-import nl.weeaboo.vn.impl.lua.LuaMediaPreloader;
 import nl.weeaboo.vn.impl.nvlist.Analytics;
 import nl.weeaboo.vn.impl.nvlist.Globals;
 import nl.weeaboo.vn.impl.nvlist.ImageFactory;
@@ -151,6 +141,11 @@ public class Game extends BaseGame {
 				"is below the minimum acceptable version for this game (%s)",
 				VERSION_STRING, config.get(ENGINE_MIN_VERSION)));			
 		}
+		
+		//We're using the volume settings from NovelPrefs instead...
+		config.set(BaseGameConfig.MUSIC_VOLUME, 1.0);
+		config.set(BaseGameConfig.SOUND_VOLUME, 1.0);
+		config.set(BaseGameConfig.VOICE_VOLUME, 1.0);
 		
 		if (gmf != null) {
 			gmf.dispose();
@@ -249,7 +244,7 @@ public class Game extends BaseGame {
 		restart("titlescreen");
 	}
 	protected void restart(final String mainFunc) {		
-		novel.restart(luaSerializer, mainFunc);
+		novel.restart(luaSerializer, getConfig(), mainFunc);
 
 		onConfigPropertiesChanged();
 	}
@@ -384,35 +379,9 @@ public class Game extends BaseGame {
 		IConfig config = getConfig();
 		
 		if (novel != null) {
-			int fps = config.get(FPS);
-			double effectSpeed = config.get(EFFECT_SPEED);
-			novel.setEffectSpeed(effectSpeed, 8 * effectSpeed);
-			
-			ITextState ts = novel.getTextState();
-			if (ts != null) {
-				ts.setBaseTextSpeed(config.get(TEXT_SPEED));
-				ts.getTextLog().setPageLimit(config.get(TEXTLOG_PAGE_LIMIT));
-			}
-			
-			ITimer timer = novel.getTimer();
-			if (timer != null) {
-				timer.setIdleTimeout(config.get(TIMER_IDLE_TIMEOUT));
-			}
-			
-			LuaMediaPreloader preloader = novel.getPreloader();
-			if (preloader != null) {
-				preloader.setLookAhead(config.get(PRELOADER_LOOK_AHEAD));
-				preloader.setMaxItemsPerLine(config.get(PRELOADER_MAX_PER_LINE));
-			}
-			
-			novel.setScriptDebug(isDebug());
-			novel.setSkipUnread(config.get(SKIP_UNREAD));
-			novel.setAutoRead(config.get(AUTO_READ), fps * config.get(AUTO_READ_WAIT) / 1000);
-			
-			/*
-			 * LightNVL volume settings aren't used, we instead use the ones in game-core.
-			 * Because of this, we don't need to pass these settings to Novel.
-			 */
+			config.set(NovelPrefs.SCRIPT_DEBUG, isDebug()); //Use debug flag from Game
+			config.set(BaseGameConfig.DEFAULT_TEXT_STYLE, config.get(NovelPrefs.TEXT_STYLE)); //Use text style from NovelPrefs
+			novel.onPrefsChanged(config);
 		}
 		
 		getDisplay().repaint();

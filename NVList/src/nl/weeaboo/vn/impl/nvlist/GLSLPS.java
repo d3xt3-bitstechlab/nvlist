@@ -69,7 +69,12 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 			int rh = r.getRealHeight();
 			double sw = r.getScreenWidth();
 			double sh = r.getScreenHeight();
-			Rect2D screen = new Rect2D(-1+2*rx/sw, -1+2*ry/sh, 2*rw/sw, 2*rh/sh);
+			Rect2D screen;
+			if (sw > 0 && sh > 0) {
+				screen = new Rect2D(-1+2*rx/sw, -1+2*ry/sh, 2*rw/sw, 2*rh/sh);
+			} else {
+				screen = new Rect2D(0, 0, 1, 1);
+			}
 			
 			shader.forceLoad(glm);
 			glm.setShader(shader);
@@ -242,7 +247,8 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 		}
 		
 		protected Varargs getVersion(Varargs args) {
-			return valueOf(fac.getGlslVersion());
+			String version = fac.getGlslVersion();
+			return valueOf(version != null ? version : "0");
 		}
 		
 		protected Varargs isVersionSupported(Varargs args) {

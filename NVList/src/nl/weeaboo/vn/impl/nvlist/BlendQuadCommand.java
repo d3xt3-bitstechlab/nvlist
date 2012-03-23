@@ -113,21 +113,25 @@ public class BlendQuadCommand extends CustomRenderCommand {
 		
 		gl.glPushMatrix();
 		gl.glMultMatrixf(transform.toGLMatrix(), 0);		
-		if (tex0 == null || tex1 == null || !extensionsAvailable) {
-			//Fallback for OpenGL < 1.4 or when some textures aren't available
-			glm.setTexture(tex0);
-			glm.pushColor();
-			glm.mixColor(1, 1, 1, f);
-			glm.fillRect(bounds0.x, bounds0.y, bounds0.w, bounds0.h,
-					texBounds0.x, texBounds0.y, texBounds0.w, texBounds0.h);
-			glm.popColor();
+		if (f <= 0 || f >= 1 || tex0 == null || tex1 == null || !extensionsAvailable) {
+			//Fallback for OpenGL < 1.4 or when some textures can't/needn't be drawn
+			if (tex0 != null && f > 0) {
+				glm.setTexture(tex0);
+				glm.pushColor();
+				glm.mixColor(1, 1, 1, f);
+				glm.fillRect(bounds0.x, bounds0.y, bounds0.w, bounds0.h,
+						texBounds0.x, texBounds0.y, texBounds0.w, texBounds0.h);
+				glm.popColor();
+			}
 
-			glm.setTexture(tex1);
-			glm.pushColor();
-			glm.mixColor(1, 1, 1, 1-f);
-			glm.fillRect(bounds1.x, bounds1.y, bounds1.w, bounds1.h,
-					texBounds1.x, texBounds1.y, texBounds1.w, texBounds1.h);
-			glm.popColor();
+			if (tex1 != null && f < 1) {
+				glm.setTexture(tex1);
+				glm.pushColor();
+				glm.mixColor(1, 1, 1, 1-f);
+				glm.fillRect(bounds1.x, bounds1.y, bounds1.w, bounds1.h,
+						texBounds1.x, texBounds1.y, texBounds1.w, texBounds1.h);
+				glm.popColor();
+			}
 		} else {		
 			//Set texture 0		
 			gl.glActiveTexture(GL_TEXTURE0);

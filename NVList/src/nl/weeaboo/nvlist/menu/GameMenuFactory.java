@@ -1,9 +1,5 @@
 package nl.weeaboo.nvlist.menu;
 
-import static nl.weeaboo.game.BaseGameConfig.MUSIC_VOLUME;
-import static nl.weeaboo.game.BaseGameConfig.SOUND_VOLUME;
-import static nl.weeaboo.game.BaseGameConfig.VOICE_VOLUME;
-
 import java.awt.Component;
 
 import javax.swing.JMenuBar;
@@ -12,6 +8,7 @@ import javax.swing.JPopupMenu;
 import nl.weeaboo.nvlist.Game;
 import nl.weeaboo.settings.ConfigPropertyListener;
 import nl.weeaboo.settings.Preference;
+import nl.weeaboo.vn.NovelPrefs;
 
 public class GameMenuFactory {
 
@@ -107,9 +104,9 @@ public class GameMenuFactory {
 	
 	protected GameMenu createSoundMenu() {
 		GameMenu menu = createMenu("Sound", 'S');
-		menu.add(new AudioVolumeMenu(MUSIC_VOLUME, "Music volume"));
-		menu.add(new AudioVolumeMenu(SOUND_VOLUME, "Sound volume"));
-		menu.add(new AudioVolumeMenu(VOICE_VOLUME, "Voice volume"));
+		menu.add(new AudioVolumeMenu(NovelPrefs.MUSIC_VOLUME, "Music volume"));
+		menu.add(new AudioVolumeMenu(NovelPrefs.SOUND_VOLUME, "Sound volume"));
+		menu.add(new AudioVolumeMenu(NovelPrefs.VOICE_VOLUME, "Voice volume"));
 		return menu;
 	}
 	

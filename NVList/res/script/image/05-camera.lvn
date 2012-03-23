@@ -1,0 +1,77 @@
+
+@@
+local background = bgf("bg/bg1")
+local sprite = img("arm01m", "l")
+
+local w = screenWidth
+local h = screenHeight
+
+local camera = createCamera()
+camera:setBlurLevels(5)
+
+--Programming camera movement
+local function camPerspective()
+    camera:setPerspectiveTransform(true)
+    camera:setSubjectDistance(10)
+    camera:clearZoom()
+    camera:addZoom3D( 30,  0, 0, 0)
+    camera:addZoom3D(240, 50, 0, 0)
+    camera:addZoom3D(120, 50, w*.25, 0)
+    camera:addZoom3D( 60,  0, 0, 0)
+end
+local function camOrtho()
+    camera:setPerspectiveTransform(false)
+    camera:setSubjectDistance(8)
+    camera:clearZoom()
+    camera:addZoom2D( 30, 0, 0, w, h)
+    camera:addZoom2D(120, w*.25, h*.25, w*.50, h*.50)
+    camera:addZoom2D( 60, w*.75, h*.75, w*.25, h*.25)
+    camera:addZoom2D( 60, 0, 0, w, h)
+end
+
+camPerspective()
+
+--Adding images to camera's influence
+camera:add(background, 100)
+camera:add(sprite, 10)
+
+fadeTo(sprite, 1)
+clearText()
+appendText("1=Toggle depth of field\n2=Toggle perspective transform")
+
+--Loop camera movement pattern
+local looper = Looper.new(LoopMode.WRAP, camera:getDuration())
+while not input:consumeTextContinue() do
+    if input:consumeKey(Keys[1]) then
+        local bs = camera:getBlurScale()
+        if bs ~= 0 then
+            bs = 0
+        else
+            bs = 1
+        end
+        camera:setBlurScale(bs)
+    elseif input:consumeKey(Keys[2]) then
+        if camera:getPerspectiveTransform() then
+            camOrtho()
+            looper:setDuration(camera:getDuration())
+        else
+            camPerspective()
+            looper:setDuration(camera:getDuration())
+        end
+    end
+
+    looper:update(effectSpeed)
+    camera:setTime(looper:getTime())
+    yield()
+end
+
+--Destroy the camera (reverts the changes made on the camera's images)
+camera:destroy()
+
+@@
+
+Camera destroyed
+
+@rmf(sprite)
+@rmbgf()
+
