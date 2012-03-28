@@ -39,6 +39,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	private final boolean isTouchScreen;
 	
 	private int imgWidth, imgHeight;
+	private int subTexLim; //Max size to try and put in a GLPackedTexture instead of generating a whole new texture.
 	
 	public ImageFactory(TextureCache tc, ShaderCache sc, GLTextRendererStore trStore,
 			IAnalytics an, ISeenLog sl, INotifier ntf, boolean isTouchScreen,
@@ -53,6 +54,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 		this.isTouchScreen = isTouchScreen;
 		this.imgWidth = w;
 		this.imgHeight = h;
+		this.subTexLim = 128;
 		
 		this.es = new EnvironmentSerializable(this);
 
@@ -91,7 +93,11 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 	
 	@Override
 	public ITexture createTexture(int[] argb, int w, int h, double sx, double sy) {
-		return createTexture(createGLTexture(argb, w, h), sx, sy);
+		if (w <= subTexLim && h <= subTexLim) {
+			return createTexture(createGLTexRect(argb, w, h), sx, sy);
+		} else {
+			return createTexture(createGLTexture(argb, w, h), sx, sy);
+		}
 	}
 	
 	@Override
@@ -105,9 +111,16 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 		if (tex == null) {
 			return null;
 		}
-		
+		return createTexture(tex.getTexRect(null), sx, sy);
+	}
+
+	public ITexture createTexture(GLTexRect tr, double sx, double sy) {
+		if (tr == null) {
+			return null;
+		}
+
 		TextureAdapter ta = new TextureAdapter(this);
-		ta.setTexRect(tex.getTexRect(null), sx, sy);
+		ta.setTexRect(tr, sx, sy);
 		return ta;
 	}
 	
@@ -119,6 +132,10 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 			int glMinFilter, int glMagFilter, int glWrap)
 	{	
 		return texCache.generateTexture(argb, w, h, glMinFilter, glMagFilter, glWrap);		
+	}
+	
+	public GLTexRect createGLTexRect(int[] argb, int w, int h) {
+		return texCache.generateTexRect(argb, w, h, false);
 	}
 	
 	//Getters

@@ -15,6 +15,7 @@ public class PreloadGLTexturesItem extends GameMenuAction {
 	@Override
 	public JMenuItem createItem(Game game, Novel nvl) {
 		JCheckBoxMenuItem item = new JCheckBoxMenuItem("Async PBO texture upload");
+		item.setEnabled(false); item.setToolTipText("Disabled due to unreliable implementation.");
 		item.setSelected(game.getConfig().get(PRELOAD_GL_TEXTURES));
 		return item;
 	}

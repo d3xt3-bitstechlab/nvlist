@@ -168,9 +168,13 @@ end
 
 function Raincloud:start(numRaindrops)
     local drops = {}
-    for i=1,numRaindrops do
-        drops[i] = Raindrop.new(self)
-    end
+    local bstep = 100
+    for b=1,numRaindrops,bstep do
+        for i=b,math.min(numRaindrops, b+bstep-1) do
+            drops[i] = Raindrop.new(self)
+        end
+        yield()
+    end    
     self.drops = drops
 
     local targetWind = 256

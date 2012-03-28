@@ -60,7 +60,7 @@ public class RotatedQuadCommand extends CustomRenderCommand {
 		m.setTranslation(0, 0);
 		gl.glMultMatrixf(m.toGLMatrix(), 0);
 		
-		rr.renderQuad(glm, itex, Matrix.identityMatrix(),
+		rr.renderQuad(itex, Matrix.identityMatrix(),
 				-w/2, -h/2, w, h, null, 0, 0, 1, 1);
 		
 		gl.glPopMatrix();

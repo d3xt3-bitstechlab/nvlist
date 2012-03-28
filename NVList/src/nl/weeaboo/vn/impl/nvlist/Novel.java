@@ -35,6 +35,7 @@ public class Novel extends LuaNovel {
 
 	private transient FileManager fm;
 	private transient IKeyConfig keyConfig;
+	private transient boolean isVNDS;
 	
 	// !!WARNING!! Do not add properties without adding code for saving/loading
 	
@@ -43,13 +44,14 @@ public class Novel extends LuaNovel {
 			ITextState ts, NovelNotifier n, IInput in, SystemLib syslib, SaveHandler sh,
 			ScriptLib scrlib, TweenLib tl, IPersistentStorage sysVars, IStorage globals,
 			ISeenLog seenLog, IAnalytics analytics, ITimer tmr,
-			FileManager fm, IKeyConfig kc)
+			FileManager fm, IKeyConfig kc, boolean isVNDS)
 	{
 		super(nc, imgfac, is, fxlib, sndfac, ss, vf, vs, ts, n, in, syslib, sh, scrlib, tl,
 				sysVars, globals, seenLog, analytics, tmr);
 		
 		this.fm = fm;
 		this.keyConfig = kc;
+		this.isVNDS = isVNDS;
 	}
 	
 	//Functions	
@@ -95,7 +97,9 @@ public class Novel extends LuaNovel {
 
 			//Register libraries
 			GLSLPS.install(globals, (ImageFactory)getImageFactory(), getNotifier());
-			registerVNDSLib();
+			if (isVNDS) {
+				registerVNDSLib();
+			}
 		} catch (LuaException e) {
 			onScriptError(e);
 		}		

@@ -7,7 +7,7 @@ while true do
     clearText()
     bgf("bg/bg1")
     
-    local selected = choice("Rain", "Snow", "Fog", "Fire", "Return")
+    local selected = choice("Rain", "Snow", "Fog", "Fire", "GLSL Shaders", "Return")
     
     if selected == 1 then
         --Rain test
@@ -31,6 +31,8 @@ while true do
         text("Click to stop the effect")
         rmf(sprite)
         rmbgf()
+    elseif selected == 5 then
+        call("effect/glsl")
     else
         rmbgf()
         break

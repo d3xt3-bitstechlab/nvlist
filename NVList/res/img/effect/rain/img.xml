@@ -1,5 +1,5 @@
 <images>
-  <image filename="rain.png" width="256" height="256" scaleFilter="linear mipmap">
+  <image filename="rain.png" width="256" height="256">
     <subrect id="b1i1" rect="  0,64, 5, 64" />
     <subrect id="b1i2" rect="  5,32, 5,128" />
     <subrect id="b1i3" rect=" 10,32, 5,128" />

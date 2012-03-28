@@ -53,8 +53,8 @@ function Snowflake:init()
     local zoom = self.depth
     local sw = 64 / zoom
     local sh = 64 / zoom
-    self.minX = (-0.0 * screenWidth ) * zoom - sw
-    self.maxX = ( 1.0 * screenWidth ) * zoom + sw
+    self.minX = (-0.5 * screenWidth ) * zoom - sw
+    self.maxX = ( 1.5 * screenWidth ) * zoom + sw
     local minY= (-0.5 * screenHeight) * zoom - sh
     self.maxY = ( 1.0 * screenHeight) * zoom + sh
     
@@ -122,14 +122,14 @@ function Snowcloud.new(self)
     
     if self.textures == nil then
         self.textures = {}
-        for i=1,1 do
-            self.textures[i] = tex("effect/snow/snow#i" .. i)
+        for i=3,5 do
+            table.insert(self.textures, tex("effect/snow/snow#i" .. i))
         end
     end
     
     local c = createCamera()
     c:setBlurLevels(2)
-    c:setSubjectDistance(5)
+    c:setSubjectDistance(2)
     self.camera = c
     
     return self
@@ -151,8 +151,12 @@ end
 
 function Snowcloud:start(numSnowflakes)
     local flakes = {}
-    for i=1,numSnowflakes do
-        flakes[i] = Snowflake.new(self)
+    local bstep = 100
+    for b=1,numSnowflakes,bstep do
+        for i=b,math.min(numSnowflakes, b+bstep-1) do
+            flakes[i] = Snowflake.new(self)
+        end
+        yield()
     end
     self.flakes = flakes
     
@@ -183,7 +187,7 @@ end
 function startSnow(numSnowflakes)
     stopSnow()
 
-    numSnowflakes = numSnowflakes or 100
+    numSnowflakes = numSnowflakes or 150
     if System.isLowEnd() then
         numSnowflakes = numSnowflakes / 2
     end

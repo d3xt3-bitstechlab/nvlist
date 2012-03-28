@@ -37,7 +37,7 @@ public class ScreenshotItem extends GameMenuAction {
 	@Override
 	public void actionPerformed(JMenuItem item, ActionEvent e, final Game game, Novel nvl) {
 		final IScreenshot ss = nvl.getImageFactory().screenshot(Short.MIN_VALUE);
-		nvl.getImageState().getTopLayer().getScreenshotBuffer().add(ss);
+		nvl.getImageState().getTopLayer().getScreenshotBuffer().add(ss, false);
 		waitForScreenshot(game.getExecutor(), ss);
 	}
 

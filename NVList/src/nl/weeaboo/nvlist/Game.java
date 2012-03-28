@@ -57,6 +57,7 @@ import nl.weeaboo.vn.NovelPrefs;
 import nl.weeaboo.vn.impl.base.BaseLoggingAnalytics;
 import nl.weeaboo.vn.impl.base.BaseNovelConfig;
 import nl.weeaboo.vn.impl.base.NullAnalytics;
+import nl.weeaboo.vn.impl.base.RenderStats;
 import nl.weeaboo.vn.impl.base.Timer;
 import nl.weeaboo.vn.impl.lua.EnvLuaSerializer;
 import nl.weeaboo.vn.impl.nvlist.Analytics;
@@ -94,6 +95,7 @@ public class Game extends BaseGame {
 	private LuaSerializer luaSerializer;
 	private GameMenuFactory gmf;
 	private Renderer renderer;
+	private RenderStats renderStats = null; //new RenderStats();
 	private Movie movie;
 	
 	public Game(IConfig cfg, ExecutorService e, GameDisplay gd, FileManager fm,
@@ -211,7 +213,7 @@ public class Game extends BaseGame {
 		ScriptLib scrlib = new ScriptLib(fm, notifier);
 		TweenLib tweenLib = new TweenLib(imgfac, notifier);
 		
-		if (isDebug() && !config.get(VNDS)) {
+		if (isDebug() && !isVNDS()) {
 			imgfac.setCheckFileExt(true);
 			sndfac.setCheckFileExt(true);
 			vidfac.setCheckFileExt(true);
@@ -227,8 +229,8 @@ public class Game extends BaseGame {
 		novel = new Novel(novelConfig, imgfac, is, fxlib, sndfac, ss, vidfac, vs, ts,
 				notifier, in, syslib, saveHandler, scrlib, tweenLib, sysVars, globals,
 				seenLog, an, timer,
-				fm, getKeyConfig());
-		if (config.get(VNDS)) {
+				fm, getKeyConfig(), isVNDS());
+		if (isVNDS()) {
 			novel.setBootstrapScripts("builtin/vnds/main.lua");
 		}
         luaSerializer = new EnvLuaSerializer();
@@ -361,12 +363,16 @@ public class Game extends BaseGame {
 			if (renderer == null) {
 				renderer = new Renderer(glm, pr, getWidth(), getHeight(),
 						getRealX(), getRealY(), getRealW(), getRealH(),
-						getScreenW(), getScreenH());
+						getScreenW(), getScreenH(), renderStats);
 			}
+			
 			is.draw(renderer);
 	        renderer.render(null);
 			renderer.reset();
-			renderer.onFrameRenderDone();
+			
+			if (renderStats != null) {
+				renderStats.onFrameRenderDone();
+			}
 		}
 		
 		super.draw(glm);
@@ -444,6 +450,10 @@ public class Game extends BaseGame {
 	
 	//Getters
 	public Novel getNovel() { return novel; }
+	
+	protected boolean isVNDS() {
+		return getConfig().get(VNDS);
+	}
 	
 	//Setters
 	@Override

@@ -57,7 +57,7 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 	public void preDraw(IRenderer r) {
 		Renderer rr = (Renderer)r;
 		GLManager glm = rr.getGLManager();
-
+		
 		if (shader == null) {
 			shader = imageFactory.getGLShader(filename);
 		}

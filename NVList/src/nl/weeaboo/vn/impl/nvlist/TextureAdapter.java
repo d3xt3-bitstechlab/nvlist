@@ -23,7 +23,7 @@ public class TextureAdapter implements ITexture {
 	public void forceLoad(GLManager glm) {
 		if (tr != null) {
 			tr = tr.forceLoad(glm);
-			setTexRect(tr, scaleX, scaleY);			
+			setTexRect(tr, scaleX, scaleY);
 		}
 	}
 	

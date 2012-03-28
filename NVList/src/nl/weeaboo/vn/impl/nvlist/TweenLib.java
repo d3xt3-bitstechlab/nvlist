@@ -45,7 +45,7 @@ public class TweenLib extends LuaTweenLib {
 	//Getters
 	@Override
 	public boolean isCrossFadeTweenAvailable() {
-		for (String ext : BlendQuadCommand.REQUIRED_EXTENSIONS) {
+		for (String ext : BlendQuadRenderer.REQUIRED_EXTENSIONS) {
 			if (!fac.isGLExtensionAvailable(ext)) {
 				return false;
 			}
