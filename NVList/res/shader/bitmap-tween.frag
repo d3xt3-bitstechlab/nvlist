@@ -12,8 +12,13 @@ void main() {
     vec4 c0 = texture2D(src0, gl_TexCoord[0].st);
     vec4 c1 = texture2D(src1, gl_TexCoord[1].st);
 
-	vec2 fd = texture2D(fade, gl_TexCoord[2].st).bg;
-    vec2 aa = texture2D(remap, fd).bg;
+	float i = texture2D(fade, gl_TexCoord[2].st).r;
+
+	//Generate 2D lookup vector into remap tex
+	i = 255.0 * i;
+	vec2 rv = vec2(fract(i), floor(i)) / 255.0;
+
+    vec2 aa = texture2D(remap, rv).bg;
     float alpha = clamp((aa.y * 255.0 + aa.x) / 256.0, 0.0, 1.0);
     vec4 c = mix(c0, c1, alpha); 
     

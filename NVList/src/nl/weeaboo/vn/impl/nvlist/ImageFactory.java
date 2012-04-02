@@ -16,6 +16,7 @@ import nl.weeaboo.gl.texture.GLGeneratedTexture;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.gl.texture.TextureCache;
+import nl.weeaboo.gl.texture.TextureData;
 import nl.weeaboo.gl.texture.loader.ImageFormatException;
 import nl.weeaboo.io.EnvironmentSerializable;
 import nl.weeaboo.lua2.io.LuaSerializable;
@@ -96,7 +97,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 		if (w <= subTexLim && h <= subTexLim) {
 			return createTexture(createGLTexRect(argb, w, h), sx, sy);
 		} else {
-			return createTexture(createGLTexture(argb, w, h), sx, sy);
+			return createTexture(createGLTexture(argb, w, h, 0, 0, 0), sx, sy);
 		}
 	}
 	
@@ -124,18 +125,18 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 		return ta;
 	}
 	
-	public GLGeneratedTexture createGLTexture(int[] argb, int w, int h) {
-		return createGLTexture(argb, w, h, 0, 0, 0);
-	}	
-	
 	public GLGeneratedTexture createGLTexture(int[] argb, int w, int h,
 			int glMinFilter, int glMagFilter, int glWrap)
 	{	
-		return texCache.generateTexture(argb, w, h, glMinFilter, glMagFilter, glWrap);		
+		return texCache.newTexture(argb, w, h, glMinFilter, glMagFilter, glWrap);		
 	}
 	
 	public GLTexRect createGLTexRect(int[] argb, int w, int h) {
-		return texCache.generateTexRect(argb, w, h, false);
+		return texCache.newTexRect(argb, w, h, false);
+	}
+	
+	public TextureData createTextureData(BufferedImage image) throws ImageFormatException {
+		return texCache.newTextureData(image);
 	}
 	
 	//Getters

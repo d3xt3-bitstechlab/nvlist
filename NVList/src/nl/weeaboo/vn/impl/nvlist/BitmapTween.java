@@ -1,10 +1,6 @@
 package nl.weeaboo.vn.impl.nvlist;
 
-import java.awt.AlphaComposite;
-import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBuffer;
-import java.io.IOException;
 import java.nio.IntBuffer;
 import java.util.Arrays;
 
@@ -42,13 +38,13 @@ public class BitmapTween extends BaseBitmapTween {
 	//--- Initialized in prepare() ---
 	private GLShader shader;
 	private GLTexRect[] texs;
-	private GLGeneratedTexture fadeTex;
+	private GLTexRect fadeTex;
 	private GLGeneratedTexture remapTex;
 	
 	public BitmapTween(ImageFactory ifac, INotifier ntf, String fadeFilename, double duration,
-			double range, IInterpolator i, boolean fadeTexLerp, boolean fadeTexTile)
+			double range, IInterpolator i, boolean fadeTexTile)
 	{	
-		super(ntf, fadeFilename, duration, range, i, fadeTexLerp, fadeTexTile);
+		super(ntf, fadeFilename, duration, range, i, fadeTexTile);
 		
 		this.fac = ifac;
 	}
@@ -57,6 +53,30 @@ public class BitmapTween extends BaseBitmapTween {
 	public static boolean isAvailable(String glslVersion) {
 		return requiredGlslVersion.compareTo(glslVersion) <= 0;
 	}
+	
+	private void resetPrepared() {
+		shader = null;
+		texs = null;
+		fadeTex = null;
+		if (remapTex != null) {
+			remapTex.dispose();
+			remapTex = null;
+		}
+	}
+	
+	@Override
+	protected void doPrepare() {
+		resetPrepared();
+		
+		super.doPrepare();
+	}
+	
+	@Override
+	protected void doFinish() {
+		resetPrepared();
+		
+		super.doFinish();
+	}	
 	
 	@Override
 	protected void prepareShader() {
@@ -75,24 +95,10 @@ public class BitmapTween extends BaseBitmapTween {
 	}
 
 	@Override
-	protected ITexture prepareFadeTexture(String filename, boolean scaleSmooth,
-			boolean tile, Dim targetSize) throws IOException
-	{		
-		BufferedImage src = fac.getBufferedImage(filename);			
-		if (targetSize != null) {
-			//Take the region of the image we want to use
-			src = fadeImageSubRect(src, targetSize.w, targetSize.h);
-		}
-		
-		//Get 16-bit grayscale pixels from image
-		int[] argb = toGrayScale(src);
-
-		fadeTex = fac.createGLTexture(argb, src.getWidth(), src.getHeight(),
-				(scaleSmooth ? GL.GL_LINEAR : GL.GL_NEAREST),
-				(scaleSmooth ? GL.GL_LINEAR : GL.GL_NEAREST),
-				(tile ? GL.GL_REPEAT : GL.GL_CLAMP_TO_EDGE));
-		
-		return fac.createTexture(fadeTex, 1, 1);
+	protected ITexture prepareFadeTexture(String filename) {
+		TextureAdapter ta = (TextureAdapter)fac.getTexture(filename, null, false);
+		fadeTex = ta.getTexRect();
+		return ta;
 	}
 
 	protected BufferedImage fadeImageSubRect(BufferedImage img, int targetW, int targetH) {
@@ -102,32 +108,14 @@ public class BitmapTween extends BaseBitmapTween {
 		return img.getSubimage((iw-d.w)/2, (ih-d.h)/2, d.w, d.h);
 	}
 	
-	protected int[] toGrayScale(BufferedImage img) {
-		int iw = img.getWidth();
-		int ih = img.getHeight();
-		BufferedImage temp = new BufferedImage(iw, ih, BufferedImage.TYPE_USHORT_GRAY);
-		Graphics2D g = (Graphics2D)temp.getGraphics();
-		g.setComposite(AlphaComposite.Src);
-		g.drawImage(img, 0, 0, null);
-		g.dispose();
-
-		DataBuffer dataBuffer = temp.getRaster().getDataBuffer();
-		
-		int data[] = new int[iw * ih];
-		for (int n = 0; n < data.length; n++) {
-			data[n] = dataBuffer.getElem(n);
-		}
-		return data;
-	}
-	
 	@Override
 	protected ITexture prepareDefaultFadeTexture(int colorARGB) {
 		int w = 16, h = 16;
 		int[] argb = new int[w * h];
 		Arrays.fill(argb, colorARGB);
 		
-		fadeTex = fac.createGLTexture(argb, w, h, GL.GL_NEAREST, GL.GL_NEAREST, GL.GL_CLAMP_TO_EDGE);
-		
+		GLTexture tex = fac.createGLTexture(argb, w, h, GL.GL_NEAREST, GL.GL_NEAREST, GL.GL_CLAMP_TO_EDGE);
+		fadeTex = tex.getTexRect(null);
 		return fac.createTexture(fadeTex, 1, 1);
 	}
 
@@ -155,12 +143,12 @@ public class BitmapTween extends BaseBitmapTween {
 
 		private final Matrix transform;
 		private GLTexRect[] texs;
-		private GLTexture fadeTex;
+		private GLTexRect fadeTex;
 		private GLTexture remapTex;
 		private final GLShader shader;
 		private final TriangleGrid grid;
 		
-		public RenderCommand(IImageDrawable id, GLTexRect[] texs, GLTexture fadeTex,
+		public RenderCommand(IImageDrawable id, GLTexRect[] texs, GLTexRect fadeTex,
 				GLTexture remapTex, GLShader shader, TriangleGrid grid)
 		{
 			super(id.getZ(), id.isClipEnabled(), id.getBlendMode(), id.getColor(),

@@ -189,7 +189,7 @@ public final class Movie extends BaseVideo {
 			}
 				
 			if (writeTex == null) {
-				writeTex = vfac.generateTexture(null, w, h);
+				writeTex = vfac.newTexture(null, w, h, 0, 0, 0);
 				textures[(readIndex + 1) % textures.length] = writeTex;
 			}
 			

@@ -44,11 +44,13 @@
     <delete file="${dist.dir}/res/preloader-default.bin" failonerror="false" />
   </target>
   
-  <target name="dist" depends="Game.dist">
-    <delete file="${dist.dir}/${project-name}-src.zip" />
-
+  <target name="dist-obfuscate" if="${obfuscate}">
     <echo>Obfuscating resources (this may take a while)...</echo>
     <obfuscate />
+  </target>
+  
+  <target name="dist" depends="Game.dist, dist-obfuscate">
+    <delete file="${dist.dir}/${project-name}-src.zip" />
   </target>
   
   <target name="backup" depends="init">

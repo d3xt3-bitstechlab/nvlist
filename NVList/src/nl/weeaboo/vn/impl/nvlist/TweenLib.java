@@ -36,10 +36,9 @@ public class TweenLib extends LuaTweenLib {
 
 	@Override
 	protected IImageTween newBitmapTween(IImageFactory fac, INotifier ntf, String fadeFilename,
-			double duration, double range, IInterpolator i, boolean fadeTexSmooth, boolean fadeTexTile)
+			double duration, double range, IInterpolator i, boolean fadeTexTile)
 	{
-		return new BitmapTween((ImageFactory)fac, ntf, fadeFilename, duration, range, i,
-				fadeTexSmooth, fadeTexTile);
+		return new BitmapTween((ImageFactory)fac, ntf, fadeFilename, duration, range, i, fadeTexTile);
 	}
 
 	//Getters

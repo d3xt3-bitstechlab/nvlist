@@ -62,16 +62,10 @@ public class VideoFactory extends BaseVideoFactory implements Serializable {
 		return movie;
 	}
 		
-	public GLGeneratedTexture generateTexture(int w, int h) {
-		return generateTexture(null, w, h);
-	}
-	public GLGeneratedTexture generateTexture(int[] argb, int w, int h) {
-		return generateTexture(argb, w, h, 0, 0, 0);
-	}
-	public GLGeneratedTexture generateTexture(int[] argb, int w, int h,
+	public GLGeneratedTexture newTexture(int[] argb, int w, int h,
 			int glMinFilter, int glMagFilter, int glWrap)
 	{
-		return texCache.generateTexture(argb, w, h, glMinFilter, glMagFilter, glWrap);
+		return texCache.newTexture(argb, w, h, glMinFilter, glMagFilter, glWrap);
 	}
 	
 	public PBO createPBO(GL2 gl) {

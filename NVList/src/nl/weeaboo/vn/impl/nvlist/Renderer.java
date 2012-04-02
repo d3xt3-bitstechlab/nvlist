@@ -151,7 +151,7 @@ public class Renderer extends BaseRenderer {
 	
 	protected void renderSetTexture(ITexture tex) {
 		TextureAdapter ta = (TextureAdapter)tex;		
-		if (quadTexture != tex && (quadTexture == null || quadTexture.getTexId() != ta.getTexId())) {
+		if (quadTexture != tex && (quadTexture == null || ta == null || quadTexture.getTexId() != ta.getTexId())) {
 			flushQuadBatch();
 		}
 

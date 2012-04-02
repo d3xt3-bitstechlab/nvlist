@@ -40,6 +40,11 @@ public class SystemLib extends BaseSystemLib implements Serializable {
 	}
 	
 	@Override
+	public void restart() {
+		game.restart();
+	}
+	
+	@Override
 	public void exit(boolean force) {
 		game.stop(force, new Runnable() {
 			public void run() {

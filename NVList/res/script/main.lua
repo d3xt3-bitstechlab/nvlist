@@ -10,7 +10,7 @@ end
 function titlescreen()
     globals:clear()
 	setTextModeADV()
-            
+    
     while true do
         local selected = choice("Text", "Image", "Audio", "User Interface", "Special Effects", "Exit")
         if selected == 1 then
