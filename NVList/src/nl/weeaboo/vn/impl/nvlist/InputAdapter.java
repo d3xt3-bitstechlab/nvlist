@@ -58,6 +58,10 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 	public boolean consumeMouse() {
 		return input.consumeMouse();
 	}
+	
+	protected boolean consumeMouseScroll(int dir) {
+		return input.consumeMouseScroll(dir);
+	}
 
 	@Override
 	public boolean isMouseHeld() {
@@ -114,6 +118,7 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 	@Override
 	public boolean consumeTextContinue() {
 		return consumeMouse()
+			|| consumeMouseScroll(1)
 			|| consumeKey(KeyEvent.VK_RIGHT)
 			|| consumeKey(VKey.DOWN.toKeyCode(1))
 			|| consumeKey(VKey.BUTTON2.toKeyCode(1));

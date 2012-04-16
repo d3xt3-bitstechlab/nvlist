@@ -220,14 +220,13 @@ public final class Movie extends BaseVideo {
 		}
 		
 		GLInfo info = glm.getGLInfo();
-		GL2 gl2 = GLManager.getGL2(gl);		
 		if (pbo == null || pbo.isDisposed()) {
-			pbo = vfac.createPBO(gl2);	
+			pbo = vfac.createPBO(gl);	
 			if (pbo == null || pbo.isDisposed()) {
 				return false;
 			}
 		}
-		pbo.bindUpload(gl2);
+		pbo.bindUpload(gl);
 		
 		try {
 			//long t0 = System.nanoTime();
@@ -235,20 +234,20 @@ public final class Movie extends BaseVideo {
 				//Should never happen, BGRA is preferred and should always be supported when PBO's are available
 				GLUtil.swapRedBlue(pixels, pixels);
 			}
-			pbo.setData(gl2, pixels, w*h*4);
+			pbo.setData(gl, pixels, w*h*4);
 			
 			//long t1 = System.nanoTime();
 			
 			//Stream PBO data to texture
 			glm.setTexture(writeTex);
-			gl2.glTexImage2D(GL2.GL_TEXTURE_2D, 0, GL2.GL_RGBA8, w, h, 0,
+			gl.glTexImage2D(GL2.GL_TEXTURE_2D, 0, GL2.GL_RGBA8, w, h, 0,
 					info.getDefaultPixelFormatARGB(), info.getDefaultPixelTypeARGB(), 0);
 			glm.setTexture(null);
 			
 			//long t2 = System.nanoTime();
 			//System.out.printf("%.2fms %.2fms\n", (t1-t0)/1000000.0, (t2-t1)/1000000.0);
 		} finally {
-			pbo.unbind(gl2);
+			pbo.unbind(gl);
 		}
 
 		return true;

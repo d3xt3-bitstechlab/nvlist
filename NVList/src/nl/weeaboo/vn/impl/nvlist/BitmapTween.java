@@ -166,7 +166,7 @@ public class BitmapTween extends BaseBitmapTween {
 		protected void renderGeometry(IRenderer r) {
 			Renderer rr = (Renderer)r;			
 			GLManager glm = rr.getGLManager();
-			GL2 gl2 = GLManager.getGL2(glm.getGL());
+			GL2 gl2 = glm.getGL().getGL2();
 						
 			GLTexture oldTexture = glm.getTexture();
 			glm.setTexture(null);

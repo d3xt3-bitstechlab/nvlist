@@ -5,6 +5,7 @@ import java.awt.Component;
 import javax.swing.JMenuBar;
 import javax.swing.JPopupMenu;
 
+import nl.weeaboo.game.IGameDisplay;
 import nl.weeaboo.nvlist.Game;
 import nl.weeaboo.settings.ConfigPropertyListener;
 import nl.weeaboo.settings.Preference;
@@ -27,20 +28,24 @@ public class GameMenuFactory {
 		game.getConfig().removePropertyListener(configListener);
 	}
 	
-	public static JMenuBar createPlaceholderJMenuBar() {
+	public static JMenuBar createPlaceholderJMenuBar(IGameDisplay display) {
+		JPopupMenu.setDefaultLightWeightPopupEnabled(false); //Make all popups mediumweight
+		
 		JMenuBar menuBar = new JMenuBar();
 		JPopupMenu popup = new JPopupMenu();
 		popup.setLightWeightPopupEnabled(false);
 		menuBar.setComponentPopupMenu(popup);
-
-		GameMenu menu = new JGameMenu(null, "Game", 'G');
-		menu.add(new QuitItem());
-		menuBar.add((Component)menu);
 				
+		GameMenu menu = new JGameMenu(null, "Info", '\0');
+		menu.add(new AboutItem());
+		menuBar.add((Component)menu);
+		
 		return menuBar;
 	}
 	
 	public JMenuBar createJMenuBar() {
+		JPopupMenu.setDefaultLightWeightPopupEnabled(false); //Make all popups mediumweight
+
 		JMenuBar menuBar = new JMenuBar();
 		JPopupMenu popup = new JPopupMenu();
 		popup.setLightWeightPopupEnabled(false);
@@ -74,7 +79,8 @@ public class GameMenuFactory {
 		menu.addSeparator();
 		menu.add(new RestartItem());
 		
-		if (!game.getDisplay().isEmbedded()) {
+		IGameDisplay display = game.getDisplay();
+		if (!display.isEmbedded()) {
 			menu.add(new QuitItem());
 		}
 		

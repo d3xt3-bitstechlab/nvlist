@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.media.opengl.GL2;
 import javax.media.opengl.GL2ES2;
 
 import nl.weeaboo.common.Dim;
@@ -79,7 +78,7 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 			shader.forceLoad(glm);
 			glm.setShader(shader);
 
-			GL2 gl2 = GLManager.getGL2(glm.getGL());
+			GL2ES2 gl2 = glm.getGL().getGL2ES2();
 			shader.setTextureParam(gl2, "tex", 0, glm.getTexture() != null ? glm.getTexture().getTexId() : 0);			
 			applyShaderParam(gl2, shader, "time", getTime());
 			applyShaderParam(gl2, shader, "screen", screen);

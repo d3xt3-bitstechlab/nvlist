@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 
-import javax.media.opengl.GL2;
+import javax.media.opengl.GL2ES1;
 
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.gl.GLResourceCache;
@@ -68,7 +68,7 @@ public class VideoFactory extends BaseVideoFactory implements Serializable {
 		return texCache.newTexture(argb, w, h, glMinFilter, glMagFilter, glWrap);
 	}
 	
-	public PBO createPBO(GL2 gl) {
+	public PBO createPBO(GL2ES1 gl) {
 		return resCache.createPBO(gl);
 	}
 	

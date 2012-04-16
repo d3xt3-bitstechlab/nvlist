@@ -122,6 +122,7 @@ public class ImageFactory extends BaseImageFactory implements Serializable {
 
 		TextureAdapter ta = new TextureAdapter(this);
 		ta.setTexRect(tr, sx, sy);
+		//System.out.println(ta.getWidth()+"x"+ta.getHeight() + " " + tr.getRect() + " " + tr.getUV() + " " + tr.getTexture().getTexWidth()+"x"+tr.getTexture().getTexHeight());
 		return ta;
 	}
 	

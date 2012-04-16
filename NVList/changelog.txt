@@ -1,3 +1,78 @@
 
+2012/04/09 -- 2.2 (r???)
+
+enchancements:
+- Script errors printed on-screen now try to include a filename+line.
+- Clicking to instantly display the entire paragraph now works properly for
+  text with [bracketed] Lua code in it.
+- When using the img/imgf functions with a sprite slot, the y parameter can
+  now be used to change the baseline y. 
+- The OSD (toggle with F7), now displays much more information.
+- Added a quickload(slot) function
+- text/appendText functions now support StyledText objects as their text args.
+- waitForTextVisible function now takes an optional TextDrawable to wait for.
+- The createStyledText function can now be called with a StyledText arg.
+- Added a createLayer(name) function that calls imageState.createLayer()
+- Image cache size can now be specified in pages. A page is the amount of
+  memory required to store a full screen RGBA8 texture.
+- Debug window got a line in the VRAM graph indicating the image cache limit.
+- Added a vn.system module with lua wrappers for SystemLib functions.
+- Added a website() function that opens a webpage in an external browser.
+- Tuned the scale factor at which the main FBO starts mipmapping.
+- The Lua tab in the debug window now contains a print stack trace button.
+- Parse errors related to img.xml are now displayed on screen.
+- Added BlurGS class that provides a scalable blur.
+- Preferences starting with vn. can now be accessed through the prefs Lua table
+- Implemented depth-of-field/perspective for the Camera object.
+- Reduces mach banding of wipe tween (WipeGS).
+- Changing the text layer constructor now triggers text layer recreation.
+- quicksave/quickload now display a success message on screen.
+- Added support for reading precomputed mipmaps from KTX files.
+- Added prefs for readTextStyle, textLogStyle, choiceStyle, selectedChoiceStyle
+- Added registerJavaClass() function for importing Java code from Lua.
+- No longer requires separate executables for 32/64 bit Java.
+- Building a release now creates a .exe version of the generated installer.
+- Improved perceived startup time by showing an empty window early during init.
+- Significantly improved image load times on slow singlecore processors.
+- Reduced processor usage for sound playback, especially on slow singlecores.
+- Game update stops when the window is minimized. 
+- Video capture function (F8) now forces continuous repainting to reduce video
+  stuttering.
+- Added mouse wheel down as a text continue key.
+- Changed Build.jar to automatically do a rebuild when necessary.
+- Changed main.lua to act as a template for a standard VN titlescreen.
+
+bugfixes:
+- Rewrote the way OpenGL resources are managed internally. This should fix a
+  memory leak occurring when the texture cache becomes full.
+- Fixed mapping of linear volume dB gain. Previous implementation could raise
+  output levels over their natural maximum.
+- Text style property editor used by Build.jar now applies any pending edits
+  when closing the popup dialog.
+- Editing a preference in Build.jar now also updates save/prefs.ini
+- Silently crashed if gluegen-rt was not in the library path.
+- Keyconfig only read the first key specified for each line.
+- Increased default minimum heap size to improve performance in situations
+  with high garbage generation (like particle effects).
+- When running on hardware incapable of NPOT textures that also doesn't support
+  large textures, the just-in-time resize could cause a data alignment error. 
+- ARGB screenshots were shifted up by 1 pixel in some instances.
+- Improved support for escaped \$, \[ in text lines for syntax highlighters.
+- Events enqueued with edt.addEvent() now wait while the main thread is blocked
+- Saving could change the result of == for Lua userdata objects.
+- Using alt+enter to return to windows mode from full screen advanced the text.
+- Up key accidentally opened the text log even during a choice.
+- Show text log menu item was broken.
+- On some graphics cards, the menu bar popups were overlapped by the screen.
+- Crash on UniChrome GPU for glReadPixels(type=GL_UNSIGNED_INT_8_8_8_8_REV)
+- Drawing blended quads used wrong UV coords when NPOT textures unsupported.
+- screen2image aspect ratio was wrong when FBOs turned off and the physical
+  window didn't match the aspect ratio of the VN's virtual resolution.
+- Setting the FBO preference to true, now really always forces the FBO on.
+- Updates JOGL to 2012-02-28 build to fix compatibility with Mac OS X 10.5
+
+
+
 2012/03/02 -- 2.1 (r15)
+
 - Initial release

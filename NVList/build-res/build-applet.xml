@@ -23,7 +23,7 @@
     <delete includeemptydirs="true">
       <fileset dir="${dist.dir}" includes="*.exe,*.sh,*.bat,*.command,*-src.zip,res/**" />
       <fileset dir="${dist.dir}/lib" includes="linux/**,mac/**,windows/**" />
-      <fileset dir="${dist.dir}/lib" includes="gluegen-rt.*,jna.*,jogl.*,nativewindow.*,newt.*" />
+      <fileset dir="${dist.dir}/lib" includes="gluegen-rt*,jna.*,jogl*,nativewindow.*,newt.*" />
     </delete>
     
     <tstamp />

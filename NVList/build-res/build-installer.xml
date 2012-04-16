@@ -38,13 +38,13 @@
 			arguments="-reparseArgs -id &quot;${project-name}&quot; ${program-args} $APP_PACKAGE/Contents/Resources">
 				
 		  <!-- Include jars to classpath -->
-		  <jarfileset dir="lib" includes="**/*.jar" />        
+		  <jarfileset dir="lib" includes="**/*.jar" />
 		  <jarfilelist dir="${dist.dir}" >
 			  <file name="${project-name}.jar" />
 		  </jarfilelist>
 			
 		  <!-- Include native libs -->
-		  <javafileset dir="lib/mac/amd64" />
+		  <javafileset dir="lib/mac" />
 		  
 		  <!-- Include resources -->
 		  <resourcefileset dir="${dist.dir}/res" erroronmissingdir="false" />
@@ -92,19 +92,49 @@
             
     <delete file="${build-res.dir}/installer.ini" />
   </target>
-  
-  <!-- Create an installer from the dist folder -->
-  <!-- Doesn't depend on dist as either 'dist-src' or 'dist' may be used. -->
-  <target name="make-installer" depends="make-installer-common">  
-    <echo>Creating installer (may take a long time)...</echo>
-    
+
+  <!-- Subtask of make-installer, creates a cross-platform installer JAR -->
+  <target name="make-installer-jar" depends="make-installer-common">
+    <echo>Creating installer (may take a long time)...</echo>    
     <java jar="${tools.dir}/MakeInstaller.jar" fork="true">
       <arg value="${dist.dir}" />
       <arg value="${releases.dir}/${project-name}-install-${DSTAMP}.jar" />
       <arg value="${build-res.dir}/installer.ini" />
     </java>
-
     <delete file="${build-res.dir}/installer.ini" />
+  </target>
+  
+  <!-- Create an installer from the dist folder
+    Doesn't depend on dist as either 'dist-src' or 'dist' may be used. -->
+  <target name="make-installer" depends="make-installer-jar" if="${installer-exe}">
+    <!-- Create a .bmp version of the splash screen -->
+    <script language="javascript">
+      <![CDATA[
+        importPackage(java.awt.image);
+        importPackage(java.io);
+        importPackage(javax.imageio);
+    
+        var splashFolder = project.getProperty("build-res.dir");
+        var img = ImageIO.read(new File(splashFolder+"/splash.png"));
+        var opaque = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
+        opaque.setData(img.getData());
+        ImageIO.write(opaque, "bmp", new File(splashFolder+"/splash.bmp"));
+      ]]>
+    </script>
+  
+    <!-- Wrap JAR in .exe (if windows-installer-only property is set) -->
+    <launch4j bindir="tools/launch4j/bin/${os.family}">
+      <config headerType="gui" dontWrapJar="false" icon="${res.dir}/icon.ico"
+          manifest="${build-res.dir}/installer.manifest"
+          outfile="${releases.dir}/${project-name}-install-${DSTAMP}.exe"
+          jarPath="${releases.dir}/${project-name}-install-${DSTAMP}.jar">
+        <jre minVersion="1.6.0" />
+        <splash file="${build-res.dir}/splash.bmp" />
+      </config>
+    </launch4j>
+      
+    <!-- Delete splash screen .bmp -->
+    <delete file="${build-res.dir}/splash.bmp" />
   </target>
 
   <target name="make-installer-cd" depends="make-installer-common">

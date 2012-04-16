@@ -17,8 +17,12 @@ public class GameActionListener implements ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		synchronized (game) {
-			action.actionPerformed(e, game, game.getNovel());
+		if (game != null) {
+			synchronized (game) {
+				action.actionPerformed(e, game, game.getNovel());
+			}
+		} else {
+			action.actionPerformed(e, null, null);
 		}
 	}
 	

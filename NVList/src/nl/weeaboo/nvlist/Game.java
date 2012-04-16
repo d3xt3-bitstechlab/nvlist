@@ -105,7 +105,7 @@ public class Game extends BaseGame {
 	{
 		super(cfg, e, gd, fm, fontman, tc, sc, rc, trs, sm, in, kc, imageF, videoF);
 		
-		gd.setJMenuBar(GameMenuFactory.createPlaceholderJMenuBar()); //Forces GameDisplay to use a JFrame
+		gd.setJMenuBar(GameMenuFactory.createPlaceholderJMenuBar(gd)); //Forces GameDisplay to use a JFrame
 		gd.setRenderMode(RenderMode.MANUAL);
 
 		pr = trs.createParagraphRenderer();
@@ -236,11 +236,11 @@ public class Game extends BaseGame {
         luaSerializer = new EnvLuaSerializer();
         saveHandler.setNovel(novel, luaSerializer);
 		onConfigPropertiesChanged();
-        
+   		
+		restart("main");
+		
 		super.start();
-        
-		restart("main");		
-	}
+   	}
 	
 	public void restart() {
 		restart("titlescreen");
@@ -416,35 +416,31 @@ public class Game extends BaseGame {
 	
 	@Override
 	public String generateOSDText() {
-		StringBuilder sb = new StringBuilder();
+		StringBuilder sb = new StringBuilder(64);
 		sb.append(super.generateOSDText());
-		if (sb.length() > 0 && sb.charAt(sb.length()-1) != '\n') {
-			sb.append('\n');
-		}
-		
-		String callSite = novel.getCurrentCallSite();
-		if (callSite != null) {
-			sb.append(String.format("script: %s\n", callSite));
-		}
+		sb.append("\n");
 		
 		int visibleDrawables = 0;
 		IImageState imageState = novel.getImageState();
 		Map<String, ILayer> layers = imageState.getLayers();
+		IDrawable[] drawablesTemp = new IDrawable[16];
 		for (ILayer layer : layers.values()) {
 			if (layer.isDestroyed() || !layer.isVisible()) continue;
 			
-			IDrawable[] drawables = layer.getDrawables();
-			for (IDrawable d : drawables) {
+			drawablesTemp = layer.getDrawables(drawablesTemp);
+			for (IDrawable d : drawablesTemp) {
 				if (d == null || d.isDestroyed()) continue;
 				
 				if (d.getAlpha() > 0) {
 					visibleDrawables++;
 				}
 			}
-		}
-		
+		}		
 		sb.append(String.format("drawables: %d\n", visibleDrawables));
 		
+		String callSite = novel.getCurrentCallSite();
+		sb.append(String.format("script: %s\n", callSite != null ? callSite : "???"));
+				
 		return sb.toString();
 	}
 	

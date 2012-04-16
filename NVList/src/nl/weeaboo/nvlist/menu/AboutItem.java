@@ -9,9 +9,11 @@ import java.io.InputStream;
 
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 import nl.weeaboo.common.StringUtil;
@@ -29,14 +31,17 @@ public class AboutItem extends GameMenuAction {
 	}
 
 	@Override
-	public void actionPerformed(JMenuItem item, ActionEvent e, Game game, Novel nvl) {
+	public void actionPerformed(JMenuItem item, ActionEvent e, Game maybeGame, Novel maybeNovel) {
 		//Create version string
-		String pkgVersion = nvl.getClass().getPackage().getImplementationVersion();
+		String pkgVersion = null;
+		if (maybeNovel != null) {
+			maybeNovel.getClass().getPackage().getImplementationVersion();
+		}
 		String version = String.format("NVList engine version: %s %s",
 				Game.VERSION_STRING, (pkgVersion != null ? "("+pkgVersion+")" : ""));
 				
 		//Create content panel
-		JPanel panel = new JPanel(new BorderLayout(10, 10));
+		final JPanel panel = new JPanel(new BorderLayout(10, 10));
 		panel.setBorder(new EmptyBorder(10, 0, 0, 0));
 		
 		JLabel messageLabel = new JLabel(version);
@@ -62,8 +67,21 @@ public class AboutItem extends GameMenuAction {
 		}
 		
 		//Show message box
-		IGameDisplay display = game.getDisplay();
-		display.showMessageDialog(panel, "About");
+		if (maybeGame != null) {
+			IGameDisplay display = maybeGame.getDisplay();
+			display.showMessageDialog(panel, "About");
+		} else {
+			Runnable r = new Runnable() {
+				public void run() {
+					JOptionPane.showMessageDialog(null, panel, "About", JOptionPane.PLAIN_MESSAGE);
+				}
+			};
+			if (SwingUtilities.isEventDispatchThread()) {
+				r.run();
+			} else {
+				SwingUtilities.invokeLater(r);
+			}
+		}
 	}
 
 	protected String getLicense() {

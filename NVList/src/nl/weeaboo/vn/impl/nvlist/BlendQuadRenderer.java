@@ -58,13 +58,10 @@ public class BlendQuadRenderer extends BlendQuadHelper {
 	//Functions
 	@Override
 	protected void renderQuad(ITexture tex, Matrix transform, int mixColorARGB, Rect2D bounds) {
-		Rect2D uv = tex.getUV();
-		
 		GLManager glm = renderer.getGLManager();
 		glm.pushColor();
 		glm.mixColor(mixColorARGB);
-		renderer.renderQuad(tex, transform, bounds.x, bounds.y, bounds.w, bounds.h, null,
-				uv.x, uv.y, uv.w, uv.h);
+		renderer.renderQuad(tex, transform, bounds.x, bounds.y, bounds.w, bounds.h, null, 0, 0, 1, 1);
 		glm.popColor();	
 	}
 

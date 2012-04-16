@@ -103,7 +103,7 @@
 
     <sequential>
       <launch4j bindir="tools/launch4j/bin/${os.family}">
-        <config headerType="gui" outfile="@{dir}/@{exename}.exe" dontWrapJar="@{dontWrapJar}"
+        <config headerType="gui" outfile="@{dir}/@{exename}.exe" dontWrapJar="@{dontWrapJar}" 
                 jarPath="@{jarname}.jar" icon="@{icon}" cmdLine="@{args}">
           <jre minVersion="1.6.0">
             <!-- Need to use a macro variable, opt element doesn't support variable expansion -->
@@ -137,12 +137,12 @@
       <chmod dir="${gamedata.dir}" includes="*.sh,*.command" perm="ugo+rx"/>
                     
       <!-- Create a win32 executable -->
-      <create-exe dir="@{dir}" icon="${res.dir}/icon.ico" jvm-args="${jvm-args} ${jvm-args-win32}"
+      <create-exe dir="@{dir}" icon="${res.dir}/icon.ico" jvm-args="${jvm-args} ${jvm-args-win}"
             args="-id &quot;${project-name}&quot; @{extra-args} ${program-args}" />
           
       <!-- Create a win64 executable -->
-      <create-exe dir="@{dir}" icon="${res.dir}/icon.ico" jvm-args="${jvm-args} ${jvm-args-win64}"
-            exename="${project-name}-64" args="-id &quot;${project-name}&quot; @{extra-args} ${program-args}" />
+      <!-- <create-exe dir="@{dir}" icon="${res.dir}/icon.ico" jvm-args="${jvm-args} ${jvm-args-win}"
+            exename="${project-name}-64" args="-id &quot;${project-name}&quot; @{extra-args} ${program-args}" /> -->
     </sequential>    
   </macrodef>
 

@@ -10,23 +10,38 @@ end
 function titlescreen()
     globals:clear()
 	setTextModeADV()
-    
-    while true do
-        local selected = choice("Text", "Image", "Audio", "User Interface", "Special Effects", "Exit")
-        if selected == 1 then
-            call("text/00-index")
-        elseif selected == 2 then
-            call("image/00-index")
-        elseif selected == 3 then
-            call("audio/00-index")
-        elseif selected == 4 then
-            call("gui/00-index")
-        elseif selected == 5 then
-            call("effect/00-index")
-        else
-            break
-        end
+        
+    textoff(1)
+    bgf("gui/titlescreen-background")
+    local startB = button("gui/titlescreen-buttons#start-")
+    local loadB  = button("gui/titlescreen-buttons#load-")
+    local extraB = button("gui/titlescreen-buttons#extra-")
+    local quitB  = button("gui/titlescreen-buttons#quit-")
+
+    local buttons = {startB, loadB, extraB, quitB}
+    local y = (screenHeight - 100 * #buttons) / 2
+    for i,b in pairs(buttons) do
+        local startY = y + 100 * (i-1)
+        local endY = startY + 100
+        b:setPos(screenWidth-300, startY+(endY-startY-b:getHeight())/2)
     end
     
-    System.exit(true)
+    while true do
+        if startB:consumePress() then
+            destroyValues(buttons) --Removes the buttons
+            rmbgf()
+            texton(1)
+            --return call("game/op.lvn")
+            return call("tutorial.lvn")
+        elseif loadB:consumePress() then
+            loadScreen()
+        elseif extraB:consumePress() then
+            notifier:message("Extra button pressed")
+        elseif quitB:consumePress() then
+            exit(false)
+        end
+        yield()
+    end
+    
+    exit(true)
 end

@@ -28,9 +28,13 @@ public class FadeQuadRenderer extends FadeQuadHelper {
 		GLManager glm = renderer.getGLManager();
 		GL2ES1 gl = glm.getGL();
 
-		TextureAdapter ta = (TextureAdapter)tex;
-		ta.forceLoad(glm);
-		glm.setTexture(ta.getTexture());
+		if (tex != null) {
+			TextureAdapter ta = (TextureAdapter)tex;
+			ta.forceLoad(glm);
+			glm.setTexture(ta.getTexture());
+		} else {
+			glm.setTexture(null);
+		}
 		
         gl.glEnableClientState(GL2ES1.GL_VERTEX_ARRAY);
         gl.glEnableClientState(GL2ES1.GL_TEXTURE_COORD_ARRAY);		

@@ -273,7 +273,7 @@ public class Renderer extends BaseRenderer {
 		gss.set(glm, glScreenRect);
 		
 		int[] argb = BufferUtil.toArray(gss.getARGB());
-		ss.set(argb, gss.getWidth(), gss.getHeight(), getScreenWidth(), getScreenHeight());
+		ss.set(argb, gss.getWidth(), gss.getHeight(), getRealWidth(), getRealHeight());
 	}
 	
 	@Override
