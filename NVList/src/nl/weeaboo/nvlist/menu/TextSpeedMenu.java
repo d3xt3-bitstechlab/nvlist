@@ -2,7 +2,7 @@ package nl.weeaboo.nvlist.menu;
 
 import static nl.weeaboo.vn.NovelPrefs.TEXT_SPEED;
 
-public class TextSpeedMenu extends RangeMenu<Double> {
+public class TextSpeedMenu extends PrefRangeMenu<Double> {
 
 	private static final double baseSpeed = 0.5;
 	

@@ -8,22 +8,16 @@ import javax.swing.JMenuItem;
 import javax.swing.JRadioButtonMenuItem;
 
 import nl.weeaboo.nvlist.Game;
-import nl.weeaboo.settings.IConfig;
-import nl.weeaboo.settings.Preference;
 import nl.weeaboo.vn.impl.nvlist.Novel;
 
 public abstract class RangeMenu<T extends Comparable<T>> extends GameMenuAction {
 
-	private final Preference<T> pref;
 	private final String label;
 	private final char mnemonic;
 	private final String itemLabels[];
 	private final T itemValues[];
 	
-	public RangeMenu(Preference<T> pref, String label, char mnemonic,
-			String[] labels, T[] values)
-	{
-		this.pref = pref;
+	public RangeMenu(String label, char mnemonic, String[] labels, T[] values) {
 		this.label = label;
 		this.mnemonic = mnemonic;
 		this.itemLabels = labels;
@@ -37,8 +31,7 @@ public abstract class RangeMenu<T extends Comparable<T>> extends GameMenuAction 
 			menu.setMnemonic(mnemonic);
 		}
 
-		IConfig config = game.getConfig();
-		int best = getSelectedIndex(itemValues, config.get(pref));
+		int best = getSelectedIndex(game, itemValues);
 		
 		ButtonGroup group = new ButtonGroup();
 		for (int n = 0; n < Math.min(itemLabels.length, itemValues.length); n++) {
@@ -53,7 +46,9 @@ public abstract class RangeMenu<T extends Comparable<T>> extends GameMenuAction 
 		return menu;
 	}
 	
-	protected JRadioButtonMenuItem createSubItem(Game game, Novel nvl, String lbl, T val) {
+	protected abstract int getSelectedIndex(Game game, T[] values);
+	
+	protected JMenuItem createSubItem(Game game, Novel nvl, String lbl, T val) {
 		JRadioButtonMenuItem item = new JRadioButtonMenuItem(lbl);
 		return item;
 	}
@@ -81,10 +76,6 @@ public abstract class RangeMenu<T extends Comparable<T>> extends GameMenuAction 
 		}
 	}
 	
-	protected void onItemSelected(Game game, Novel nvl, int index,
-			String label, T value)
-	{
-		game.getConfig().set(pref, value);
-	}
+	protected abstract void onItemSelected(Game game, Novel nvl, int index, String label, T value);
 	
 }

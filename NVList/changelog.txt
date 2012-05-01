@@ -1,5 +1,7 @@
 
-2012/04/09 -- 2.2 (r???)
+
+
+2012/04/16 -- 2.2 (r21)
 
 enchancements:
 - Script errors printed on-screen now try to include a filename+line.
@@ -69,7 +71,7 @@ bugfixes:
 - screen2image aspect ratio was wrong when FBOs turned off and the physical
   window didn't match the aspect ratio of the VN's virtual resolution.
 - Setting the FBO preference to true, now really always forces the FBO on.
-- Updates JOGL to 2012-02-28 build to fix compatibility with Mac OS X 10.5
+- Updated JOGL to 2012-02-28 build to fix compatibility with Mac OS X 10.5
 
 
 

@@ -2,7 +2,7 @@ package nl.weeaboo.nvlist.menu;
 
 import nl.weeaboo.settings.Preference;
 
-public class AudioVolumeMenu extends RangeMenu<Double> {
+public class AudioVolumeMenu extends PrefRangeMenu<Double> {
 
 	private static final String labels[] = {
 		"0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"

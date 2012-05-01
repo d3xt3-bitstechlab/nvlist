@@ -20,7 +20,7 @@
   <!-- Ensure required properties exist -->
   <fail>
     <condition>
-	  <or>
+    <or>
         <not><isset property="project-name"/></not>
         <not><isset property="main-class"/></not>
         <not><isset property="exclude-libs"/></not>
@@ -38,7 +38,7 @@
         if (project.getProperty("gamedata.dir") == ".") {
             project.setProperty("jar-lib-basedir", "");
         } else {
-            project.setProperty("jar-lib-basedir", escape("/" + project.getProperty("basedir")) + "/");
+            project.setProperty("jar-lib-basedir", "/" + escape(project.getProperty("basedir")) + "/");
         }
     ]]>
   </script>
@@ -77,11 +77,11 @@
   <condition property="os.family" value="windows">
     <os family="windows"/>
   </condition>
-  <condition property="os.family" value="linux">
-    <os family="unix"/>
-  </condition>
   <condition property="os.family" value="mac">
     <os family="mac"/>
+  </condition>
+  <condition property="os.family" value="linux">
+    <os family="unix"/>
   </condition>
 
 <!-- Imports -->

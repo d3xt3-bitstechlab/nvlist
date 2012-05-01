@@ -2,7 +2,7 @@ package nl.weeaboo.nvlist.menu;
 
 import static nl.weeaboo.game.BaseGameConfig.MAX_TEX_SIZE;
 
-public class MaxTexDimensionsMenu extends RangeMenu<Integer> {
+public class MaxTexDimensionsMenu extends PrefRangeMenu<Integer> {
 
 	private static final String labels[] = {
 		"64x64", "128x128", "256x256", "512x512", "1024x1024", "2048x2048", "4096x4096", "8192x8192"

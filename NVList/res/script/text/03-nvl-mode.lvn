@@ -1,5 +1,5 @@
 
-@bgf("bg/bg1")
+@bgf("bg/bg3")
 
 The default script defines its textbox as ADV mode (small, at the bottom of the screen).
 In some cases a fullscreen textbox is preferred.

@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.game.BaseLauncher;
 import nl.weeaboo.game.GameDisplay;
+import nl.weeaboo.game.GameUpdater;
 import nl.weeaboo.game.IGame;
 import nl.weeaboo.game.input.IKeyConfig;
 import nl.weeaboo.game.input.UserInput;
@@ -66,12 +67,12 @@ public class Launcher extends BaseLauncher {
 	}
 	
 	@Override
-	protected IGame newGame(IConfig config, ExecutorService executor, GameDisplay display,
+	protected IGame newGame(IConfig config, ExecutorService executor, GameDisplay display, GameUpdater gu,
 			FileManager fm, FontManager fontManager, TextureCache tc, ShaderCache sc,
 			GLResourceCache rc, GLTextRendererStore trs, SoundManager sm, UserInput in,
 			IKeyConfig kc, FolderSet folders)
 	{
-		return new Game(config, executor, display, fm, fontManager, tc, sc, rc, trs, sm, in, kc,
+		return new Game(config, executor, display, gu, fm, fontManager, tc, sc, rc, trs, sm, in, kc,
 				folders.image, folders.video);
 	}
 	

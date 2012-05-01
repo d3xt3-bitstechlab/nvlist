@@ -2,7 +2,7 @@ package nl.weeaboo.nvlist.menu;
 
 import static nl.weeaboo.vn.NovelPrefs.EFFECT_SPEED;
 
-public class EffectSpeedMenu extends RangeMenu<Double> {
+public class EffectSpeedMenu extends PrefRangeMenu<Double> {
 
 	private static final String labels[] = {
 		"Slower",

@@ -2,7 +2,7 @@ package nl.weeaboo.nvlist.menu;
 
 import static nl.weeaboo.vn.NovelPrefs.AUTO_READ_WAIT;
 
-public class AutoReadWaitMenu extends RangeMenu<Integer> {
+public class AutoReadWaitMenu extends PrefRangeMenu<Integer> {
 
 	private static final String labels[] = {
 		"0 ms",

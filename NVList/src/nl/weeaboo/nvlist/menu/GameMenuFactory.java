@@ -118,6 +118,7 @@ public class GameMenuFactory {
 	
 	protected GameMenu createWindowMenu() {
 		GameMenu menu = createMenu("Window", 'W');
+		menu.add(new WindowScaleMenu());
 		menu.add(new FullscreenItem());
 		return menu;
 	}
@@ -142,6 +143,7 @@ public class GameMenuFactory {
 	
 	protected GameMenu createInfoMenu() {
 		GameMenu menu = createMenu("Info", '\0');
+		menu.add(new CheckForUpdatesItem());
 		menu.add(new AboutItem());
 		return menu;
 	}

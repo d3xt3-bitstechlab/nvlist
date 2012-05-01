@@ -117,7 +117,7 @@
         var splashFolder = project.getProperty("build-res.dir");
         var img = ImageIO.read(new File(splashFolder+"/splash.png"));
         var opaque = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
-        opaque.setData(img.getData());
+        opaque.getGraphics().drawImage(img, 0, 0, opaque.getWidth(), opaque.getHeight(), null);
         ImageIO.write(opaque, "bmp", new File(splashFolder+"/splash.bmp"));
       ]]>
     </script>

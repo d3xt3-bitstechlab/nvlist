@@ -14,7 +14,6 @@ public abstract class GameMenuAction implements ConfigPropertyListener {
 	private JMenuItem jmenuItem;
 	
 	public GameMenuAction() {
-		
 	}
 	
 	//Functions

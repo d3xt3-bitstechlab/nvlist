@@ -22,6 +22,7 @@ import nl.weeaboo.game.BaseGameConfig;
 import nl.weeaboo.game.DebugPanel;
 import nl.weeaboo.game.GameDisplay;
 import nl.weeaboo.game.GameLog;
+import nl.weeaboo.game.GameUpdater;
 import nl.weeaboo.game.IGameDisplay;
 import nl.weeaboo.game.Notifier;
 import nl.weeaboo.game.RenderMode;
@@ -98,12 +99,12 @@ public class Game extends BaseGame {
 	private RenderStats renderStats = null; //new RenderStats();
 	private Movie movie;
 	
-	public Game(IConfig cfg, ExecutorService e, GameDisplay gd, FileManager fm,
+	public Game(IConfig cfg, ExecutorService e, GameDisplay gd, GameUpdater gu, FileManager fm,
 			FontManager fontman, TextureCache tc, ShaderCache sc, GLResourceCache rc,
 			GLTextRendererStore trs, SoundManager sm, UserInput in, IKeyConfig kc,
 			String imageF, String videoF)
 	{
-		super(cfg, e, gd, fm, fontman, tc, sc, rc, trs, sm, in, kc, imageF, videoF);
+		super(cfg, e, gd, gu, fm, fontman, tc, sc, rc, trs, sm, in, kc, imageF, videoF);
 		
 		gd.setJMenuBar(GameMenuFactory.createPlaceholderJMenuBar(gd)); //Forces GameDisplay to use a JFrame
 		gd.setRenderMode(RenderMode.MANUAL);
@@ -440,7 +441,7 @@ public class Game extends BaseGame {
 		
 		String callSite = novel.getCurrentCallSite();
 		sb.append(String.format("script: %s\n", callSite != null ? callSite : "???"));
-				
+
 		return sb.toString();
 	}
 	

@@ -82,7 +82,7 @@ public class ImageFolderSelectorMenu extends GameMenuAction {
 	//Setters
 	
 	//Inner Classes
-	private static class ResolutionMenu extends RangeMenu<Integer> {
+	private static class ResolutionMenu extends PrefRangeMenu<Integer> {
 
 		public ResolutionMenu(Preference<Integer> pref, String label, String[] labels, Integer[] values) {
 			super(pref, label, '\0', labels, values);

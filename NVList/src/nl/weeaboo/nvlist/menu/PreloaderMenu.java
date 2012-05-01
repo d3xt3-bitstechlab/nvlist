@@ -2,7 +2,7 @@ package nl.weeaboo.nvlist.menu;
 
 import static nl.weeaboo.vn.NovelPrefs.PRELOADER_LOOK_AHEAD;
 
-public class PreloaderMenu extends RangeMenu<Integer> {
+public class PreloaderMenu extends PrefRangeMenu<Integer> {
 
 	private static final String labels[] = {
 		"Off", "1 line", "3 lines", "5 lines", "8 lines", "15 lines", "30 lines", "50 lines"
