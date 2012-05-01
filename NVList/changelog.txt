@@ -1,4 +1,18 @@
 
+2012/05/01 -- 2.3 (r23)
+enhancements:
+- Implemented a basic auto-updater menu item (experimental, see game.ini)
+  JVM running NVList must be closed before library files can be overwritten.
+- Added a menu for setting the window size to a XX pct of the preferred size
+- Camera.add() now returns an ICameraImage which can be used to change the
+  image's depth after adding it to the Camera.
+
+bugfixes:
+- Generated installer splash screen was corrupted for images with alpha
+- Launch4j PPC binaries (windres/ld) replaced with PPC/x64 universal binaries
+  This should fix builds on Mac OS X Lion
+- getPlayTime() function was broken.
+
 
 
 2012/04/16 -- 2.2 (r21)
