@@ -71,7 +71,7 @@ public class WindowScaleMenu extends RangeMenu<Double> {
 		
 		int w = Math.max(1, (int)Math.round(origSize.w * scale));
 		int h = Math.max(1, (int)Math.round(origSize.h * scale));
-		display.setWindowedSize(w, h);
+		display.setWindowedSize(w, h, true);
 	}
 	
 }

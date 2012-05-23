@@ -9,6 +9,7 @@ import javax.media.opengl.GL2ES1;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.vn.ITexture;
 import nl.weeaboo.vn.impl.base.FadeQuadHelper;
+import nl.weeaboo.vn.math.Matrix;
 
 public class FadeQuadRenderer extends FadeQuadHelper {
 
@@ -22,7 +23,7 @@ public class FadeQuadRenderer extends FadeQuadHelper {
 
 	//Functions
 	@Override
-	protected void renderTriangleStrip(ITexture tex, FloatBuffer vertices, FloatBuffer texcoords,
+	protected void renderTriangleStrip(ITexture tex, Matrix transform, FloatBuffer vertices, FloatBuffer texcoords,
 			IntBuffer colors, int count)
 	{
 		GLManager glm = renderer.getGLManager();
@@ -36,6 +37,9 @@ public class FadeQuadRenderer extends FadeQuadHelper {
 			glm.setTexture(null);
 		}
 		
+		gl.glPushMatrix();		
+		gl.glMultMatrixf(transform.toGLMatrix(), 0);
+		
         gl.glEnableClientState(GL2ES1.GL_VERTEX_ARRAY);
         gl.glEnableClientState(GL2ES1.GL_TEXTURE_COORD_ARRAY);		
         gl.glEnableClientState(GL2ES1.GL_COLOR_ARRAY);
@@ -48,6 +52,8 @@ public class FadeQuadRenderer extends FadeQuadHelper {
         gl.glDisableClientState(GL2ES1.GL_VERTEX_ARRAY);	        
         gl.glDisableClientState(GL2ES1.GL_TEXTURE_COORD_ARRAY);	        
         gl.glDisableClientState(GL2ES1.GL_COLOR_ARRAY);
+	
+		gl.glPopMatrix();
 	}
 	
 	//Getters

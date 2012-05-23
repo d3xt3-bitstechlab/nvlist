@@ -12,6 +12,7 @@ import nl.weeaboo.common.Rect;
 import nl.weeaboo.common.Rect2D;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.shader.GLShader;
+import nl.weeaboo.gl.texture.GLTexture;
 import nl.weeaboo.lua2.io.LuaSerializable;
 import nl.weeaboo.lua2.lib.LuaLibrary;
 import nl.weeaboo.lua2.lib.LuajavaLib;
@@ -78,13 +79,18 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 			shader.forceLoad(glm);
 			glm.setShader(shader);
 
+			GLTexture tex = glm.getTexture();
+			if (tex != null) {
+				tex = tex.forceLoad(glm);
+			}
 			GL2ES2 gl2 = glm.getGL().getGL2ES2();
-			shader.setTextureParam(gl2, "tex", 0, glm.getTexture() != null ? glm.getTexture().getTexId() : 0);			
-			applyShaderParam(gl2, shader, "time", getTime());
-			applyShaderParam(gl2, shader, "screen", screen);
+			shader.setTextureParam(gl2, "tex", 0, tex != null ? tex.getTexId() : 0);
+			
+			applyShaderParam(glm, shader, "time", getTime());
+			applyShaderParam(glm, shader, "screen", screen);
 			for (Entry<String, Object> entry : params.entrySet()) {
 				try {
-					applyShaderParam(gl2, shader, entry.getKey(), entry.getValue());
+					applyShaderParam(glm, shader, entry.getKey(), entry.getValue());
 				} catch (IllegalArgumentException iae) {
 					params.remove(entry.getKey());					
 					throw iae; //Must exit loop now to avoid ConcurrentModificationException
@@ -101,12 +107,16 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 		glm.setShader(null);
 	}
 
-	protected void applyShaderParam(GL2ES2 gl2, GLShader shader, String name, Object value) {
+	protected void applyShaderParam(GLManager glm, GLShader shader, String name, Object value) {
+		GL2ES2 gl2 = glm.getGL().getGL2ES2();
+		
 		if (value instanceof TextureAdapter) {
 			TextureAdapter ta = (TextureAdapter)value;
+			ta.forceLoad(glm);
 			int slot = 1 + onTexParamAdded(ta);
 			shader.setTextureParam(gl2, name, slot, ta.getTexId());
-		} else if (value instanceof float[]) {			
+			//System.out.println("set tex param " + slot + " " + name + " " + ta.getTexId());
+		} else if (value instanceof float[]) {
 			float[] f = (float[])value;
 			//System.out.println(name + " " + Arrays.toString(f));
 			if (f.length == 1) {

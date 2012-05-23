@@ -20,13 +20,15 @@ local Fog = {
     images=nil,
     tw=1,
     th=1,
-    alpha=1
+    alpha=1,
+    dx=.50,
+    dy=.15
 }
 
 function Fog.new(self)
 	self = extend(Fog, self or {})
 
-    local tile = tex("effect/fog/fog")
+    local tile = tex(self.tex or "effect/fog/fog")
     local tw = tile:getWidth()
     local th = tile:getHeight()
     self.tw = tw
@@ -39,6 +41,7 @@ function Fog.new(self)
         for y=0,rows-1 do
             for x=0,cols-1 do
                 local i = img(tile, x*tw, y*th)
+                i:setZ(self.z or 0)
                 table.insert(self.images, i)
             end
         end
@@ -66,8 +69,8 @@ function Fog:start()
     
     self:setAlpha(self.alpha)
     
-    local dx = .50
-    local dy = .15
+    local dx = self.dx
+    local dy = self.dy
     local minX = -self.tw
     local maxX = self.tw * math.ceil(screenWidth / self.tw)
     local minY = -self.th
@@ -114,15 +117,19 @@ function stopFog(fadeSpeed)
     end
 end
 
-function startFog(fadeSpeed)
+function startFog(fadeSpeed, overrides)
     stopFog(fadeSpeed)
 
     fadeSpeed = fadeSpeed or 0.01
+    local alpha = .4
+    if overrides ~= nil then
+        alpha = overrides.alpha or alpha
+    end
     
-    fog = Fog.new()
+    fog = Fog.new(overrides)
     fog:setAlpha(0)
     fog:start()
-    fadeTo(fog, 0.4, fadeSpeed)
+    fadeTo(fog, alpha, fadeSpeed)
     return fog
 end
 

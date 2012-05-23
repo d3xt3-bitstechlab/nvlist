@@ -1,5 +1,6 @@
 
 2012/05/01 -- 2.3 (r23)
+
 enhancements:
 - Implemented a basic auto-updater menu item (experimental, see game.ini)
   JVM running NVList must be closed before library files can be overwritten.
