@@ -2,6 +2,8 @@ package nl.weeaboo.nvlist.menu;
 
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +29,44 @@ import nl.weeaboo.vn.impl.nvlist.Novel;
 
 public class ScreenshotItem extends GameMenuAction {
 
+	private enum Format {
+		PNG("PNG Image", "png"),
+		JPEG("JPEG Image", "jpg");
+		
+		private final String label;
+		private final String fext;
+		
+		private final FileFilter fileFilter = new FileFilter() {
+			public boolean accept(File f) {
+				if (f.isDirectory()) return true;
+				return StringUtil.getExtension(f.getName()).equals(fext);
+			}
+			public String getDescription() {
+				return Format.this.toString();
+			}
+		};
+		
+		private Format(String lbl, String ext) {
+			this.label = lbl;
+			this.fext = ext;
+		}
+		
+		public static Format fromFilename(String fn) {
+			String ext = StringUtil.getExtension(fn);
+			for (Format format : values()) {
+				if (format.fext.equals(ext)) {
+					return format;
+				}
+			}
+			return Format.PNG;
+		}
+		
+		@Override
+		public String toString() {
+			return String.format("%s (*.%s)", label, fext);
+		}
+	}
+	
 	@Override
 	public JMenuItem createItem(Game game, Novel nvl) {
 		JMenuItem item = new JMenuItem("Screenshot...");
@@ -41,36 +81,38 @@ public class ScreenshotItem extends GameMenuAction {
 		waitForScreenshot(game.getExecutor(), ss);
 	}
 
+	private static byte[] serializeImage(IScreenshot ss, Format format) throws IOException {
+		BufferedImage image = new BufferedImage(ss.getWidth(), ss.getHeight(), BufferedImage.TYPE_INT_BGR);
+		image.setRGB(0, 0, ss.getWidth(), ss.getHeight(), ss.getARGB(), 0, ss.getWidth());
+		
+		ByteChunkOutputStream bout = new ByteChunkOutputStream();
+		ImageIO.write(image, format.fext, bout);
+		return bout.toByteArray();
+	}
+		
 	/**
 	 * Called on the event-dispatch thread
 	 * @param ss A valid screenshot 
 	 */
 	protected void onScreenshotTaken(final IScreenshot ss) {
-		final String format = "png";
-		final String formatExt = "png";
-		final String formatDesc = "PNG Image (*.png)";
-		
-		BufferedImage image = new BufferedImage(ss.getWidth(), ss.getHeight(), BufferedImage.TYPE_INT_BGR);
-		image.setRGB(0, 0, ss.getWidth(), ss.getHeight(), ss.getARGB(), 0, ss.getWidth());
-		
-		final ByteArrayInputStream bin;
-		try {
-			ByteChunkOutputStream bout = new ByteChunkOutputStream();
-			ImageIO.write(image, format, bout);
-			bin = new ByteArrayInputStream(bout.toByteArray());				
-		} catch (IOException ioe) {
-			GameLog.w("Error saving screenshot", ioe);
-			return;
-		}
-		
 		final String folder = "";
 		final String filename = "screenshot.png";
 		
 		FileSaveService fss = JnlpUtil.getFileSaveService();
 		if (fss != null) {
+			Format fmt = Format.PNG;
+			
+			byte[] bytes = null;
+			try {
+				bytes = serializeImage(ss, fmt);
+			} catch (IOException ioe) {
+				GameLog.e("Error saving screenshot", ioe);
+				return;
+			}
+			
 			FileContents fc = null;
 			try {
-				fc = fss.saveFileDialog(folder, new String[] {formatExt}, bin, filename);
+				fc = fss.saveFileDialog(folder, new String[] {fmt.fext}, new ByteArrayInputStream(bytes), filename);
 			} catch (IOException ioe) {
 				GameLog.w("Error saving screenshot", ioe);
 				return;
@@ -88,17 +130,18 @@ public class ScreenshotItem extends GameMenuAction {
 		} else {
 			SwingUtilities.invokeLater(new Runnable() {
 				public void run() {
-					JFileChooser fc = new JFileChooser(folder);
+					final JFileChooser fc = new JFileChooser(folder);
+					for (Format fmt : Format.values()) {
+						if (fmt == Format.PNG) continue;
+						
+						fc.addChoosableFileFilter(fmt.fileFilter);
+					}					
+					fc.setFileFilter(Format.PNG.fileFilter);
+					
+					FormatAutoExt fae = new FormatAutoExt(fc);					
+					fae.updateFormat();
+
 					fc.setSelectedFile(new File(folder, filename));
-					fc.setFileFilter(new FileFilter() {
-						public boolean accept(File f) {
-							if (f.isDirectory()) return true;
-							return StringUtil.getExtension(f.getName()).equals(formatExt);
-						}
-						public String getDescription() {
-							return formatDesc;
-						}
-					});
 					
 					int res = fc.showSaveDialog(null);
 					if (res != JFileChooser.APPROVE_OPTION) {
@@ -111,7 +154,10 @@ public class ScreenshotItem extends GameMenuAction {
 					}
 
 					try {
-						FileUtil.writeBytes(file, bin);
+						Format format = Format.fromFilename(file.getName());
+						System.out.println(format);
+						byte[] bytes = serializeImage(ss, format);
+						FileUtil.writeBytes(file, new ByteArrayInputStream(bytes));
 						showSuccessDialog();
 					} catch (IOException ioe) {
 						GameLog.w("Error saving screenshot", ioe);
@@ -143,6 +189,56 @@ public class ScreenshotItem extends GameMenuAction {
 				}
 			}
 		});		
+	}
+	
+	private static class FormatAutoExt {
+		
+		private final JFileChooser fileChooser;
+		private File oldFile;
+		
+		private FormatAutoExt(JFileChooser fc) {
+			fileChooser = fc;
+			oldFile = fc.getSelectedFile();
+			
+			fc.addPropertyChangeListener(JFileChooser.SELECTED_FILE_CHANGED_PROPERTY,
+					new PropertyChangeListener() {
+						@Override
+						public void propertyChange(PropertyChangeEvent evt) {
+							if (evt.getOldValue() != null && evt.getNewValue() == null) {
+								oldFile = (File) evt.getOldValue();
+								updateFormat();
+							} else {
+								oldFile  = (File) evt.getNewValue();
+							}
+						}
+					});
+			fc.addPropertyChangeListener(JFileChooser.FILE_FILTER_CHANGED_PROPERTY,
+					new PropertyChangeListener() {
+						@Override
+						public void propertyChange(PropertyChangeEvent evt) {
+							updateFormat();
+						}
+					});
+		}
+		
+		protected void updateFormat() {
+			if (oldFile == null) {
+				return;
+			}
+			
+			FileFilter filter = fileChooser.getFileFilter();
+			String ext = Format.PNG.fext;
+			for (Format format : Format.values()) {
+				if (filter == format.fileFilter) {
+					ext = format.fext;
+				}
+			}
+
+			String path = StringUtil.replaceExt(oldFile.toString(), ext);
+			oldFile = new File(path);
+			fileChooser.setSelectedFile(oldFile);
+		}
+		
 	}
 	
 }

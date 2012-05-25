@@ -1,6 +1,5 @@
 
 @@
-
 local frames = {}
 for i=1,4 do
     frames[i] = tex("anim/anim01#" .. i)
@@ -25,6 +24,7 @@ local texAnimThread = newThread(function()
     end
 end)
 
+-- -----------------------------------------------------------------------------
 local moveThread = newThread(function()
     while not drawable:isDestroyed() do
         translateTo(drawable, screenWidth-drawable:getWidth(), 0, 180)
@@ -43,13 +43,45 @@ local moveThread = newThread(function()
         translateTo(drawable, 0, 0, 120)
     end
 end)
-
 @@
 
-Click to end the animation
-
+Showing a simple animation using movement and a looping image change, click to end.
+@@
+moveThread:destroy()
+drawable:setPos((screenWidth-drawable:getWidth())/2, (screenHeight-drawable:getHeight())/2)
 @@
 
+# ------------------------------------------------------------------------------
+Simple one-time bounce animation...
+@@
+Anim.tweenTo(drawable, "x", 800)
+Anim.tweenTo(drawable, "x", 400)
+@@
+
+# ------------------------------------------------------------------------------
+Animations with custom start positions...
+@@
+Anim.tweenFromTo(drawable, "x", 160, 480)
+Anim.tweenFromTo(drawable, "x", 800, 1120)
+@@
+
+# ------------------------------------------------------------------------------
+Background animation demo...
+@@
+local endX = screenWidth-drawable:getWidth()
+local endY = screenHeight-drawable:getHeight()
+local anim = Anim.createTween(drawable, "pos", {0, 0}, {endX, endY}, 300)
+anim:start() --Starts animating in the background
+@@
+The animation continues in the background and instantly finishes once you click past this text line.
+@@
+anim:finish() --Skips the animation to the last frame instantly
+@@
+Background animation finished.
+
+# ------------------------------------------------------------------------------
+@@
+--Cleanup animation
 drawable:destroy()
-
 @@
+

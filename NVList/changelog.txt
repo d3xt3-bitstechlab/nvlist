@@ -1,4 +1,35 @@
 
+2012/05/01 -- 2.3 (r25)
+
+enhancements:
+- Made fog effect much more customizable.
+- Added documentation to stdlib.lua and vn/gui.lua
+- Added a changeVolume function to (gradually) change the volume of sound or
+  music after they've started playing.
+- Moved code related to the default titlescreen into its own file
+  (titlescreen.lua), added a lot of code comments to it and main.lua
+- Screenshot menu item now has the ability to save screenshots as JPEG
+- Create new project button added to Build.jar, creating a new project now
+  triggers an automatic rebuild. 
+- Added Anim.* function for easily interpolating (animating) between two
+  property values (for example color, or scale). Background animations also
+  benefit; the new system saves a bit of typing.
+    
+bugfixes:
+- Wipe tween ignored sprite transform (position, scale and rotation).
+- Changes to the color or alpha of a name box would disappear after switching
+  back and forth between ADV and NVL text modes
+- Fixed a runtime exception when loading a 16-bit RGB image without alpha.
+- Paragraphs longer than a few hundred characters could, under specific
+  conditions, trigger a program crash on ATI graphics cards.
+- Setting texture parameters on a GLSL object didn't force their
+  initialization, making the textures appear transparent.
+- Resource optimizer was broken, gave an error message when attempting to use.
+- The return to title menu item accidentally reset the window size/position.
+- Text (sub)lines consisting of only whitespace were eaten by the parser.
+
+
+
 2012/05/01 -- 2.3 (r23)
 
 enhancements:
