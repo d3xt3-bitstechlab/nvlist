@@ -4,7 +4,7 @@
 while true do
     clearText()
 
-    local selected = choice("Basics", "Choices", "Fullscreen Textbox", "Text Styling", "Return")
+    local selected = choice("Basics", "Choices", "Fullscreen Textbox", "Text Styling", "Custom Textbox", "Return")
     if selected == 1 then
         call("text/01-basics")
     elseif selected == 2 then
@@ -13,6 +13,8 @@ while true do
         call("text/03-nvl-mode")
     elseif selected == 4 then
         call("text/04-text-style")
+    elseif selected == 5 then
+        call("text/05-custom-textbox")
     else
         break
     end

@@ -151,7 +151,7 @@ public class BitmapTween extends BaseBitmapTween {
 		public RenderCommand(IImageDrawable id, GLTexRect[] texs, GLTexRect fadeTex,
 				GLTexture remapTex, GLShader shader, TriangleGrid grid)
 		{
-			super(id.getZ(), id.isClipEnabled(), id.getBlendMode(), id.getColor(),
+			super(id.getZ(), id.isClipEnabled(), id.getBlendMode(), id.getColorARGB(),
 					id.getPixelShader(), (byte)0);
 			
 			this.transform = id.getTransform();

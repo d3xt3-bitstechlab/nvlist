@@ -15,7 +15,7 @@ local FireImage = {
 }
 
 function FireImage.new(image, self)
-	self = extend(FireImage, self or {})
+	self = extend(FireImage, self)
 
     self.sprite = image
     

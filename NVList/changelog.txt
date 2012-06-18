@@ -1,5 +1,43 @@
 
-2012/05/01 -- 2.3 (r25)
+2012/06/18 -- 2.5 (r26)
+
+enhancements:
+- F5 can now be used as a hotkey to restart when debug mode is turned on.
+- Replaced IDrawable.getColor with getColorRGB/getColorARGB to work better with
+  Anim.* functions.
+- Added an example usage of sprite tinting using IDrawable.setColor() to the
+  image/basics tutorial.
+- Moved Anim.* functions to a separate module (vn.anim)
+- Added Anim.seq(), Anim.par() for sequential/parallel chaining of Animators.
+- Added Anim.createWait() for adding pauses to chained Animators.
+- Added Anim.waitFor() that blocks until the Animators passed as arguments
+  have finished.
+- Added loops parameter to Animator.start() to let the animation loop a specific
+  number of times (or infinitely by using -1).
+- Added example usage for Anim.* functions to the image/animations tutorial.
+- Added vn.enableProofreaderTools preference that, when enabled, adds a report
+  bug/typo button to the menu bar. This button automatically adds info about the
+  current script location and merges bug reports into a single file.
+- Changed the interfaces of the Camera object to be compatible with the new
+  Anim.* functions. See camera tutorial for details.
+- Added the ability to customize the text continue cursor image using the
+  customTextBox function.
+- Added a second parameter to TextDrawable.setCursor() to be able to turn off
+  the automatic positioning. This makes a fixed position cursor possible.
+- Added a textbox customization tutorial demonstrating setCustomTextBox
+- Added vn.engineTargetVersion preference to allow you to specify which NVList
+  version your VN was created for. This allows built-in functions to change
+  their implementation but continue to function the same way for VNs targeting
+  the old NVList version.
+- Added an example image gallery script as a GUI tutorial.
+    
+bugfixes:
+- JNG images were erroneously saved with premultiplied alpha by the optimizer.
+- Fixed resource optimizer stripping start/end attributes from snd.xml
+
+
+
+2012/05/25 -- 2.4 (r25)
 
 enhancements:
 - Made fog effect much more customizable.

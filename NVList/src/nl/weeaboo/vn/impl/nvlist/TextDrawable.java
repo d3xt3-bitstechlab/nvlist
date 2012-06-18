@@ -67,7 +67,7 @@ public class TextDrawable extends BaseTextDrawable {
 		}
 		
 		double pad = getPadding();
-		rr.drawText(getZ(), isClipEnabled(), getBlendMode(), getColor(),
+		rr.drawText(getZ(), isClipEnabled(), getBlendMode(), getColorARGB(),
 				getLayout(), getStartLine(), getEndLine(), getVisibleChars(),
 				getX() + pad + tx, getY() + pad + ty, getPixelShader());
 

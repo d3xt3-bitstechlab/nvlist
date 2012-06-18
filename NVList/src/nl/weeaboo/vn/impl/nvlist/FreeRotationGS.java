@@ -33,7 +33,7 @@ public class FreeRotationGS extends BaseShader implements IGeometryShader {
 		short z = image.getZ();
 		boolean clip = image.isClipEnabled();
 		BlendMode blend = image.getBlendMode();
-		int argb = image.getColor();
+		int argb = image.getColorARGB();
 		Matrix trans = image.getTransform();
 		double w = image.getUnscaledWidth();
 		double h = image.getUnscaledHeight();

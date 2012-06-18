@@ -18,6 +18,7 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileFilter;
 
+import nl.weeaboo.awt.ImageUtil;
 import nl.weeaboo.common.StringUtil;
 import nl.weeaboo.game.GameLog;
 import nl.weeaboo.io.ByteChunkOutputStream;
@@ -86,7 +87,11 @@ public class ScreenshotItem extends GameMenuAction {
 		image.setRGB(0, 0, ss.getWidth(), ss.getHeight(), ss.getARGB(), 0, ss.getWidth());
 		
 		ByteChunkOutputStream bout = new ByteChunkOutputStream();
-		ImageIO.write(image, format.fext, bout);
+		if (format.fext.equals("jpg")) {
+			ImageUtil.writeJPEG(bout, image, .90f);
+		} else {
+			ImageIO.write(image, format.fext, bout);
+		}
 		return bout.toByteArray();
 	}
 		

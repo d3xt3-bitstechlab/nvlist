@@ -29,7 +29,7 @@ local Snowflake = {
 }
 
 function Snowflake.new(cloud, self)
-	self = extend(Snowflake, self or {})
+	self = extend(Snowflake, self)
 
     self.cloud = cloud
     self.textures = self.textures or cloud.textures
@@ -118,7 +118,7 @@ local Snowcloud = {
 }
 
 function Snowcloud.new(self)
-    self = extend(Snowcloud, self or {})
+    self = extend(Snowcloud, self)
     
     if self.textures == nil then
         self.textures = {}

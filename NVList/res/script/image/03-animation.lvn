@@ -25,6 +25,7 @@ local texAnimThread = newThread(function()
 end)
 
 -- -----------------------------------------------------------------------------
+
 local moveThread = newThread(function()
     while not drawable:isDestroyed() do
         translateTo(drawable, screenWidth-drawable:getWidth(), 0, 180)
@@ -78,10 +79,32 @@ The animation continues in the background and instantly finishes once you click 
 anim:finish() --Skips the animation to the last frame instantly
 @@
 Background animation finished.
+@drawable:destroy()
 
 # ------------------------------------------------------------------------------
 @@
---Cleanup animation
-drawable:destroy()
+local d1 = imgf(frames[1], "lc", screenHeight/2)
+local d2 = imgf(frames[2], "rc", screenHeight/2)
+
+local anim = Anim.seq{
+    Anim.createTween(d1, "y", nil, 0, 120),
+    Anim.createWait(20),
+    Anim.createTween(d2, "y", nil, 0, 120),
+    }
+anim:start()
+text("Showing multi-part animation (sequential)")
+anim:finish()
+
+
+local anim = Anim.par{
+    Anim.createTween(d1, "y", nil, screenHeight/2, 120),
+    Anim.createTween(d2, "y", nil, screenHeight/2, 120),
+    }
+anim:start()
+text("Showing multi-part animation (parallel)")
+anim:finish()
+
+rmf(d1)
+rmf(d2)
 @@
 

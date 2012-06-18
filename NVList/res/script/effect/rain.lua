@@ -30,7 +30,7 @@ local Raindrop = {
 }
 
 function Raindrop.new(cloud, self)
-	self = extend(Raindrop, self or {})
+	self = extend(Raindrop, self)
 
     self.cloud = cloud
     self.textures = self.textures or cloud.textures
@@ -138,7 +138,7 @@ local Raincloud = {
 }
 
 function Raincloud.new(self)
-    self = extend(Raincloud, self or {})
+    self = extend(Raincloud, self)
     
     if self.textures == nil then
         self.textures = {}

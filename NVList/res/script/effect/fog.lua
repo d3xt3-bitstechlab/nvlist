@@ -26,7 +26,7 @@ local Fog = {
 }
 
 function Fog.new(self)
-	self = extend(Fog, self or {})
+	self = extend(Fog, self)
 
     local tile = tex(self.tex or "effect/fog/fog")
     local tw = tile:getWidth()

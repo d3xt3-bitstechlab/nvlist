@@ -15,7 +15,7 @@ end
 function titlescreen()
     globals:clear()
 	setTextModeADV()
-        
+                
     --Script to execute when pressing the "start" button
     local startScript = "tutorial.lvn"
     

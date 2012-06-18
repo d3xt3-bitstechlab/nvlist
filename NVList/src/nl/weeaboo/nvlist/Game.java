@@ -3,7 +3,7 @@ package nl.weeaboo.nvlist;
 import static nl.weeaboo.game.BaseGameConfig.HEIGHT;
 import static nl.weeaboo.game.BaseGameConfig.TITLE;
 import static nl.weeaboo.game.BaseGameConfig.WIDTH;
-import static nl.weeaboo.vn.NovelPrefs.ENGINE_MIN_VERSION;
+import static nl.weeaboo.vn.NovelPrefs.*;
 import static nl.weeaboo.vn.vnds.VNDSUtil.VNDS;
 
 import java.awt.event.KeyEvent;
@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 import nl.weeaboo.awt.AwtUtil;
 import nl.weeaboo.common.Benchmark;
@@ -36,6 +39,7 @@ import nl.weeaboo.gl.text.GLTextRendererStore;
 import nl.weeaboo.gl.text.ParagraphRenderer;
 import nl.weeaboo.gl.texture.TextureCache;
 import nl.weeaboo.lua2.io.LuaSerializer;
+import nl.weeaboo.nvlist.debug.BugReporter;
 import nl.weeaboo.nvlist.debug.DebugImagePanel;
 import nl.weeaboo.nvlist.debug.DebugLuaPanel;
 import nl.weeaboo.nvlist.debug.DebugOutputPanel;
@@ -86,7 +90,7 @@ import nl.weeaboo.vn.impl.nvlist.VideoState;
 public class Game extends BaseGame {
 
 	public static final int VERSION_MAJOR = 2;
-	public static final int VERSION_MINOR = 4;
+	public static final int VERSION_MINOR = 5;
 	public static final int VERSION = 10000 * VERSION_MAJOR + 100 * VERSION_MINOR;
 	public static final String VERSION_STRING = VERSION_MAJOR + "." + VERSION_MINOR;
 	
@@ -95,6 +99,7 @@ public class Game extends BaseGame {
 	private Novel novel;
 	private LuaSerializer luaSerializer;
 	private GameMenuFactory gmf;
+	private BugReporter bugReporter;
 	private Renderer renderer;
 	private RenderStats renderStats = null; //new RenderStats();
 	private Movie movie;
@@ -123,6 +128,9 @@ public class Game extends BaseGame {
 					novel.reset();
 					novel = null;
 				}
+				if (bugReporter != null) {
+					bugReporter.dispose();
+				}
 				if (gmf != null) {
 					gmf.dispose();
 					gmf = null;
@@ -149,6 +157,18 @@ public class Game extends BaseGame {
 		config.set(BaseGameConfig.MUSIC_VOLUME, 1.0);
 		config.set(BaseGameConfig.SOUND_VOLUME, 1.0);
 		config.set(BaseGameConfig.VOICE_VOLUME, 1.0);
+		
+		if (bugReporter != null) {
+			bugReporter.dispose();
+			bugReporter = null;
+		}
+		if (config.get(ENABLE_PROOFREADER_TOOLS)) {
+			try {
+				bugReporter = new BugReporter(getFileManager());
+			} catch (IOException ioe) {
+				GameLog.w("Error creating bug reporter", ioe);
+			}
+		}
 		
 		if (gmf != null) {
 			gmf.dispose();
@@ -256,7 +276,7 @@ public class Game extends BaseGame {
 	public boolean update(UserInput input, float dt) {
 		boolean changed = super.update(input, dt);
 
-		IGameDisplay display = getDisplay();
+		final IGameDisplay display = getDisplay();
 		boolean allowMenuBarToggle = display.isEmbedded() || display.isFullscreen();
 		
 		IInput ninput = novel.getInput();
@@ -345,7 +365,18 @@ public class Game extends BaseGame {
 				ntf.addMessage(this, "Generating preloader data");
 				generatePreloaderData();
 			} else if (input.consumeKey(KeyEvent.VK_F5)) {
-				//In-place reload in some way???
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						synchronized (Game.this) {
+							String message = "All script files will be reloaded.\nWarning: unsaved progress will be lost.";
+							String title = "Return to title screen?";
+							int result = display.showConfirmDialog(message, title);		
+							if (result == JOptionPane.OK_OPTION) {		
+								restart();
+							}
+						}
+					}
+				});
 			}
 		}
 		
@@ -446,8 +477,12 @@ public class Game extends BaseGame {
 	}
 	
 	//Getters
-	public Novel getNovel() { return novel; }
-	
+	public Novel getNovel() {
+		return novel;
+	}
+	public BugReporter getBugReporter() {
+		return bugReporter;
+	}
 	protected boolean isVNDS() {
 		return getConfig().get(VNDS);
 	}

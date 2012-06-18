@@ -1,15 +1,36 @@
 package nl.weeaboo.nvlist.menu;
 
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.io.IOException;
 
+import javax.swing.BorderFactory;
+import javax.swing.ButtonModel;
+import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
+import javax.swing.KeyStroke;
+import javax.swing.plaf.basic.BasicButtonUI;
 
+import nl.weeaboo.game.GameLog;
+import nl.weeaboo.game.GameUpdater;
 import nl.weeaboo.game.IGameDisplay;
 import nl.weeaboo.nvlist.Game;
+import nl.weeaboo.nvlist.debug.BugReportPanel;
+import nl.weeaboo.nvlist.debug.BugReporter;
 import nl.weeaboo.settings.ConfigPropertyListener;
+import nl.weeaboo.settings.IConfig;
 import nl.weeaboo.settings.Preference;
+import nl.weeaboo.vn.ITextState;
 import nl.weeaboo.vn.NovelPrefs;
+import nl.weeaboo.vn.impl.nvlist.Novel;
 
 public class GameMenuFactory {
 
@@ -19,13 +40,15 @@ public class GameMenuFactory {
 	public GameMenuFactory(Game game) {
 		this.game = game;
 		this.configListener = new ConfigListener();
-		
-		//game.getConfig().addPropertyListener(configListener);
+
+		//IConfig config = game.getConfig();
+		//config.addPropertyListener(configListener);
 	}
 	
 	//Functions
 	public void dispose() {
-		game.getConfig().removePropertyListener(configListener);
+		IConfig config = game.getConfig();
+		config.removePropertyListener(configListener);
 	}
 	
 	public static JMenuBar createPlaceholderJMenuBar(IGameDisplay display) {
@@ -55,6 +78,51 @@ public class GameMenuFactory {
 		configListener.setGameMenus(menus);
 		for (GameMenu gm : menus) {
 			menuBar.add((Component)gm);
+		}
+		
+		//Bug report button
+		final BugReporter bugReporter = game.getBugReporter();
+		if (bugReporter != null) {
+			final JButton reportItem = new MenuBarButton("Report Bug/Typo (F6)");
+			reportItem.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					synchronized (game) {						
+						Novel novel = game.getNovel();
+						IConfig config = game.getConfig();
+						int versionCode = config.get(GameUpdater.UPDATE_VERSION_CODE);
+						
+						BugReportPanel panel = new BugReportPanel();
+						panel.setFilename(novel.getCurrentCallSite());
+						panel.setStackTrace(novel.getStackTrace());
+						if (versionCode > 0) panel.setVersionCode(versionCode);
+						ITextState textState = novel.getTextState();
+						if (textState != null && textState.getTextDrawable() != null) {
+							panel.setVisibleText(textState.getTextDrawable().getText().toString());
+						}
+						
+						int r = game.getDisplay().showConfirmDialog(panel, "Report Bug/Typo");
+						if (r == JOptionPane.OK_OPTION) {
+							try {
+								panel.writeTo(bugReporter);
+								novel.getNotifier().message("Report added to save/" + BugReporter.OUTPUT_FILENAME);
+							} catch (IOException ioe) {
+								GameLog.w("Error writing bug report", ioe);
+							}
+						}
+					}
+				}
+			});
+			reportItem.registerKeyboardAction(
+				new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						reportItem.doClick();
+					}			
+				},
+				KeyStroke.getKeyStroke(KeyEvent.VK_F6, 0),
+				JComponent.WHEN_IN_FOCUSED_WINDOW);
+			menuBar.add(reportItem);
 		}
 		
 		return menuBar;
@@ -172,6 +240,40 @@ public class GameMenuFactory {
 		
 		public void setGameMenus(GameMenu[] ms) {
 			menus = ms.clone();
+		}
+		
+	}
+	
+	@SuppressWarnings("serial")
+	private static class MenuBarButton extends JButton {
+		
+		private static final Color normalBG   = new Color(0xfefecd);
+		private static final Color rolloverBG = new Color(0xfefe90);
+		private static final Color pressedBG  = Color.GRAY;
+		
+		public MenuBarButton(String lbl) {
+			super(lbl);
+
+			setUI(new BasicButtonUI());
+			
+			setBackground(normalBG);
+			setBorder(BorderFactory.createEmptyBorder(2, 20, 3, 20));
+			setFocusable(false);
+			setPreferredSize(new Dimension(100, 18));
+		}
+		
+		@Override
+		protected void paintComponent(Graphics graphics) {
+			ButtonModel model = getModel();
+			if (model.isPressed()) {
+				setBackground(pressedBG);
+			} else if (model.isRollover()) {
+				setBackground(rolloverBG);
+			} else {
+				setBackground(normalBG);				
+			}
+			
+			super.paintComponent(graphics);
 		}
 		
 	}

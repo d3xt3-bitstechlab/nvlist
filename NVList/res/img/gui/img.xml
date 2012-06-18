@@ -43,6 +43,21 @@
     <subrect id="quicksave-disabled"  rect="257,769,253, 61" />
   </image>
   
+  <image filename="imagegallery.png" width="512" height="512" scaleFilter="linear mipmap">
+    <subrect id="locked" rect="1, 1, 254, 190" />
+    <subrect id="pageButton-normal" rect="1, 193, 61, 61" />
+    <subrect id="pageButton-rollover" rect="65, 193, 61, 61" />
+    <subrect id="pageButton-pressed" rect="129, 193, 61, 61" />
+    <subrect id="pageButton-disabled" rect="193, 193, 61, 61" />
+    <subrect id="button-normal" rect="1, 257, 253, 61" />
+    <subrect id="button-rollover" rect="1, 321, 253, 61" />
+    <subrect id="button-pressed" rect="1, 385, 253, 61" />
+    <subrect id="button-disabled" rect="1, 449, 253, 61" />
+    <subrect id="fade-top" rect="257, 193, 62, 62" />
+    <subrect id="fade-bottom" rect="321, 193, 62, 62" />
+    <subrect id="white" rect="385, 193, 62, 62" />    
+  </image>
+
   <image filename="titlescreen-buttons.png" width="512" height="512">
     <subrect id="start-normal"   rect="  1,  1,254,62" />
     <subrect id="start-rollover" rect="  1, 65,254,62" />
