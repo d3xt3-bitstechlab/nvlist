@@ -47,6 +47,8 @@ public class Launcher extends BaseLauncher {
 			setPreference(WIDTH.getKey(), "256");
 			setPreference(HEIGHT.getKey(), "192");
 			setPreference(SCALE.getKey(), "3");
+//			setPreference(WIDTH.getKey(), "1024");
+//			setPreference(HEIGHT.getKey(), "768");
 		}
 		
 		return super.startGame(container);

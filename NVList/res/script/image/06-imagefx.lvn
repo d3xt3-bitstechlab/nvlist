@@ -1,0 +1,40 @@
+
+@local background = bgf("bg/bg1")
+@local i = imgf("arm01m", "c")
+
+
+
+
+Blurring the character image
+@@
+local blurtex = ImageFx.blur(i:getTexture(), 16)
+i:setTexture(blurtex, 5) --5: center aligned
+@@
+
+
+
+
+Brightening the character image
+@@
+local brightened = ImageFx.brighten(i:getTexture(), .25)
+imgtween(i, brightened)
+@@
+
+
+
+
+Grayscaling the background with a color matrix
+@@
+--Create grayscale texture
+local graytex = ImageFx.applyColorMatrix(background:getTexture(), {.30,.59,.11}, {.30,.59,.11}, {.30,.59,.11})
+
+--Change image texture to new grayscale texture
+bgtween(graytex)
+@@
+
+
+
+
+Finished
+@rmf(i)
+@rmbgf()

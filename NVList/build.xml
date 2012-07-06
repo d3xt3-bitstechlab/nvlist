@@ -10,7 +10,7 @@
 <!-- Imports -->
 
   <import file="build-res/build-game.xml" />
-  <import file="build-res/build-installer.xml" />
+  <import file="build-res/build-distro.xml" />
   <import file="build-res/build-applet.xml" />
   
 <!-- Tasks -->

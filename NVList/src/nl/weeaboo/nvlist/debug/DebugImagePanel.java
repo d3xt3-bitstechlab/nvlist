@@ -81,7 +81,7 @@ public class DebugImagePanel extends JPanel {
 			public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected,
 					boolean expanded, boolean leaf, int row, boolean hasFocus)
 			{
-				Component c = super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
+				Component c = super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);		        
 				if (c instanceof JLabel) {
 					JLabel label = (JLabel)c;
 					if (value instanceof LayerNode) {
@@ -133,7 +133,7 @@ public class DebugImagePanel extends JPanel {
 		
 		addHierarchyListener(new HierarchyListener() {
 			public void hierarchyChanged(HierarchyEvent e) {
-				if (!isDisplayable()) {
+				if (!isDisplayable() || !isVisible()) {
 					timer.stop();
 				} else if (isVisible()) {
 					timer.start();
@@ -312,14 +312,16 @@ public class DebugImagePanel extends JPanel {
 		
 		@Override
 		public String toString() {
-			String visibleS = "";
-			if (drawable.getAlpha() <= 0) {
-				visibleS = "<font color=red size=-2>invisible</font>"; 
-			}
-			
-			return String.format("<html>[%.0f,%.0f,%.0f,%.0f] %s</html>",
+			String core = String.format("[%.0f,%.0f,%.0f,%.0f]",
 					drawable.getX(), drawable.getY(),
-					drawable.getWidth(), drawable.getHeight(), visibleS);
+					drawable.getWidth(), drawable.getHeight());
+			
+			if (drawable.getAlpha() <= 0) {
+				//HTML tags are very heavy to render, only include them when needed.
+				return String.format("<html>%s %s</html>", core, "<font color=red size=-2>invisible</font>"); 
+			} else {
+				return core;
+			}			
 		}
 		
 	}

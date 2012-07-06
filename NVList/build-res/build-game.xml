@@ -113,10 +113,6 @@
       </launch4j>
     </sequential>
   </macrodef>
-
-  <taskdef name="jarbundler"           
-           classname="net.sourceforge.jarbundler.JarBundler"
-           classpath="${tools.dir}/jarbundler/jarbundler-2.2.0.jar" />
               
   <macrodef name="create-launchers">
     <attribute name="dir" default="." />

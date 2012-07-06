@@ -1,4 +1,20 @@
 
+2012/07/06 -- 2.6 (r27)
+
+enhancements:
+- Added a matrix color tint function to ImageFX. Can be used for grayscale
+  effects, changing saturation, etc.
+- Added an Image FX tutorial demonstrating blur, brighten, color matrix.
+- Improved runtime performance of the debug window's image tab. It would cause
+  lag when viewed during heavy particle effects.
+- Changed some code related to tweens, removing anything that changed the
+  texture anchor (image alignment) without explicit action from the user.
+    
+bugfixes:
+- Fixed a bug in customTextBox that could cause a crash when not passing
+  explicit bounds
+
+
 2012/06/18 -- 2.5 (r26)
 
 enhancements:

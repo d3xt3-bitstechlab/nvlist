@@ -167,7 +167,7 @@ function Snowcloud:start(numSnowflakes)
     self.thread = newThread(function()
         while true do
             for i,v in ipairs(flakes) do
-                flakes[i]:update()
+                v:update()
             end
             self.camera:applyTransform()
             yield()

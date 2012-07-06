@@ -1,5 +1,5 @@
 <!-- Apache Ant Build Config -->
-<project name="Game-Installer">
+<project name="Game-Distro">
 
 <!-- Properties -->
   <fail>
@@ -20,6 +20,10 @@
 <!-- Imports -->
   
 <!-- Tasks -->
+  <taskdef name="jarbundler"           
+           classname="net.sourceforge.jarbundler.JarBundler"
+           classpath="${tools.dir}/jarbundler/jarbundler-2.2.0.jar" />
+
   <macrodef name="create-application-bundle">
     <attribute name="dir" default="${dist.dir}" />
 
