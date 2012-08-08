@@ -4,10 +4,11 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 
 import javax.swing.BorderFactory;
@@ -43,23 +44,25 @@ public class HeaderPanel extends JPanel {
 				}
 			}
 		});
+		createProjectButton.setEnabled(false);
 		
 		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
 		buttonPanel.setOpaque(false);
 		buttonPanel.add(createProjectButton);
 		
 		engineBrowseField = new EngineBrowseField(bg);
+		engineBrowseField.addPropertyChangeListener(new PropertyChangeListener() {
+			public void propertyChange(PropertyChangeEvent evt) {
+				if ("file".equals(evt.getPropertyName())) {
+					File engineF = (File)evt.getNewValue();
+					createProjectButton.setEnabled(engineF != null && engineF.exists());
+				}
+			}
+		});
+		
 		projectBrowseField = new ProjectBrowseField(bg);
 		
-		JPanel vPanel = new JPanel() {
-			public void paintComponent(Graphics g) {
-				Color bg = new Color(0x40FFFFFF, true);
-				g.setColor(bg);
-				g.fillRect(0, 0, getWidth(), getHeight());
-			}
-		};
-		vPanel.setOpaque(false);
-		vPanel.setBackground(BuildGUIUtil.brighter(bg));
+		JPanel vPanel = new TranslucentPanel();
 		vPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
 		vPanel.setLayout(new TableLayout(1, 5, 5));

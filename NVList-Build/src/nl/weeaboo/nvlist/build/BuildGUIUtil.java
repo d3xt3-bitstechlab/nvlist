@@ -8,9 +8,12 @@ import javax.swing.JComponent;
 import javax.swing.border.LineBorder;
 import javax.swing.text.JTextComponent;
 
-final class BuildGUIUtil {
+public final class BuildGUIUtil {
 
-	static void recursiveSetOpaque(JComponent c, boolean opaque) {
+	private BuildGUIUtil() {
+	}
+	
+	public static void recursiveSetOpaque(JComponent c, boolean opaque) {
 		c.setOpaque(opaque);
 		
 		final int L = c.getComponentCount();
@@ -23,7 +26,7 @@ final class BuildGUIUtil {
 	}
 
 	@SuppressWarnings("serial")
-	static void setTextFieldDefaults(JTextComponent c, Color bg) {
+	public static void setTextFieldDefaults(JTextComponent c, Color bg) {
 		c.setSelectionColor(darker(bg));
 		c.setBackground(brighter(bg));
 		c.setBorder(new LineBorder(bg.darker()) {
@@ -37,11 +40,11 @@ final class BuildGUIUtil {
 		});
 	}
 	
-	static Color darker(Color bg) {
+	public static Color darker(Color bg) {
 		return bg.darker();
 	}
 	
-	static Color brighter(Color bg) {
+	public static Color brighter(Color bg) {
 		float s = 1.1f;
 		float rgb[] = bg.getColorComponents(null);
 		return new Color(rgb[0]*s, rgb[1]*s, rgb[2]*s);

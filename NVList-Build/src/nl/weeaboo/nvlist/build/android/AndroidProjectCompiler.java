@@ -29,7 +29,8 @@ public class AndroidProjectCompiler {
 	
 	//TODO: Afterwards, app must still be signed: http://developer.android.com/tools/publishing/app-signing.html
 	//TODO: How do I pass properties from the game to this? Make an Ant task? Then I can use the property expansion like installer-config.ini
-		
+	//TODO: Do I overwrite the template? That would make it easier to update an existing template.
+        
 	public AndroidProjectCompiler(File gameF, File templateF, File dstF, AndroidConfig config) {
 		this.gameFolder = gameF;
 		this.templateFolder = templateF;
@@ -52,10 +53,22 @@ public class AndroidProjectCompiler {
 	}
 	
 	//Functions
+	private static void printUsage() {
+		System.err.println("Usage: java -cp Build.jar " + AndroidProjectCompiler.class.getName() + " <game> <template> <dst>");
+	}
+	
 	public static void main(String[] args) throws IOException {
 		File gameF = new File(args[0]);
 		File templateF = new File(args[1]);
 		File dstF = new File(args[2]);
+		
+		if (!gameF.exists() || !templateF.exists()) {
+			if (!gameF.exists()) System.err.println("Folder doesn't exist: " + gameF);
+			if (!templateF.exists()) System.err.println("Folder doesn't exist: " + templateF);
+			printUsage();
+			System.exit(1);
+			return;
+		}
 		
 		AndroidConfig config = AndroidConfig.fromFile(new File(gameF, Build.PATH_ANDROID_INI));
 		

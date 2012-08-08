@@ -144,13 +144,15 @@ public class BuildGUI extends LogoPanel {
 
 	private CreateProjectResult tryCreateProject(File engineFolder, File projectFolder) throws IOException {
 		if (engineFolder == null) {
-			engineFolder = (build != null ? build.getEngineFolder() : projectFolder);
+			//engineFolder = (build != null ? build.getEngineFolder() : projectFolder);
 		}
 		if (projectFolder == null) {
 			projectFolder = (build != null ? build.getProjectFolder() : engineFolder);
 		}
 
-		if (projectFolder == null) {
+		if (engineFolder == null || !engineFolder.exists()) {
+			return CreateProjectResult.UNABLE;
+		} else if (projectFolder == null) {
 			return CreateProjectResult.UNABLE;			
 		} else if (new File(projectFolder, "res").exists()) {
 			return CreateProjectResult.EXISTS;

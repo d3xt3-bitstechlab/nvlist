@@ -107,7 +107,7 @@ public class Build {
 		AwtUtil.setDefaultLAF();		
 	}
 
-	protected Process ant(String target) throws IOException {
+	public Process ant(String target) throws IOException {
 		String engineF = engineFolder.getAbsolutePath().replace('\\', '/');
 		String projectF = projectFolder.getAbsolutePath().replace('\\', '/');
 		if (engineF.equals(projectF)) {

@@ -128,7 +128,7 @@ public class RunPanel extends JPanel {
 	}
 	
 	private void updateRunButtonEnabled() {
-		button.setEnabled(true); //button.setEnabled(combo.getSelectedItem() instanceof Launcher);
+		button.setEnabled(isEnabled()); //button.setEnabled(combo.getSelectedItem() instanceof Launcher);
 	}
 	
 	public static Launcher selectDefaultLauncher(Collection<Launcher> launchers) {
@@ -191,6 +191,13 @@ public class RunPanel extends JPanel {
 		return best;
 	}
 	
+	private void updateEnabled() {
+		boolean e = isEnabled();
+		
+		combo.setEnabled(e);
+		updateRunButtonEnabled();
+	}
+	
 	//Getters
 	
 	//Setters
@@ -199,9 +206,19 @@ public class RunPanel extends JPanel {
 		projectFolder = b.getProjectFolder();				
 		
 		update();
+		updateEnabled();
 		
 		if (button.isEnabled()) {
 			button.requestFocus();
+		}
+	}
+	
+	@Override
+	public void setEnabled(boolean e) {
+		if (isEnabled() != e) {
+			super.setEnabled(e);
+			
+			updateEnabled();
 		}
 	}
 	

@@ -35,6 +35,8 @@ public class BuildCommandPanel extends JPanel {
 	private final Action optimizerAction, buildAppletAction, buildInstallerAction, buildInstallerCDAction, androidAction;
 	private final JButton rebuildButton, editButton, backupButton;
 	private final JButton moreButton;
+	
+	private boolean busy;
 
 	public BuildCommandPanel(ConsoleOutputPanel output) {
 		outputPanel = output;
@@ -88,7 +90,6 @@ public class BuildCommandPanel extends JPanel {
 
 		rebuildButton = new JButton("Rebuild");
 		rebuildButton.setOpaque(false);
-		rebuildButton.setEnabled(false);
 		rebuildButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				rebuild();
@@ -97,7 +98,6 @@ public class BuildCommandPanel extends JPanel {
 
 		editButton = new JButton("Edit");
 		editButton.setOpaque(false);
-		editButton.setEnabled(false);
 		editButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				File scriptF = new File(build.getProjectFolder(), "res/script");
@@ -116,7 +116,6 @@ public class BuildCommandPanel extends JPanel {
 
 		backupButton = new JButton("Backup");
 		backupButton.setOpaque(false);
-		backupButton.setEnabled(false);
 		backupButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				ant("backup");
@@ -132,7 +131,6 @@ public class BuildCommandPanel extends JPanel {
 		moreButton = new JButton("...");
 		moreButton.setPreferredSize(new Dimension(30, 22));
 		moreButton.setOpaque(false);
-		moreButton.setEnabled(false);
 		moreButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				JPopupMenu popup = new JPopupMenu();
@@ -140,7 +138,7 @@ public class BuildCommandPanel extends JPanel {
 				popup.add(buildAppletAction);
 				popup.add(buildInstallerAction);
 				popup.add(buildInstallerCDAction);
-				popup.add(androidAction);
+				//popup.add(androidAction);
 				popup.show(moreButton, 0, 0);
 			}
 		});
@@ -167,9 +165,11 @@ public class BuildCommandPanel extends JPanel {
 	}
 	
 	public void ant(String target, final Runnable... postBuildCallbacks) {
+		setBusy(true);
 		try {
 			outputPanel.process(build.ant(target), new Runnable() {
 				public void run() {
+					setBusy(false);
 					runPanel.update();
 					
 					if (postBuildCallbacks != null) {
@@ -179,8 +179,9 @@ public class BuildCommandPanel extends JPanel {
 					}
 				}
 			});
-		} catch (IOException e) {
+		} catch (IOException e) {			
 			AwtUtil.showError("Error starting " + target + " command: " + e);
+			setBusy(false);
 		}
 	}
 
@@ -210,6 +211,18 @@ public class BuildCommandPanel extends JPanel {
 		return true;
 	}
 
+	private void updateEnabled() {
+		runPanel.setEnabled(!busy && build != null);
+		optimizerAction.setEnabled(!busy && build != null);
+		buildAppletAction.setEnabled(!busy && build != null);
+		buildInstallerAction.setEnabled(!busy && build != null);
+		buildInstallerCDAction.setEnabled(!busy && build != null);
+		androidAction.setEnabled(!busy && build != null);
+		rebuildButton.setEnabled(!busy && build != null);
+		editButton.setEnabled(!busy);
+		backupButton.setEnabled(!busy);					
+	}
+	
 	// Getters
 
 	// Setters
@@ -220,10 +233,15 @@ public class BuildCommandPanel extends JPanel {
 			runPanel.setBuild(b);
 		}
 
-		rebuildButton.setEnabled(build != null);
-		editButton.setEnabled(build != null);
-		backupButton.setEnabled(build != null);
-		moreButton.setEnabled(build != null);
+		updateEnabled();
+	}
+	
+	public void setBusy(boolean b) {
+		if (busy != b) {
+			busy = b;
+			
+			updateEnabled();
+		}
 	}
 
 }
