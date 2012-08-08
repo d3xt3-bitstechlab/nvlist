@@ -1,4 +1,51 @@
 
+2012/08/11 -- 2.7 (r32)
+
+enhancements:
+- The $syntax for inserting variables into text now supports local variables.
+- Added a sayLine function that automatically resets the speaker at the end of
+  the paragraph.
+- Added a registerSpeaker function that registers a stringifier function and
+  companion global say_XXX function to change the current speaker. See
+  documentation (ch 3.1) and text/basics tutorial for more details. 
+- Added a new chunk to the save format, containing a savepoint-like IStorage
+  object. This object can contain user-supplied metadata for the save file.
+- The most recently saved slot is now marked as 'new' on the save/load screen.
+- Last used page on the save/load screen is now persisted.
+- New DistortGS shader that renders images using a distorted uniform grid.
+- BlurGS is now instantiable from within Lua code.
+- Added a tutorial demonstrating the use of IGeometryShader/IPixelShader
+- Renamed systemVars to sharedGlobals. The old systemVar functions are still
+  available for VNs targeting NVList version 2.6 or earlier.
+- Added support for using the mouse wheel to scroll the text log.
+- Implemented auto cursor scaling based on the default text style's font size.
+- Added ImageFx.crop()/ImageFx.composite() functions to combine sprites at
+  runtime. This allows you to use 
+- Added support for image sequences (for example, event CG variants) to the
+  image gallery, see script/gui/gallery.lua for more information.
+    
+bugfixes:
+- Name tags in NVL mode were accidentally being styled with the current
+  speaker's text style as well. Fixed to only use the name style.
+- Fixed unintended brightness decrease when using BlendGS in combination with
+  drawables with alpha less than one.
+- Build.jar was supposed to update prefs.ini, but instead wrote prefs.ini.txt
+- Fixed an off-by-one error for the cropping in the blur function.    
+- Auto read mode broke when a line doesn't fit on the screen and a panic line
+  wrap is necessary.
+- Image optimizer now pads resized subimages with a scaled version of its
+  former neighbor pixels instead of always with transparent pixels, thereby
+  maintaining the same edge behavior when rendered with linear interpolation.
+- Create project button (and some others) in Build.jar are now disabled at
+  times when using them could potentially cause problems.
+- Spurious error in build-game.xml:301 when no default video folder exists.
+- Under rare circumstances, a repaint would not be issued after resizing,
+  leading to image corruption.
+- Fixed a bug in BaseImageTween that would replace the imageAlignY with
+  imageAlignX if no specific anchor/imageAlignXY set.
+
+
+
 2012/07/06 -- 2.6 (r27)
 
 enhancements:
@@ -13,6 +60,7 @@ enhancements:
 bugfixes:
 - Fixed a bug in customTextBox that could cause a crash when not passing
   explicit bounds
+
 
 
 2012/06/18 -- 2.5 (r26)
