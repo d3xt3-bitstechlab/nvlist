@@ -12,6 +12,7 @@
   <import file="build-res/build-game.xml" />
   <import file="build-res/build-distro.xml" />
   <import file="build-res/build-applet.xml" />
+  <import file="build-res/build-android.xml" />
   
 <!-- Tasks -->
   <macrodef name="obfuscate">

@@ -13,13 +13,13 @@ import nl.weeaboo.vn.INotifier;
 import nl.weeaboo.vn.impl.base.BasePersistentStorage;
 
 @LuaSerializable
-public class SystemVars extends BasePersistentStorage implements Serializable {
+public class SharedGlobals extends BasePersistentStorage implements Serializable {
 
 	private final FileManager fm;
 	private final INotifier notifier;
 	private final EnvironmentSerializable es;
 	
-	public SystemVars(FileManager fm, String filename, INotifier ntf) {
+	public SharedGlobals(FileManager fm, String filename, INotifier ntf) {
 		super(filename);
 		
 		this.fm = fm;

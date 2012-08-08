@@ -35,6 +35,32 @@ bgtween(graytex)
 
 
 
+Crop texture in software
+@@
+local cropped = ImageFx.crop(i:getTexture(), 300, 300, 256, 256)
+i:setTexture(cropped, 5) --5: center aligned
+@@
+
+
+
+
+Merge textures in software
+@@
+local tex1 = tex("arm01l")
+local tex2 = tex("arm01m")
+--The merged result is as if tex2 is drawn on top of tex1.
+--Any parts of tex2 that fall outside the bounds of tex1 are cut off.
+local merged = ImageFx.composite{
+	{tex=tex1},
+	{tex=tex2, pos={100, 50}}
+}
+
+i:setTexture(merged, 5) --5: center aligned
+@@
+
+
+
+
 Finished
 @rmf(i)
 @rmbgf()

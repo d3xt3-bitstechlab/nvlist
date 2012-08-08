@@ -5,6 +5,8 @@ import java.io.ObjectStreamException;
 import java.nio.IntBuffer;
 
 import nl.weeaboo.awt.ImageUtil;
+import nl.weeaboo.common.Dim;
+import nl.weeaboo.common.Rect;
 import nl.weeaboo.game.GameLog;
 import nl.weeaboo.gl.texture.GLTexRect;
 import nl.weeaboo.gl.texture.TextureException;
@@ -31,13 +33,25 @@ public class ImageFxLib extends BaseImageFxLib {
 	}
 
 	@Override
-	protected Bitmap tryGetBitmap(ITexture tex, boolean logFailure) {
+	protected Dim getBitmapSize(ITexture tex) {
+		if (tex instanceof TextureAdapter) {
+			TextureAdapter adapter = (TextureAdapter)tex;
+			GLTexRect tr = adapter.getTexRect();
+			if (tr != null) {
+				return new Dim(tr.getWidth(), tr.getHeight());
+			}
+		}
+		return new Dim(0, 0);
+	}
+
+	@Override
+	protected Bitmap tryGetBitmap(ITexture tex, boolean logFailure, Rect r) {
 		if (tex instanceof TextureAdapter) {
 			TextureAdapter adapter = (TextureAdapter)tex;
 			GLTexRect tr = adapter.getTexRect();
 			if (tr != null) {
 				try {
-					BufferedImage image = tr.toBufferedImage();
+					BufferedImage image = tr.toBufferedImage(r);
 					int[] argb = new int[image.getWidth() * image.getHeight()];
 					ImageUtil.getPixelsPre(image, IntBuffer.wrap(argb), 0, image.getWidth());
 					return new Bitmap(argb, image.getWidth(), image.getHeight());

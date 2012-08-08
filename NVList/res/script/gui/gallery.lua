@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
--- gallery.lua
+-- gallery2.lua
 -------------------------------------------------------------------------------
--- Default image gallery.
+-- Default image gallery v2.0
 -------------------------------------------------------------------------------
 
 
@@ -10,10 +10,12 @@
 -- ----------------------------------------------------------------------------
 
 local ImageSlot = {
+	gallery=nil,
 	index=-1,
     thumbnail=nil,
-    fullpath=nil,
+    fullpaths=nil,
 	button=nil,
+	label=nil,
     x=0,
     y=0,
     w=0,
@@ -24,11 +26,19 @@ function ImageSlot.new(self)
 	self = extend(ImageSlot, self)
 	
 	self.button = button()
-	self.button:setNormalTexture(tex(self.thumbnail or self.fullpath))
+	if self.thumbnail then
+		self.button:setNormalTexture(tex(self.thumbnail))
+	else
+		self.button:setNormalTexture(colorTex(0xFF808080, 32, 32))
+	end
 	self.button:setToggle(true)
 
+	if #self.fullpaths > 1 then
+		self.label = textimg("(" .. #self.fullpaths .. ")")
+		self.label:setAnchor(3)
+	end
+	
 	self.overlay = img("gui/imagegallery#white")
-    self.overlay:setZ(0)
 	self.overlay:setBlendMode(BlendMode.ADD)
 	
 	return self
@@ -36,6 +46,9 @@ end
 
 function ImageSlot:destroy()
 	self.button:destroy()
+	if self.label ~= nil then
+		self.label:destroy()
+	end
 end
 
 function ImageSlot:getWidth()
@@ -65,14 +78,31 @@ function ImageSlot:layout()
     local h = self.h    
 
 	local b = self.button
+	local o = self.overlay
 	local scale = math.min(w / b:getUnscaledWidth(), h / b:getUnscaledHeight())
 	
 	b:setScale(scale, scale)		
 	b:setPos(x + (w-b:getWidth())/2, y + (h-b:getHeight())/2)
-	
-	local o = self.overlay
+		
 	o:setBounds(b:getX(), b:getY(), b:getWidth(), b:getHeight())
 	o:setZ(b:getZ() - 10)
+	
+	self:layoutLabel()
+end
+
+function ImageSlot:layoutLabel()
+	local b = self.button
+	local lbl = self.label
+	if lbl ~= nil then
+		lbl:setZ(b:getZ()-5)
+		lbl:setPadding(b:getHeight()/32)
+		lbl:setSize(b:getWidth(), b:getHeight() / 4)
+		lbl:setPos(b:getX(), b:getY()+b:getHeight()-lbl:getHeight())
+	end
+end
+
+function ImageSlot:tweenImage(i, texture)
+	return imgtween(i, texture)
 end
 
 function ImageSlot:update()
@@ -83,9 +113,32 @@ function ImageSlot:update()
 	end
 end
 
+function ImageSlot:setText(txt)
+	local lbl = self.label
+	if lbl ~= nil then
+		lbl:setText(txt)
+	end
+	--self:layoutLabel()
+end
+
 function ImageSlot:show()
-    local path = self.fullpath or self.thumbnail
-    preload(path) --Gives us a 2 frame head start for loading the full image.
+	local index = 0
+	local length = #self.fullpaths
+	local locked = 0
+	
+    local paths = {}
+	for i,fullpath in ipairs(self.fullpaths) do
+		fullpath = fullpath or self.thumbnail
+		if self.gallery:isLocked(fullpath) then
+			locked = locked + 1
+		else
+			paths[i] = fullpath
+			if index == 0 then
+				index = i
+			end
+		end
+	end
+    preload(unpack(paths)) --Gives us a 2 frame head start for loading the full image(s)
 
     self.button:setEnabled(false)
     self.overlay:setAlpha(0)
@@ -97,34 +150,75 @@ function ImageSlot:show()
 	ss = img(ss)
 	ss:setZ(1000)
 
-	local i = img(path)
-
+	local lbl = nil
+	if length > 1 then
+		lbl = textimg("")
+		lbl:setDefaultStyle(createStyle{anchor=9})
+		lbl:setZ(-5)
+		lbl:setPadding(screenHeight / 64)
+		--lbl:setAnchor(9)
+		lbl:setSize(screenWidth/4, screenHeight/8)
+		lbl:setPos(screenWidth-lbl:getWidth(), 0)
+	end
+	
+	local function updatelbl()
+		if lbl ~= nil then
+			local lockedText = ""
+			if locked == 1 then			
+				lockedText = "\n" .. locked .. " image locked"
+			elseif locked > 1 then
+				lockedText = "\n" .. locked .. " images locked"
+			end
+			lbl:setText(index .. "/" .. length .. lockedText)
+		end
+	end
+	
+	local i = img(paths[index])
     local b = self.button
     local small = {b:getX(), b:getY(), b:getWidth(), b:getHeight()}
-    local iw = math.max(1, i:getWidth())
-    local ih = math.max(1, i:getHeight())
-    local scale = math.min(screenWidth/iw, screenHeight/ih) --Find scale factor to fill screen, maintaining aspect ratio
-    local large = {(screenWidth-scale*iw)/2, (screenHeight-scale*ih)/2, scale*iw, scale*ih} --Scaled image bounds, centered on the screen
     local dur = 20
     local ip = Interpolators.SMOOTH
-
+	
+	local function getLargeBounds()
+		local iw = math.max(1, i:getWidth())
+		local ih = math.max(1, i:getHeight())
+		local scale = math.min(screenWidth/iw, screenHeight/ih) --Find scale factor to fill screen, maintaining aspect ratio
+		return {(screenWidth-scale*iw)/2, (screenHeight-scale*ih)/2, scale*iw, scale*ih} --Scaled image bounds, centered on the screen
+	end
+	
     Anim.par({
-        Anim.createTween(i, "bounds", small, large, dur, ip),
+        Anim.createTween(i, "bounds", small, getLargeBounds(), dur, ip),
         Anim.createTween(ss, "alpha", nil, 0, dur)
     }):run()
 
+	updatelbl()
     while true do
-        if input:consumeCancel() or input:consumeConfirm() or input:consumeTextContinue() then
+        if input:consumeCancel() then
             break
+		elseif input:consumeConfirm() or input:consumeTextContinue() then
+			repeat --Skip to next unlocked image, quit if no more images
+				index = index + 1
+			until index > length or paths[index] ~= nil
+			
+			if paths[index] ~= nil then
+				updatelbl()
+				self:tweenImage(i, tex(paths[index]))
+			else
+				break
+			end
         end
         yield()
     end
-
+	if lbl ~= nil then	
+		lbl:destroy()
+	end
+	
     Anim.par({
-        Anim.createTween(i, "bounds", large, small, dur, ip),
+        Anim.createTween(i, "bounds", getLargeBounds(), small, dur, ip),
         Anim.createTween(ss, "alpha", nil, 1, dur)
     }):run()
-		
+	
+
 	i:destroy()
 	ss:destroy()
 	
@@ -152,31 +246,18 @@ local ImageGallery = {
 
 function ImageGallery.new(folder, self)
 	self = extend(ImageGallery, self or {})
-	
-	self.files = self.files or Image.getImageFiles(folder)    
-	local numPages = math.ceil(#self.files / (self.rows * self.cols))
-	
-	local buttonStyle = createStyle{fontName="sans serif", fontStyle="bold", shadowColor=0}
 		
-	self.pageButtons = self.pageButtons or {}
-	for p=1,numPages do
-		local tb = TextButton.new("gui/imagegallery#pageButton-", p)
-		tb.text:setDefaultStyle(buttonStyle)
-		tb.button:setToggle(true)
-		table.insert(self.pageButtons, tb)
-	end
+	self.buttonStyle = self.buttonStyle or createStyle{fontName="sans serif", fontStyle="bold", shadowColor=0}
 	
 	self.slots = self.slots or {}
 	self.returnButton = TextButton.new("gui/imagegallery#button-", "Return")
-	self.returnButton.text:setDefaultStyle(buttonStyle)
+	self.returnButton.text:setDefaultStyle(self.buttonStyle)
 	
 	self.topFade = img("gui/imagegallery#fade-top")
 	self.topFade:setZ(10)
 
 	self.bottomFade = img("gui/imagegallery#fade-bottom")
 	self.bottomFade:setZ(10)
-	
-	self:setPage(1)
 		
 	return self
 end
@@ -211,8 +292,9 @@ end
 
 ---Returns <code>true</code> if <code>fullpath</code> shouldn't be included in the image gallery
 function ImageGallery:isExcludePath(fullpath)
-    if string.sub(fullpath, -6) == "-thumb" then
-        --Exclude files ending in "-thumb" (these are the thumbnail versions)
+	local lastsix = string.sub(fullpath, -6)
+    if lastsix == "/thumb" or lastsix == "-thumb" then
+        --Exclude files ending in "/thumb" "-thumb" (these are thumbnail versions of other images)
         return true
     end
     return false
@@ -223,6 +305,64 @@ function ImageGallery:getThumbnail(fullpath)
     local path = string.gsub(fullpath, "^(.*)%..-$", "%1") .. "-thumb" --Strip file-ext, append "-thumb"
     --print(path)
     return tex(path, true) --Try to retrieve the texture, suppressing any error encountered
+end
+
+function ImageGallery:isLocked(path)
+	return not seenLog:hasImage(path)
+end
+
+function ImageGallery:setFolder(folder)
+	self.files = {}
+	
+	local folderPrefixLen = #folder
+	if folderPrefixLen > 0 and string.sub(folder, -1) ~= "/" then
+		folderPrefixLen = folderPrefixLen + 1
+	end
+	
+	local groups = {} --Mapping from group name to group index in self.files
+	for k,rawpath in pairs(Image.getImageFiles(folder)) do
+		local path = string.gsub(rawpath, "^(.*)%..-$", "%1") --Strips file-ext		
+		if not self:isExcludePath(path) then
+			local relpath = string.sub(path, folderPrefixLen + 1)
+			
+			local group = nil
+			local lastSlashIndex = string.find(string.reverse(relpath), "/")
+			if lastSlashIndex ~= nil then
+				group = string.sub(relpath, 1, #relpath-lastSlashIndex)
+			end
+		
+			local index = groups[group]
+			if not index then
+				table.insert(self.files, {path})
+				index = #self.files
+			else
+				table.insert(self.files[index], path)
+			end			
+						
+			if group ~= nil then
+				groups[group] = index
+			end
+			
+			--print(k, group, path, index)
+		end
+	end
+	groups = nil -- Allow groups table to be garbage collected, we don't need it anymore
+
+	local numPages = math.ceil(#self.files / (self.rows * self.cols))
+	
+	if self.pageButtons ~= nil then
+		destroyValues(self.pageButtons)
+	end
+	
+	self.pageButtons = {}
+	for p=1,numPages do
+		local tb = TextButton.new("gui/imagegallery#pageButton-", p)
+		tb.text:setDefaultStyle(self.buttonStyle)
+		tb.button:setToggle(true)
+		table.insert(self.pageButtons, tb)
+	end
+	
+	self:setPage(1)
 end
 
 function ImageGallery:setPage(p)
@@ -245,20 +385,22 @@ function ImageGallery:setPage(p)
 		for i=pageStart,pageEnd do
 			local index = i
 			local fullpath = "gui/imagegallery#locked"
-            local thumbnail = nil
+            local thumbnail = "gui/imagegallery#locked"
 			local empty = true
             
-            local filename = self.files[i]
-            filename = string.gsub(filename, "^(.*)%..-$", "%1") --Strips file-ext
-			if seenLog:hasImage(filename) and not self:isExcludePath(filename) then
-				empty = false
-				fullpath = filename
-                thumbnail = self:getThumbnail(filename)
-            else 
-                --print("Locked: ", filename)
+            local group = self.files[i]
+			for _,file in ipairs(group) do
+				if not self:isLocked(file) then
+					empty = false
+					thumbnail = self:getThumbnail(file)
+					if thumbnail == nil then
+						thumbnail = file --Just use the full-size version if no real thumbnail is available
+					end
+					break
+				end
 			end
 			
-			local is = ImageSlot.new{index=index, thumbnail=thumbnail, fullpath=fullpath}
+			local is = ImageSlot.new{gallery=self, index=index, thumbnail=thumbnail, fullpaths=group}
 			is.button:setEnabled(not empty)
 			table.insert(self.slots, is)
 		end
@@ -323,6 +465,16 @@ function preloadImageGallery()
 	preload("gui/imagegallery")
 end
 
+---Shows an image gallery for the specified folder. Images placed in subfolders
+-- are displayed as an image sequence, grouped together in a single button. This
+-- is useful for grouping together multiple variants of an image. <br/>
+-- You can provide thumbnail versions for images to improve performance and
+-- image quality. Thumbnail images must be named the same as the non-thumbnail
+-- version, but with <code>-thumb</code> appended (<code>abc.jpg</code> -&gt;
+-- <code>abc-thumb.jpg</code>).
+-- @param folder The image folder to display the images from.
+-- @param overrides A Lua table containing overrides to pass to the ImageGallery
+--        constructor.
 function imageGallery(folder, overrides)
 	folder = folder or ""
 
@@ -333,7 +485,8 @@ function imageGallery(folder, overrides)
 	ss:setZ(-32000)
 	local thread = newThread(rmf, ss)
 	
-	local gallery = ImageGallery.new(folder, overrides)
+	local gallery = ImageGallery.new(overrides)
+	gallery:setFolder(folder)
 	gallery:run()	
 
     join(thread)

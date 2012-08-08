@@ -10,6 +10,7 @@ import nl.weeaboo.common.Dim;
 import nl.weeaboo.common.Dim2D;
 import nl.weeaboo.common.Rect;
 import nl.weeaboo.common.Rect2D;
+import nl.weeaboo.common.StringUtil;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.shader.GLShader;
 import nl.weeaboo.gl.texture.GLTexture;
@@ -40,6 +41,8 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 	private transient GLShader shader;
 	
 	public GLSLPS(ImageFactory fac, BaseNotifier ntf, String filename) {
+		super(false);
+		
 		this.imageFactory = fac;
 		this.notifier = ntf;
 		this.filename = filename;
@@ -263,7 +266,7 @@ public class GLSLPS extends BaseShader implements IPixelShader {
 		protected Varargs isVersionSupported(Varargs args) {
 			String a = args.tojstring(1);
 			String b = fac.getGlslVersion();
-			return valueOf(b != null && !b.equals("") && a.compareTo(b) <= 0);
+			return valueOf(b != null && !b.equals("") && StringUtil.compareVersion(a, b) <= 0);
 		}
 		
 	}

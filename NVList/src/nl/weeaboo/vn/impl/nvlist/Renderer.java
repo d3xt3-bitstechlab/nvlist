@@ -26,6 +26,7 @@ import nl.weeaboo.vn.RenderCommand;
 import nl.weeaboo.vn.impl.base.BaseRenderCommand;
 import nl.weeaboo.vn.impl.base.BaseRenderer;
 import nl.weeaboo.vn.impl.base.CustomRenderCommand;
+import nl.weeaboo.vn.impl.base.DistortGrid;
 import nl.weeaboo.vn.impl.base.RenderStats;
 import nl.weeaboo.vn.impl.base.TriangleGrid;
 import nl.weeaboo.vn.math.Matrix;
@@ -38,6 +39,7 @@ public class Renderer extends BaseRenderer {
 	private final ParagraphRenderer pr;
 	private final FadeQuadRenderer fadeQuadRenderer;	
 	private final BlendQuadRenderer blendQuadRenderer;	
+	private final DistortQuadRenderer distortQuadRenderer;
 	
 	//--- Properties only valid between renderBegin() and renderEnd() beneath this line ---
 	private boolean rendering;
@@ -57,6 +59,7 @@ public class Renderer extends BaseRenderer {
 		this.pr = pr;
 		this.fadeQuadRenderer = new FadeQuadRenderer(this);
 		this.blendQuadRenderer = new BlendQuadRenderer(this);
+		this.distortQuadRenderer = new DistortQuadRenderer(this);
 		
 		quadBatch = new SpriteBatch(1024);
 	}
@@ -293,6 +296,16 @@ public class Renderer extends BaseRenderer {
 		flushQuadBatch();
 
 		fadeQuadRenderer.renderFadeQuad(tex, transform, color0, color1, x, y, w, h, ps, dir, fadeIn, span, frac);
+	}
+	
+	@Override
+	public void renderDistortQuad(ITexture tex, Matrix transform, int argb,
+			double x, double y, double w, double h, IPixelShader ps,
+			DistortGrid grid, Rect2D clampBounds)
+	{
+		flushQuadBatch();
+
+		distortQuadRenderer.renderDistortQuad(tex, transform, argb, x, y, w, h, ps, grid, clampBounds);
 	}
 	
 	@Override

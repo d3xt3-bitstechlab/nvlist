@@ -9,6 +9,7 @@ import javax.media.opengl.GL2;
 
 import nl.weeaboo.common.Dim;
 import nl.weeaboo.common.ScaleUtil;
+import nl.weeaboo.common.StringUtil;
 import nl.weeaboo.gl.GLManager;
 import nl.weeaboo.gl.shader.GLShader;
 import nl.weeaboo.gl.texture.GLGeneratedTexture;
@@ -51,7 +52,7 @@ public class BitmapTween extends BaseBitmapTween {
 	
 	//Functions
 	public static boolean isAvailable(String glslVersion) {
-		return requiredGlslVersion.compareTo(glslVersion) <= 0;
+		return StringUtil.compareVersion(requiredGlslVersion, glslVersion) <= 0;
 	}
 	
 	private void resetPrepared() {

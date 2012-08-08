@@ -1,0 +1,50 @@
+<!-- Apache Ant Build Config -->
+<project name="Android">
+
+<!-- Properties -->
+  <fail>
+    <condition>
+      <or>
+        <not><isset property="project-name"/></not>
+        <not><isset property="main-class"/></not>
+        <not><isset property="dist.dir"/></not>
+        <not><isset property="gamedata.dir"/></not>
+        <not><isset property="tools.dir"/></not>
+      </or>
+    </condition>
+  </fail>
+
+  <property name="dist-android-template.dir" value="${build-res.dir}/android-project-template" />
+  <property name="dist-android-project.dir" value="${gamedata.dir}/android-project" />
+  
+<!-- Imports -->
+  
+<!-- Tasks -->
+  <macrodef name="android-project-compiler">
+    <attribute name="game" default="${gamedata.dir}" />
+    <attribute name="template" default="${dist-android-template.dir}" />
+    <attribute name="output" default="${dist-android-output.dir}" />
+
+    <sequential>
+      <java classname="nl.weeaboo.nvlist.build.android.AndroidProjectCompiler" fork="true" failonerror="true">
+        <classpath path="${tools.dir}/Build.jar" />
+        
+        <arg value="@{game}" />
+        <arg value="@{template}" />
+        <arg value="@{output}" />
+      </java>
+    </sequential>
+  </macrodef>
+
+
+<!-- Targets -->
+
+  <target name="clean-android">
+    <delete dir="${build-res.dir}/android-project" />
+  </target>
+  
+  <target name="make-android-project">
+    <android-project-compiler template="${dist-android-template.dir}" output="${dist-android-output.dir}" />
+  </target>
+  
+</project>

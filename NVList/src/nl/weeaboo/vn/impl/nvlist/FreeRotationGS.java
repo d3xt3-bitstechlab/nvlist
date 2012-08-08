@@ -21,6 +21,7 @@ public class FreeRotationGS extends BaseShader implements IGeometryShader {
 	private double rotX, rotY, rotZ;
 	
 	public FreeRotationGS() {
+		super(true);
 	}
 
 	//Functions	

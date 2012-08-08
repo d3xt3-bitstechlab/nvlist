@@ -116,4 +116,26 @@ maskShader:setParam("mask", tex("fade/matrix"))
 getBackground():setPixelShader(maskShader)    
 ]]
 
+--[[ distort shader test
+local i = img("arm01m", "c")
+local shader = DistortGS.new(1, 128)
+shader:setLooper(Looper.new(.01))
+shader:setClampBounds(0, 0, i:getWidth(), i:getHeight())
+i:setGeometryShader(shader)
+
+while not input:consumeTextContinue() do
+    shader:set(function(x, y, t)
+        return 5 * math.fastCos(5000 * y - 250 * t), 0
+    end)
+    yield()
+end
+
+rm(i)
+]]
+
+--[[ image gallery test, make sure test images are located in the img/cg folder.
+require("gui/gallery")
+imageGallery("cg")
+]]
+
 return titlescreen()

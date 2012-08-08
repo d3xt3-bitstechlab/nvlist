@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InvalidClassException;
 
 import nl.weeaboo.filemanager.FileManager;
 import nl.weeaboo.game.input.IKeyConfig;
@@ -42,12 +43,12 @@ public class Novel extends LuaNovel {
 	public Novel(INovelConfig nc, ImageFactory imgfac, IImageState is, ImageFxLib fxlib,
 			SoundFactory sndfac, ISoundState ss, VideoFactory vf, IVideoState vs,
 			ITextState ts, NovelNotifier n, IInput in, SystemLib syslib, SaveHandler sh,
-			ScriptLib scrlib, TweenLib tl, IPersistentStorage sysVars, IStorage globals,
+			ScriptLib scrlib, TweenLib tl, IPersistentStorage sharedGlobals, IStorage globals,
 			ISeenLog seenLog, IAnalytics analytics, ITimer tmr,
 			FileManager fm, IKeyConfig kc, boolean isVNDS)
 	{
 		super(nc, imgfac, is, fxlib, sndfac, ss, vf, vs, ts, n, in, syslib, sh, scrlib, tl,
-				sysVars, globals, seenLog, analytics, tmr);
+				sharedGlobals, globals, seenLog, analytics, tmr);
 		
 		this.fm = fm;
 		this.keyConfig = kc;
@@ -77,6 +78,12 @@ public class Novel extends LuaNovel {
 				} finally {
 					in.close();
 				}
+			} catch (InvalidClassException ice) {
+				fm.copy("preloader.bin", "preloader.bin.old");
+				if (!fm.delete("preloader.bin")) {
+					//Oh well, nothing we can do about it then
+				}
+				throw ice;
 			} catch (FileNotFoundException fnfe) {
 				//Ignore
 			}

@@ -15,8 +15,23 @@ Were you expecting some kind of cute girl?
 Too bad!
 It's me, stock photo of a suit of armor.
 Dummy.
-@rmf(sprite)
 @say()
+
+Alternatively, you can use the [style{fontName="DejaVuSansMono"}]registerSpeaker[style()] function.
+Look at the source code for this script or the manual to find out more.
+
+@registerSpeaker("bob", "Bob (Suit of Armor)")
+$bob Hello
+$bob World
+The speaker automatically changes back at the end of the line.
+
+@say_bob()
+Hello
+World
+The speaker doesn't automatically change back at the end of the line.
+@say()
+
+@rmf(sprite)
 
 @rmbgf()
 @clearText()

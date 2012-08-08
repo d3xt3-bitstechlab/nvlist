@@ -160,7 +160,7 @@ public class ScreenshotItem extends GameMenuAction {
 
 					try {
 						Format format = Format.fromFilename(file.getName());
-						System.out.println(format);
+						//System.out.println(format);
 						byte[] bytes = serializeImage(ss, format);
 						FileUtil.writeBytes(file, new ByteArrayInputStream(bytes));
 						showSuccessDialog();

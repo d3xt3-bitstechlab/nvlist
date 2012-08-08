@@ -81,7 +81,7 @@ import nl.weeaboo.vn.impl.nvlist.SeenLog;
 import nl.weeaboo.vn.impl.nvlist.SoundFactory;
 import nl.weeaboo.vn.impl.nvlist.SoundState;
 import nl.weeaboo.vn.impl.nvlist.SystemLib;
-import nl.weeaboo.vn.impl.nvlist.SystemVars;
+import nl.weeaboo.vn.impl.nvlist.SharedGlobals;
 import nl.weeaboo.vn.impl.nvlist.TextState;
 import nl.weeaboo.vn.impl.nvlist.TweenLib;
 import nl.weeaboo.vn.impl.nvlist.VideoFactory;
@@ -90,7 +90,7 @@ import nl.weeaboo.vn.impl.nvlist.VideoState;
 public class Game extends BaseGame {
 
 	public static final int VERSION_MAJOR = 2;
-	public static final int VERSION_MINOR = 6;
+	public static final int VERSION_MINOR = 7;
 	public static final int VERSION = 10000 * VERSION_MAJOR + 100 * VERSION_MINOR;
 	public static final String VERSION_STRING = VERSION_MAJOR + "." + VERSION_MINOR;
 	
@@ -146,7 +146,7 @@ public class Game extends BaseGame {
 	@Override
 	public void start() {		
 		IConfig config = getConfig();		
-		if (VERSION_STRING.compareTo(config.get(ENGINE_MIN_VERSION)) < 0) {
+		if (StringUtil.compareVersion(VERSION_STRING, config.get(ENGINE_MIN_VERSION)) < 0) {
 			//Our version number is too old to run the game
 			AwtUtil.showError(String.format( "NVList version number (%s) " +
 				"is below the minimum acceptable version for this game (%s)",
@@ -188,20 +188,20 @@ public class Game extends BaseGame {
 		NovelNotifier notifier = new NovelNotifier(getNotifier());
 		SaveHandler saveHandler = new SaveHandler(fm, notifier);
 		
-		IPersistentStorage sysVars = new SystemVars(fm, "sysvars.bin", notifier);
+		IPersistentStorage sharedGlobals = new SharedGlobals(fm, "save-shared.bin", notifier);
 		try {
-			sysVars.load();
+			sharedGlobals.load();
 		} catch (IOException ioe) {
-			notifier.d("Error loading sysVars", ioe);
-			try { sysVars.save(); } catch (IOException e) { }
+			notifier.d("Error loading shared globals", ioe);
+			try { sharedGlobals.save(); } catch (IOException e) { }
 		}
 		
 		ITimer timer = new Timer();
 		try {
-			timer.load(sysVars);
+			timer.load(sharedGlobals);
 		} catch (IOException ioe) {
 			notifier.d("Error loading timer", ioe);
-			try { timer.save(sysVars); } catch (IOException e) { }
+			try { timer.save(sharedGlobals); } catch (IOException e) { }
 		}
 		
 		ISeenLog seenLog = new SeenLog(fm, "seen.bin");
@@ -248,7 +248,7 @@ public class Game extends BaseGame {
 		IStorage globals = new Globals();
 		
 		novel = new Novel(novelConfig, imgfac, is, fxlib, sndfac, ss, vidfac, vs, ts,
-				notifier, in, syslib, saveHandler, scrlib, tweenLib, sysVars, globals,
+				notifier, in, syslib, saveHandler, scrlib, tweenLib, sharedGlobals, globals,
 				seenLog, an, timer,
 				fm, getKeyConfig(), isVNDS());
 		if (isVNDS()) {
@@ -342,7 +342,7 @@ public class Game extends BaseGame {
 					Benchmark.tick();
 					int slot = sh.getQuickSaveSlot(1);
 					String filename = String.format("save-%03d.sav", slot);
-					sh.save(slot, null, null);
+					sh.save(slot, null, null, null);
 					long bytes = (getFileManager().getFileExists(filename) ? getFileManager().getFileSize(filename) : 0);
 					ntf.addMessage(this, String.format("Quicksave took %s (%s)",
 							StringUtil.formatTime(Benchmark.tock(false), TimeUnit.NANOSECONDS),

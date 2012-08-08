@@ -2,8 +2,6 @@ package nl.weeaboo.vn.impl.nvlist;
 
 import java.awt.event.MouseEvent;
 
-import com.jogamp.newt.event.KeyEvent;
-
 import nl.weeaboo.game.input.UserInput;
 import nl.weeaboo.game.input.VKey;
 import nl.weeaboo.io.EnvironmentSerializable;
@@ -79,6 +77,11 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 	}
 	
 	@Override
+	public int getMouseScroll() {
+		return input.getMouseScroll();
+	}
+	
+	@Override
 	public boolean consumeUp() {
 		return consumeKey(VKey.UP.toKeyCode(1));
 	}
@@ -111,16 +114,17 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 	
 	@Override
 	public boolean consumeTextLog() {
-		return consumeKey(KeyEvent.VK_LEFT)
-			|| consumeKey(VKey.UP.toKeyCode(1));
+		return consumeMouseScroll(-1)
+			|| consumeLeft()
+			|| consumeUp();
 	}
 	
 	@Override
 	public boolean consumeTextContinue() {
 		return consumeMouse()
 			|| consumeMouseScroll(1)
-			|| consumeKey(KeyEvent.VK_RIGHT)
-			|| consumeKey(VKey.DOWN.toKeyCode(1))
+			|| consumeRight()
+			|| consumeDown()
 			|| consumeKey(VKey.BUTTON2.toKeyCode(1));
 	}
 
