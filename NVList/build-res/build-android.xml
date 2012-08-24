@@ -28,6 +28,7 @@
 
     <sequential>
       <java classname="nl.weeaboo.nvlist.build.android.AndroidProjectCompiler" fork="true" failonerror="true">
+        <classpath path="Build.jar" />
         <classpath path="${tools.dir}/Build.jar" />
         
         <arg value="@{game}" />

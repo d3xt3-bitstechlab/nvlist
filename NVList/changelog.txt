@@ -1,5 +1,5 @@
 
-2012/08/26 -- 2.8 (r33)
+2012/08/26 -- 2.8 (r34)
 
 enhancements:
 - Added the Android port for NVList, see chapter 4.4 in the manual.
