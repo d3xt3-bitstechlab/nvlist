@@ -14,16 +14,17 @@
     </condition>
   </fail>
 
-  <property name="dist-android-template.dir" value="${build-res.dir}/android-project-template" />
-  <property name="dist-android-project.dir" value="${gamedata.dir}/android-project" />
+  <property name="android-template" value="build-res/android-template.zip" />
+  <property name="android-dist.dir" value="${gamedata.dir}/android-project" />
   
 <!-- Imports -->
   
 <!-- Tasks -->
   <macrodef name="android-project-compiler">
     <attribute name="game" default="${gamedata.dir}" />
-    <attribute name="template" default="${dist-android-template.dir}" />
-    <attribute name="output" default="${dist-android-output.dir}" />
+    <attribute name="template" default="${android-template}" />
+    <attribute name="config" default="${build-res.dir}/android.ini" />
+    <attribute name="output" default="${android-dist.dir}" />
 
     <sequential>
       <java classname="nl.weeaboo.nvlist.build.android.AndroidProjectCompiler" fork="true" failonerror="true">
@@ -31,6 +32,7 @@
         
         <arg value="@{game}" />
         <arg value="@{template}" />
+        <arg value="@{config}" />
         <arg value="@{output}" />
       </java>
     </sequential>
@@ -40,11 +42,33 @@
 <!-- Targets -->
 
   <target name="clean-android">
-    <delete dir="${build-res.dir}/android-project" />
+    <delete dir="${android-template}" />
+  </target>
+
+  <target name="android-project-common">
+    <copy tofile="${build-res.dir}/android.ini" file="${build-res.dir}/android-config.ini">
+      <filterChain>
+        <expandProperties />
+      </filterChain>
+    </copy>
   </target>
   
-  <target name="make-android-project">
-    <android-project-compiler template="${dist-android-template.dir}" output="${dist-android-output.dir}" />
+  <target name="create-android-project" depends="android-project-common">
+    <fail message="Output folder (${android-dist.dir}) already exists, please delete it first.">
+      <condition>
+        <available file="${android-dist.dir}"/>
+      </condition>
+    </fail>
+    
+    <android-project-compiler template="${android-template}" output="${android-dist.dir}" />
+
+    <delete file="${build-res.dir}/android.ini" />
+  </target>
+  
+  <target name="update-android-project" depends="android-project-common">
+    <android-project-compiler template="${android-template}" output="${android-dist.dir}" />
+
+    <delete file="${build-res.dir}/android.ini" />
   </target>
   
 </project>

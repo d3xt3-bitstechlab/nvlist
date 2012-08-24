@@ -88,7 +88,7 @@ public class Novel extends LuaNovel {
 				//Ignore
 			}
 		} catch (IOException ioe) {
-			getNotifier().w("Error initializing preloader", ioe);
+			getNotifier().d("Error initializing preloader", ioe);
 		}
 	}
 	

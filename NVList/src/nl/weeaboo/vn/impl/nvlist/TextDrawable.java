@@ -32,7 +32,7 @@ public class TextDrawable extends BaseTextDrawable {
 		
 		setTexScale(1.0 / r.getScale());
 		
-		int bgColor = getBackgroundColor();
+		int bgColor = getBackgroundColorARGB();
 		int bgAlpha = ((bgColor>>24)&0xFF);
 		if (bgAlpha > 0) {
 			if (getAlpha() < 1) {

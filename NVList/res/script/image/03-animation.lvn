@@ -1,28 +1,13 @@
 
 @@
+
 local frames = {}
 for i=1,4 do
-    frames[i] = tex("anim/anim01#" .. i)
+	frames[i] = {texture=tex("anim/anim01#" .. i), duration=15} --duration is 15 frames (0.25 seconds)
 end
-
-local drawable = img(frames[1])
-
-local texAnimThread = newThread(function()
-    local f = 1
-    while not drawable:isDestroyed() do
-        --Change the displayed frame
-        drawable:setTexture(frames[f])
-        
-        --Pause for 15 frames (0.25 seconds)
-        yield(15)
-        
-        --Increase frame number, looping
-        f = f + 1
-        if f > #frames then
-            f = 1
-        end
-    end
-end)
+local drawable = img(frames[1].texture)
+local texAnim = Anim.createFilmstrip(drawable, frames)
+texAnim:start(-1)
 
 -- -----------------------------------------------------------------------------
 
@@ -79,12 +64,13 @@ The animation continues in the background and instantly finishes once you click 
 anim:finish() --Skips the animation to the last frame instantly
 @@
 Background animation finished.
+@texAnim:finish()
 @drawable:destroy()
 
 # ------------------------------------------------------------------------------
 @@
-local d1 = imgf(frames[1], "lc", screenHeight/2)
-local d2 = imgf(frames[2], "rc", screenHeight/2)
+local d1 = imgf(frames[1].texture, "lc", screenHeight/2)
+local d2 = imgf(frames[2].texture, "rc", screenHeight/2)
 
 local anim = Anim.seq{
     Anim.createTween(d1, "y", nil, 0, 120),

@@ -290,10 +290,9 @@
     <!-- Zippable resources -->
     <path id="zippableFiles">
       <dirset dir="${dist.dir}/res" />
-      <fileset dir="${dist.dir}/res" excludes="video*/**" />
-      
-      <!-- Include Theora video in the resource ZIP -->
-      <fileset dir="${dist.dir}/res" includes="video*/**/*.ogv,video*/**/*.ogg" />
+      <fileset dir="${dist.dir}/res" /> 
+      <!-- <fileset dir="${dist.dir}/res" excludes="video*/**" /> 
+      <fileset dir="${dist.dir}/res" includes="video*/**/*.ogv,video*/**/*.ogg" /> -->
     </path>
   
     <!-- Compress res folder to res.zip, excluding video files -->

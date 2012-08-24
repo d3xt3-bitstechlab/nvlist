@@ -60,7 +60,7 @@
       <fileset dir="${build-res.dir}/applet" excludes="*.jnlp,*.js,*.css,*.html,*.txt" />      
     </copy>
     
-    <copy tofile="${dist.dir}/favicon.ico" file="${gamedata.dir}/res/icon.ico" />
+    <copy tofile="${dist.dir}/favicon.ico" file="${res.dir}/icon.ico" />
   </target>
 
 </project>

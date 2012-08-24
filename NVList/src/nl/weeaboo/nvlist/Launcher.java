@@ -5,6 +5,7 @@ import static nl.weeaboo.game.BaseGameConfig.SCALE;
 import static nl.weeaboo.game.BaseGameConfig.WIDTH;
 
 import java.awt.Container;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -55,8 +56,8 @@ public class Launcher extends BaseLauncher {
 	}
 
 	@Override
-	protected FolderSet newFolderSet() {
-		FolderSet folders = super.newFolderSet();
+	protected FolderSet newFolderSet(URI rootURI) {
+		FolderSet folders = super.newFolderSet(rootURI);
 		if (isVNDS()) {
 			folders.image = "";
 			folders.sound = "";

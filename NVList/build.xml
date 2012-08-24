@@ -58,7 +58,7 @@
     <mkdir dir="${backup.dir}/script"/>
 
     <zip destfile="${backup.dir}/script/script-${DSTAMP}.zip"
-         basedir="${gamedata.dir}/res/script"
+         basedir="${res.dir}/script"
          compress="true"
          encoding="UTF-8" />         
     <echo>Script folder backup created: "${backup.dir}/script/script-${DSTAMP}.zip"</echo>
