@@ -3,6 +3,9 @@ require("builtin/stdlib")
 require("builtin/vn")
 vn.flattenModule(_G)
 
+--Import custom GUI screens (save/load, textlog, choice, ...)
+require("screens")
+
 --Import titlescreen.lua
 require("titlescreen")
 

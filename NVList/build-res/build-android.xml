@@ -55,11 +55,13 @@
   </target>
   
   <target name="create-android-project" depends="android-project-common">
+    <!--
     <fail message="Output folder (${android-dist.dir}) already exists, please delete it first.">
       <condition>
         <available file="${android-dist.dir}"/>
       </condition>
     </fail>
+    -->
     
     <android-project-compiler template="${android-template}" output="${android-dist.dir}" />
 

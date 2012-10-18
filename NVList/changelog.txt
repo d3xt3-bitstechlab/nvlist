@@ -1,4 +1,28 @@
 
+2012/10/19 -- 2.9 (r35)
+
+enhancements:
+- Added screens.lua to default res folder in order to make it more
+  straightforward to edit the save/load/choice/textlog screens. See also the
+  custom special screens demo.
+- Upgraded JOGL library to version 2.0-rc10
+- Added optional size argument to ImageFx.composite to explicitly set the size
+  of the output texture.
+- ImageFx.applyColorMatrix now accepts 4x5 matrices instead of just 4x4.
+- More helpful error message when trying to run NVList on a non-existent or
+  otherwise unreadable folder.
+- Added 1024x600 by default when running the resource optimizer for Android.
+
+bugfixes:
+- AndroidProjectCompiler didn't set XAPK size property correctly.
+- Fixed SequentialAnimator to call update on the same frame as start like all
+  other Animators.
+- [Android] Use of embedded fonts was broken.
+- Fixed a bug in GridLayout when using more than one row and the cells need to
+  be centered horizontally.
+
+
+
 2012/08/26 -- 2.8 (r34)
 
 enhancements:

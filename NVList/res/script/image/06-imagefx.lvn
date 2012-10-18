@@ -7,7 +7,7 @@
 
 Blurring the character image
 @@
-local blurtex = ImageFx.blur(i:getTexture(), 16)
+local blurtex = blur(i:getTexture(), 16)
 i:setTexture(blurtex, 5) --5: center aligned
 @@
 
@@ -16,19 +16,22 @@ i:setTexture(blurtex, 5) --5: center aligned
 
 Brightening the character image
 @@
-local brightened = ImageFx.brighten(i:getTexture(), .25)
+local brightened = brighten(i:getTexture(), .25)
 imgtween(i, brightened)
 @@
 
 
 
 
+Inverting the background color with a color matrix
+@@
+local negative = applyColorMatrix("bg/bg1", {-1,0,0,0,1}, {0,-1,0,0,1}, {0,0,-1,0,1})
+bgtween(negative)
+@@
+
 Grayscaling the background with a color matrix
 @@
---Create grayscale texture
-local graytex = ImageFx.applyColorMatrix(background:getTexture(), {.30,.59,.11}, {.30,.59,.11}, {.30,.59,.11})
-
---Change image texture to new grayscale texture
+local graytex = applyColorMatrix("bg/bg1", {.30,.59,.11}, {.30,.59,.11}, {.30,.59,.11})
 bgtween(graytex)
 @@
 
@@ -37,7 +40,7 @@ bgtween(graytex)
 
 Crop texture in software
 @@
-local cropped = ImageFx.crop(i:getTexture(), 300, 300, 256, 256)
+local cropped = crop(i:getTexture(), 300, 300, 256, 256)
 i:setTexture(cropped, 5) --5: center aligned
 @@
 
@@ -46,14 +49,12 @@ i:setTexture(cropped, 5) --5: center aligned
 
 Merge textures in software
 @@
-local tex1 = tex("arm01l")
-local tex2 = tex("arm01m")
 --The merged result is as if tex2 is drawn on top of tex1.
 --Any parts of tex2 that fall outside the bounds of tex1 are cut off.
-local merged = ImageFx.composite{
-	{tex=tex1},
-	{tex=tex2, pos={100, 50}}
-}
+local merged = composite({
+	{tex="arm01l"},
+	{tex="arm01m", pos={100, 50}}
+})
 
 i:setTexture(merged, 5) --5: center aligned
 @@

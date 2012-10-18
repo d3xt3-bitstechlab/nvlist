@@ -1,0 +1,128 @@
+
+#-------------------------------------------------------------------------------
+# Custom choice screen with 'fancy' animations
+#-------------------------------------------------------------------------------
+
+Click to show a custom choice screen.
+
+@@
+
+local oldChoice = Screens.choice
+
+local CScreen = {}
+
+function CScreen.new(id, ...)
+    return extend(oldChoice.new(id, ...), CScreen)
+end
+
+function CScreen:fadeButtons(visible, speed)
+    speed = speed or .05
+
+    local targetAlpha = 1
+    if not visible then
+        targetAlpha = 0
+    end
+    local dur = 1.0 / speed
+
+    local dx0 = 20
+    local dx1 = 0
+    if not visible then
+        dx0 = dx0 - 20
+        dx1 = dx1 - 20
+    end
+    
+	local threads = {}
+	for i,b in ipairs(self.buttons) do
+		table.insert(threads, newThread(function()
+            local bx = b:getX()
+            local by = b:getY()
+            
+            if speed < 1 then
+                wait(6 * i)
+            end
+            
+            --Fade while moving
+            Anim.par{
+                Anim.createTween(b, "alpha", b:getAlpha(), targetAlpha, dur),
+                Anim.createTween(b, "pos", {bx+dx0, by}, {bx+dx1, by}, dur),
+            }:run()
+            b:setPos(bx, by) --Recenter to avoid button position changing
+        end))
+	end
+	update1join(threads)
+end
+
+function CScreen:onButtonPressed(index)    
+    local d = 60
+    local anims = {}
+    for i,b in ipairs(self.buttons) do
+        if i == index then
+            local bounds = {b:getX(), b:getY(), b:getWidth(), b:getHeight()}
+            local pad = bounds[4]*.1
+            local lbounds = {bounds[1]-pad, bounds[2]-pad, bounds[3]+pad*2, bounds[4]+pad*2}
+            --Pulsate, then fade out
+            anims[i] = Anim.seq{
+                Anim.createTween(b, "bounds", bounds, lbounds, d*.10),
+                Anim.createTween(b, "bounds", lbounds, bounds, d*.10),
+                Anim.createTween(b, "bounds", bounds, lbounds, d*.10),
+                Anim.createTween(b, "bounds", lbounds, bounds, d*.10),
+                Anim.createWait(d*.2),
+                Anim.createTween(b, "alpha", b:getAlpha(), 0, d*.4),
+            }
+        else
+            --Fade out
+            anims[i] = Anim.createTween(b, "alpha", b:getAlpha(), 0, d*.75)
+        end
+    end
+    Anim.par(anims):run()
+end
+
+Screens.choice = CScreen
+local selected = 0
+while selected ~= 3 do
+    selected = choice("Show it again", "Once more", "That's enough")
+    yield()
+end
+Screens.choice = oldChoice
+
+@@
+
+#-------------------------------------------------------------------------------
+# Custom save screen with 'fancy' animations
+#-------------------------------------------------------------------------------
+
+Click to show a customized version of the save screen.
+
+@@
+
+local oldSave = Screens.save
+
+local SaveScreen = {
+    rows=2,
+    cols=2,
+    pages=5,
+    x=screenWidth/2,
+    w=screenWidth/2,
+    pad=2,
+    qcols=getAutoSaveSlots(), --Columns for quick/auto saves layout
+    qh=screenHeight/7,        --Quick/auto save height
+    qpack=5,
+}
+
+function SaveScreen.new(self)
+    self = oldSave.new(extend(SaveScreen, self))
+    
+    --Hide top/bottom colored edges
+    self.topFade:setAlpha(0)
+    self.bottomFade:setAlpha(0)
+    
+    return self
+end
+
+Screens.save = SaveScreen
+saveScreen()
+Screens.save = oldSave
+
+@@
+
+Finished.
