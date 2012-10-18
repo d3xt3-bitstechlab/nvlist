@@ -1,5 +1,6 @@
 package nl.weeaboo.nvlist.build.android;
 
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -102,34 +103,37 @@ final class Handlers {
 		return new FileHandler() {
 			@Override
 			public void process(String relpath, File srcF, File dstF) throws IOException {
-				createFile(dstF);
-				FileUtil.copyFile(srcF, dstF);
+				if (!srcF.equals(dstF)) {
+					//System.out.println(relpath + " " + srcF + " " + dstF);					
+					FileUtil.copyFile(srcF, dstF);
+				}
 			}
 		};
 	}
 	
-	public static final FileHandler expansionConstants(final String lvlKeyBase64,
-			final int mainXAPKVersion, final long mainXAPKLength,
-			final int patchXAPKVersion, final long patchXAPKLength)
-	{
+	public static final FileHandler expansionConstants(final String pkg, final String lvlKeyBase64,
+			final int mainXAPKVersion, final File mainXAPKFile,
+			final int patchXAPKVersion, final File patchXAPKFile)
+	{		
 		return new FileHandler() {
 			@Override
 			public void process(String relpath, File srcF, File dstF) throws IOException {
 				createFile(dstF);
 				String contents = FileUtil.read(srcF);
-				
+								
+				contents = doJavaHandler(contents, pkg);
 				contents = replaceJavaCodeField(contents, "LVL_KEY_BASE64", "\"" + lvlKeyBase64 + "\"");
 				
 				StringBuilder xapkDefs = new StringBuilder();
 				xapkDefs.append("{");
-				if (mainXAPKLength > 0) {
-					xapkDefs.append(String.format("new XAPKFile(true, %d, %dL)", mainXAPKVersion, mainXAPKLength));
+				if (mainXAPKFile != null) {
+					xapkDefs.append(String.format("new XAPKFile(true, %d, %dL)", mainXAPKVersion, mainXAPKFile.length()));
 				}
-				if (patchXAPKLength > 0) {
-					if (mainXAPKLength > 0) {
+				if (patchXAPKFile != null) {
+					if (mainXAPKFile != null) {
 						xapkDefs.append(", ");
 					}
-					xapkDefs.append(String.format("new XAPKFile(false, %d, %dL)", patchXAPKVersion, patchXAPKLength));
+					xapkDefs.append(String.format("new XAPKFile(false, %d, %dL)", patchXAPKVersion, patchXAPKFile.length()));
 				}
 				xapkDefs.append("}");
 				contents = replaceJavaCodeField(contents, "EXPANSION_FILES", xapkDefs.toString());
@@ -139,7 +143,26 @@ final class Handlers {
 		};
 	}
 	
-	public static final FileHandler androidManifestHandler(final String pkg) {
+	private static final String doJavaHandler(String contents, String pkg) {
+		contents = contents.replace("import nl.weeaboo.android.nvlist.template.R", "import " + pkg + ".R");
+		return contents;
+	}
+	
+	public static final FileHandler javaHandler(final String pkg) {
+		return new FileHandler() {
+			@Override
+			public void process(String relpath, File srcF, File dstF) throws IOException {
+				createFile(dstF);
+				String contents = FileUtil.read(srcF);
+				contents = doJavaHandler(contents, pkg);								
+				FileUtil.write(dstF, contents);
+			}
+		};
+	}
+	
+	public static final FileHandler androidManifestHandler(final String pkg, final int versionCode,
+			final String versionName)
+	{
 		return new FileHandler() {
 			@Override
 			public void process(String relpath, File srcF, File dstF) throws IOException {
@@ -149,6 +172,8 @@ final class Handlers {
 				
 				Element manifestE = d.getDocumentElement();
 				manifestE.setAttribute("package", pkg);
+				manifestE.setAttribute("android:versionCode", ""+versionCode);
+				manifestE.setAttribute("android:versionName", versionName);
 				
 				writeXml(dstF, d);
 			}
@@ -192,16 +217,17 @@ final class Handlers {
 				}
 				
 				createFile(dstF);				
-				if (relpath.endsWith("icon.png") && iconFile.exists()) {
+				if (relpath.contains("AndroidNVList") && relpath.endsWith("icon.png") && iconFile.exists()) {
 					try {
 						BufferedImage icon = ImageIO.read(iconFile);
-						icon = ImageUtil.getScaledImageProp(icon, Math.round(48*scale), Math.round(48*scale));
+						icon = ImageUtil.getScaledImageProp(icon, Math.round(48*scale), Math.round(48*scale),
+									Image.SCALE_AREA_AVERAGING);
 						ImageIO.write(icon, "png", dstF);
 						//System.out.println("Writing icon: " + dstF);
 					} catch (IOException ioe) {
 						throw new IOException("Unable to read " + iconFile, ioe);
 					}
-				} else {
+				} else if (!srcF.equals(dstF)) {
 					FileUtil.copyFile(srcF, dstF);
 				}
 			}

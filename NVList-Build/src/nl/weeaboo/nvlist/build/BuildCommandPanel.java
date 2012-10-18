@@ -1,27 +1,34 @@
 package nl.weeaboo.nvlist.build;
 
+import static nl.weeaboo.nvlist.build.BuildGUIUtil.getWindowIcons;
+
 import java.awt.BorderLayout;
 import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 import nl.weeaboo.awt.AwtUtil;
 import nl.weeaboo.awt.MessageBox;
+import nl.weeaboo.io.FileUtil;
 import nl.weeaboo.nvlist.build.android.AndroidGUI;
 import nl.weeaboo.settings.INIFile;
 
@@ -40,16 +47,13 @@ public class BuildCommandPanel extends JPanel {
 
 	public BuildCommandPanel(ConsoleOutputPanel output) {
 		outputPanel = output;
+		
 		runPanel = new RunPanel(this, outputPanel);
 
 		optimizerAction = new AbstractAction("Resource Optimizer...") {
 			public void actionPerformed(ActionEvent event) {
-				ClassLoader cl = build.getClassLoader();
 				try {
-					Class<?> clazz = cl.loadClass("nl.weeaboo.game.optimizer.OptimizerGUI");
-					Constructor<?> constr = clazz.getConstructor(File.class, String.class);
-					Object optObj = constr.newInstance(build.getProjectFolder(), build.getGameId());
-					clazz.getDeclaredMethod("createFrame", clazz).invoke(null, optObj);
+					BuildGUIUtil.createOptimizerGUI(build, false, true);
 				} catch (Exception e) {
 					e.printStackTrace();
 					AwtUtil.showError(e);
@@ -60,7 +64,7 @@ public class BuildCommandPanel extends JPanel {
 		buildAppletAction = new AbstractAction("Create Applet") {
 			public void actionPerformed(ActionEvent e) {
 				if (preReleaseCheck()) {
-					ant("clean dist-applet");
+					dist("clean dist-applet");
 				}
 			}
 		};
@@ -68,7 +72,7 @@ public class BuildCommandPanel extends JPanel {
 		buildInstallerAction = new AbstractAction("Create Release") {
 			public void actionPerformed(ActionEvent e) {
 				if (preReleaseCheck()) {
-					ant("clean dist make-installer-zip make-installer make-installer-mac");
+					dist("clean dist make-installer-zip make-installer make-installer-mac");
 				}
 			}
 		};
@@ -76,15 +80,30 @@ public class BuildCommandPanel extends JPanel {
 		buildInstallerCDAction = new AbstractAction("Create CD Release") {
 			public void actionPerformed(ActionEvent e) {
 				if (preReleaseCheck()) {
-					ant("clean dist make-installer-cd");
+					dist("clean dist make-installer-cd");
 				}
 			}
 		};
 		
 		androidAction = new AbstractAction("Create Android Project...") {
-			public void actionPerformed(ActionEvent event) {
-				AndroidGUI agui = new AndroidGUI(build);
-				AndroidGUI.createFrame(agui);
+			public void actionPerformed(ActionEvent event) {				
+				final Window myWindow = SwingUtilities.getWindowAncestor(BuildCommandPanel.this);
+				myWindow.setVisible(false);
+
+				try {
+					AndroidGUI agui = new AndroidGUI(build);				
+					JFrame frame = AndroidGUI.createFrame(agui);
+	
+					frame.addWindowListener(new WindowAdapter() {
+						@Override
+						public void windowClosed(WindowEvent event) {
+							myWindow.setVisible(true);
+						}
+					});
+				} catch (RuntimeException re) {
+					myWindow.setVisible(true);
+					throw re;
+				}
 			}
 		};
 
@@ -138,7 +157,7 @@ public class BuildCommandPanel extends JPanel {
 				popup.add(buildAppletAction);
 				popup.add(buildInstallerAction);
 				popup.add(buildInstallerCDAction);
-				//popup.add(androidAction);
+				popup.add(androidAction);
 				popup.show(moreButton, 0, 0);
 			}
 		});
@@ -160,21 +179,21 @@ public class BuildCommandPanel extends JPanel {
 	}
     
 	// Functions
-	public void rebuild(final Runnable... postBuildCallbacks) {
+	public void rebuild(final ProcessCallback... postBuildCallbacks) {
 		ant(build.getRebuildTarget(), postBuildCallbacks);		
 	}
 	
-	public void ant(String target, final Runnable... postBuildCallbacks) {
+	public void ant(String target, final ProcessCallback... postBuildCallbacks) {
 		setBusy(true);
 		try {
-			outputPanel.process(build.ant(target), new Runnable() {
-				public void run() {
+			outputPanel.process(build.ant(target), new ProcessCallback() {
+				public void run(int exitCode) {
 					setBusy(false);
 					runPanel.update();
 					
 					if (postBuildCallbacks != null) {
-						for (Runnable r : postBuildCallbacks) {
-							r.run();
+						for (ProcessCallback r : postBuildCallbacks) {
+							r.run(exitCode);
 						}
 					}
 				}
@@ -191,6 +210,7 @@ public class BuildCommandPanel extends JPanel {
 		if (ini.getBoolean("debug", false)) {
 			MessageBox mb = new MessageBox("Confirm action", "Debug mode is still on. "
 					+ "Are you sure you want to build a release with it turned on?");
+			mb.setIcons(getWindowIcons(this));
 			mb.addButton("Build a debug release", "");
 			mb.addButton("Cancel", "");
 			if (mb.showMessage(this) != 0) {
@@ -201,14 +221,92 @@ public class BuildCommandPanel extends JPanel {
 		if (ini.getBoolean("vn.enableProofreaderTools", false)) {
 			MessageBox mb = new MessageBox("Confirm action", "Proofreader tools are currently turned on. "
 					+ "Are you sure you want to build a release with proofreader tools enabled?");
+			mb.setIcons(getWindowIcons(this));
 			mb.addButton("I want proofreader tools enabled", "");
 			mb.addButton("Cancel", "");
 			if (mb.showMessage(this) != 0) {
 				return false;
 			}
 		}
-
+		
 		return true;
+	}
+	
+	private void showResourceOptimizer(final Runnable callback) {
+		final boolean wasBusy = busy;
+		busy = true;
+		updateEnabled();
+		
+		//Show resource optimizer
+		try {
+			JFrame frame = BuildGUIUtil.createOptimizerGUI(build, false, true);
+			frame.addWindowListener(new WindowAdapter() {
+				@Override
+			    public void windowClosed(WindowEvent e) {
+					busy = wasBusy;
+					updateEnabled();
+					callback.run();
+			    }
+			});
+		} catch (Exception e) {
+			e.printStackTrace();
+			AwtUtil.showError(e);
+
+			busy = wasBusy;
+			updateEnabled();
+		}
+	}
+	
+	protected void dist(final String antCmd) {
+		Runnable antRunnable = new Runnable() {
+			public void run() {
+				File resoptF = build.getOptimizedResFolder();
+				if (resoptF.exists()) {
+					ant(antCmd + " -Dres.dir=\"" + resoptF + "\"");
+				} else {
+					ant(antCmd);
+				}
+			}
+		};
+		
+		File resoptF = build.getOptimizedResFolder();
+		if (!resoptF.exists()) {
+			MessageBox mb = new MessageBox("Optimize Resources", "Do you want to run the resource optimizer to decrease the file size of the release?");
+			mb.setIcons(getWindowIcons(this));
+			int opt = mb.addOption("Optimize resources", "Opens a resource optimizer window that can recompress all images, audio and video with the click of a button.");
+			mb.addOption("Skip this step", "Don't optimize the contents of the res folder right now.");
+			int cancel = mb.addButton("Cancel", "");
+			
+			int r = mb.showMessage(this);
+			if (r == opt) {
+				showResourceOptimizer(antRunnable);
+				return;
+			} else if (r < 0 || r == cancel) {
+				return;
+			}
+		} else if (build.isOptimizedResOutdated()) {
+			MessageBox mb = new MessageBox("Optimize Resources", "Optimized resources are outdated, what do you want to do?");
+			mb.setIcons(getWindowIcons(this));
+			int opt = mb.addOption("Optimize resources again", "Opens a resource optimizer window to allow you to create an up-to-date set of optimized resources.");
+			int del = mb.addOption("Delete outdated resources and continue", "Delete the outdated optimized resources and continue without optimizing.");
+			mb.addOption("Build using outdated resources", "Use the outdated optimized resources anyway (don't select this unless you know what you're doing).");
+			int cancel = mb.addButton("Cancel", "");
+
+			int r = mb.showMessage(this);
+			if (r == opt) {
+				showResourceOptimizer(antRunnable);
+				return;
+			} else if (r == del) {
+				if (!FileUtil.deleteFolder(resoptF) && resoptF.exists()) {
+					AwtUtil.showError("Unable to delete optimized resources folder: " + resoptF);
+					return;
+				}				
+			} else if (r < 0 || r == cancel) {
+				return;
+			}			
+		}
+		
+		antRunnable.run();
 	}
 
 	private void updateEnabled() {

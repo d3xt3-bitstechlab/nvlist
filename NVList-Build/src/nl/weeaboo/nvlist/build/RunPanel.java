@@ -65,9 +65,9 @@ public class RunPanel extends JPanel {
 						return;
 					}
 					
-					buildCommandPanel.rebuild(new Runnable() {
+					buildCommandPanel.rebuild(new ProcessCallback() {
 						@Override
-						public void run() {
+						public void run(int exitCode) {
 							update();
 							try {
 								RunPanel.this.run((Launcher)combo.getSelectedItem());

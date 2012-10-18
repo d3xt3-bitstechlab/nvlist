@@ -149,10 +149,11 @@ public class AndroidPropertyPanel extends JPanel {
 		
 		PropertyGroupBuilder b = new PropertyGroupBuilder();
 		b.startGroup(GROUP_ANDROID, "Android properties");
-		addIniFile(b, GROUP_ANDROID, androidINI, androidDefs);
+		Set<String> ignore = Collections.emptySet();
+		addIniFile(b, GROUP_ANDROID, androidINI, androidDefs, true, ignore);
 		b.stopGroup();
 		
-		propertyModel.setRoot(b.build());
+		propertyModel.setRoot(b.build());		
 		propertyTable.setModel(new PropertyTableModel(propertyModel));
 	}
 	
@@ -182,11 +183,11 @@ public class AndroidPropertyPanel extends JPanel {
 		for (String key : keys) {
 			Preference<?> def = definitions.get(key);
 			String val = file.get(key);
-			if (val == null) val = "";
 			
 			if (def != null) {
 				b.add(convertProperty(def, val));
 			} else {
+				if (val == null) val = "";
 				b.add(new nl.weeaboo.awt.property.Property(key, key, String.class, val));
 			}
 		}
@@ -195,7 +196,7 @@ public class AndroidPropertyPanel extends JPanel {
 	}
 	
 	protected <T> IProperty convertProperty(Preference<T> def, String strval) {
-		T val = def.fromString(strval);
+		T val = (strval != null ? def.fromString(strval) : def.getDefaultValue());
 		return new Property(def.getKey(), def.getKey(), def.getType(), val);
 	}
 	
@@ -218,6 +219,16 @@ public class AndroidPropertyPanel extends JPanel {
 			build = b;
 			
 			update();
+		}
+	}
+	
+	public <T> void setProperty(Preference<T> pref, T val) {
+		IProperty prop = (IProperty)propertyModel.getRoot().getChildRecursive(GROUP_ANDROID + "." + pref.getKey());
+		//System.out.println(GROUP_ANDROID + "." + pref.getKey());
+		if (prop == null) {
+			System.err.println("Property not found: " + pref.getKey());
+		} else {
+			prop.setValue(val);
 		}
 	}
 	

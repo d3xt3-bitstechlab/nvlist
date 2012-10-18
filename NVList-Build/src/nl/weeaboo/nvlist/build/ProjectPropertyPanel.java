@@ -104,8 +104,8 @@ public class ProjectPropertyPanel extends JPanel {
 				if (id.startsWith(GROUP_BUILD+'.')) {
 					if (name.equals("project-name")) {
 						try {
-							outputPanel.process(build.ant(build.getCleanTarget()), new Runnable() {
-								public void run() {
+							outputPanel.process(build.ant(build.getCleanTarget()), new ProcessCallback() {
+								public void run(int exitCode) {
 									buildINI.put(name, String.valueOf(newval));
 									save();
 								}
@@ -343,7 +343,7 @@ public class ProjectPropertyPanel extends JPanel {
 	}
 	
 	protected <T> IProperty convertProperty(Preference<T> def, String strval) {
-		T val = def.fromString(strval);
+		T val = (strval != null ? def.fromString(strval) : def.getDefaultValue());
 		return new Property(def.getKey(), def.getKey(), def.getType(), val);
 	}
 		

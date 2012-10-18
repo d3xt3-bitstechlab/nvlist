@@ -22,18 +22,16 @@ public class ConsoleOutputPanel extends JPanel implements Runnable {
 	public ConsoleOutputPanel() {
 		outputPane = new LogPane();
 		
-		JPanel panel = new JPanel(new BorderLayout());
-		panel.add(outputPane, BorderLayout.CENTER);
-
-		JScrollPane scrollPane = new JScrollPane(panel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+		JScrollPane scrollPane = new JScrollPane(outputPane, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		scrollPane.getVerticalScrollBar().setUnitIncrement(10);
 		
 		setLayout(new BorderLayout(10, 10));
 		add(scrollPane, BorderLayout.CENTER);
 	}
 	
 	//Functions
-	public void process(Process p, final Runnable postBuildCallback) {
+	public void process(final Process p, final ProcessCallback postBuildCallback) {
 		process = p;
 		
 		outputPane.setText("Waiting for process to start...\n");
@@ -50,7 +48,18 @@ public class ConsoleOutputPanel extends JPanel implements Runnable {
 					});
 					
 					if (postBuildCallback != null) {
-						SwingUtilities.invokeLater(postBuildCallback);
+						SwingUtilities.invokeLater(new Runnable() {
+							@Override
+							public void run() {
+								int exitCode = -1;
+								try {
+									exitCode = p.exitValue();
+								} catch (IllegalThreadStateException e) {
+									System.err.println(e);
+								}
+								postBuildCallback.run(exitCode);
+							}							
+						});
 					}
 				}
 			}

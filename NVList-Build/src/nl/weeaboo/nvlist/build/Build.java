@@ -11,10 +11,18 @@ import java.net.URLClassLoader;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import nl.weeaboo.awt.AwtUtil;
+import nl.weeaboo.common.StringUtil;
+import nl.weeaboo.io.FileCopyListener;
 import nl.weeaboo.io.FileUtil;
 import nl.weeaboo.nvlist.build.android.AndroidConfig;
 import nl.weeaboo.settings.INIFile;
@@ -131,9 +139,12 @@ public class Build {
 		return ProcessUtil.execInDir(cmd, engineFolder.getAbsolutePath());
 	}
 	
-	public static void createEmptyProject(File engineFolder, File projectFolder)
-		throws IOException
-	{
+	public static void createEmptyProject(File engineFolder, File projectFolder) throws IOException {
+		createEmptyProject(engineFolder, projectFolder);
+	}
+	public static void createEmptyProject(File engineFolder, File projectFolder, FileCopyListener cl)
+			throws IOException
+	{	
 		if (projectExists(projectFolder)) {
 			throw new IOException("Project folder already exists");
 		}
@@ -144,20 +155,25 @@ public class Build {
 		
 		File srcRes = new File(engineFolder, "res");
 		File srcBuildRes = new File(engineFolder, "build-res");
-		FileUtil.copyFolder(srcRes, projectFolder, false);
-		FileUtil.copyFolder(srcBuildRes, projectFolder, false);
+		FileUtil.copyFolder(srcRes, projectFolder, false, cl);
+		FileUtil.copyFolder(srcBuildRes, projectFolder, false, cl);
 		
 		//Remove files that should stay in the engine root only
 		File buildResF = new File(projectFolder, "build-res");
 		File[] buildResContents = buildResF.listFiles();
 		if (buildResContents != null) {
+			Set<String> nonCopy = new HashSet<String>(Arrays.asList(
+				"jre.lzma", "jre.lzma2", "jre.zip", "jre-installer.exe",
+				"android-template.zip"
+			));
+			
 			for (File file : buildResContents) {
 				String name = file.getName();
 				if (name.startsWith("build") && name.endsWith(".xml")) {
 					if (!file.delete()) {
 						System.err.println("Unable to delete build scripts from project build folder");
 					}
-				} else if (name.equals("jre.lzma") || name.equals("jre-installer.exe")) {
+				} else if (nonCopy.contains(name)) {
 					if (!file.delete()) {
 						System.err.println("Unable to delete JRE installer from project build folder");
 					}
@@ -166,7 +182,7 @@ public class Build {
 		}
 		FileUtil.deleteFolder(new File(projectFolder, "build-res/launcher"));		
 	}
-	
+		
 	//Getters
 	public static boolean projectExists(File projectFolder) {
 		File buildRes = new File(projectFolder, "build-res");
@@ -259,6 +275,80 @@ public class Build {
 			//Ignore missing INI file
 		}
 		return ini;
+	}
+	
+	private static void stripResourceExts(Map<String, File> map) {
+		Map<String, File> copy = new HashMap<String, File>(map);
+		map.clear();
+		
+		for (Entry<String, File> entry : copy.entrySet()) {
+			String relpath = entry.getKey();
+			if (relpath.startsWith("img") || relpath.startsWith("snd") || relpath.startsWith("video")) {
+				relpath = StringUtil.stripExtension(relpath);
+			}
+			map.put(relpath, entry.getValue());
+		}
+	}
+	
+	/**
+	 * @return <code>true</code> if files in the res folder have been changed
+	 *         since the optimized res folder was made (determined by comparing
+	 *         the modified time of each file).<br/>
+	 *         Also returns <code>true</code> when no optimized res folder
+	 *         exists.
+	 */
+	public boolean isOptimizedResOutdated() {
+		File resF = getResFolder();
+		File resoptF = getOptimizedResFolder();
+		if (!resoptF.exists()) {
+			return true;
+		}		
+		
+		Map<String, File> resFiles = new HashMap<String, File>();
+		FileUtil.collectFiles(resFiles, resF, false);
+		stripResourceExts(resFiles);
+		
+		Map<String, File> resoptFiles = new HashMap<String, File>();
+		FileUtil.collectFiles(resoptFiles, resoptF, false);
+		stripResourceExts(resoptFiles);
+		
+		for (Entry<String, File> entry : resFiles.entrySet()) {
+			String relpath = entry.getKey();
+			File oldFile = entry.getValue();
+			File newFile = resoptFiles.get(relpath);
+			if (newFile == null) {
+				System.out.printf("Optimized file doesn't exist (%s)\n", relpath);
+				return true;
+			}
+
+			long oldTime = oldFile.lastModified();
+			long newTime = newFile.lastModified();
+			if (newTime < oldTime) {
+				System.out.printf("Optimized file outdated (%s), %d < %d\n", relpath, newTime, oldTime);
+				return true;
+			}
+			
+			//Optimized file is acceptable
+		}
+		return false;
+	}	
+	
+	public File getResFolder() {
+		return new File(getProjectFolder(), "res");
+	}
+	public File getOptimizedResFolder() {
+		return new File(getProjectFolder(), getOptimizerOutputName(this, false));
+	}
+
+	public static String getOptimizerOutputName(Build build, boolean isAndroid) {
+		try {
+			ClassLoader cl = build.getClassLoader();
+			Class<?> clazz = cl.loadClass("nl.weeaboo.game.optimizer.Optimizer");
+			return String.valueOf(clazz.getDeclaredMethod("getDefaultOutputName", Boolean.TYPE).invoke(null, isAndroid));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return (isAndroid ? "res-optimized-android" : "res-optimized");
 	}
 	
 	//Setters

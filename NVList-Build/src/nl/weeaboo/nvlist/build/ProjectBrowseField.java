@@ -9,6 +9,7 @@ public class ProjectBrowseField extends FancyFileBrowseField {
 	public ProjectBrowseField(Color bg) {
 		super(true, true); 
 		
+		setNullFileValid(true);
 		setLabel("Project Folder");
 		setButtonText("Browse...");
 		

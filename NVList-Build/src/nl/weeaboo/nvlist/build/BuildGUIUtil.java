@@ -2,9 +2,17 @@ package nl.weeaboo.nvlist.build;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Image;
 import java.awt.Insets;
+import java.awt.Window;
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 import javax.swing.border.LineBorder;
 import javax.swing.text.JTextComponent;
 
@@ -49,5 +57,25 @@ public final class BuildGUIUtil {
 		float rgb[] = bg.getColorComponents(null);
 		return new Color(rgb[0]*s, rgb[1]*s, rgb[2]*s);
 	}
+	
+	public static JFrame createOptimizerGUI(Build build, boolean isAndroid, boolean disposeOnDone)
+			throws Exception
+	{
+		ClassLoader cl = build.getClassLoader();
+		Class<?> clazz = cl.loadClass("nl.weeaboo.game.optimizer.OptimizerGUI");
+		Constructor<?> constr = clazz.getConstructor(File.class, String.class, Boolean.TYPE);
+		Object optObj = constr.newInstance(build.getProjectFolder(), build.getGameId(), isAndroid);
+		return (JFrame)clazz.getDeclaredMethod("createFrame", clazz, Boolean.TYPE)
+					.invoke(null, optObj, disposeOnDone);		
+	}
 
+	public static List<Image> getWindowIcons(Component c) {
+		List<Image> result = new ArrayList<Image>();
+		Window w = SwingUtilities.getWindowAncestor(c);
+		if (w != null) {
+			result.addAll(w.getIconImages());
+		}
+		return result;		
+	}
+	
 }

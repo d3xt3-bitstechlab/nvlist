@@ -10,7 +10,6 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
@@ -24,6 +23,7 @@ import nl.weeaboo.awt.AwtUtil;
 import nl.weeaboo.awt.FileBrowseField;
 import nl.weeaboo.awt.ProgressDialog;
 import nl.weeaboo.common.StringUtil;
+import nl.weeaboo.io.DefaultFileCopyListener;
 import nl.weeaboo.io.FileUtil;
 import nl.weeaboo.settings.INIFile;
 
@@ -34,7 +34,7 @@ public class BuildGUI extends LogoPanel {
 		ERROR, UNABLE, REFUSED, EXISTS, CREATED;
 	}
 	
-	private final INIFile ini;
+	private final INIFile iniFile;
 	
 	private Build build;
 	private final HeaderPanel headerPanel;
@@ -46,7 +46,7 @@ public class BuildGUI extends LogoPanel {
 	public BuildGUI() {
 		super("header.png");
 
-		ini = new INIFile();
+		iniFile = new INIFile();
 				
 		headerPanel = new HeaderPanel(getBackground());
 
@@ -142,63 +142,69 @@ public class BuildGUI extends LogoPanel {
 		return r == JOptionPane.OK_OPTION;
 	}
 
-	private CreateProjectResult tryCreateProject(File engineFolder, File projectFolder) throws IOException {
-		if (engineFolder == null) {
-			//engineFolder = (build != null ? build.getEngineFolder() : projectFolder);
-		}
-		if (projectFolder == null) {
-			projectFolder = (build != null ? build.getProjectFolder() : engineFolder);
-		}
-
+	private void tryCreateProject(File engineFolder, File projectFolder, CreateProjectCallback callback) {
+		doTryCreateProject(engineFolder, projectFolder, callback);
+	}
+	
+	private CreateProjectResult doTryCreateProject(File engineFolder, File projectFolder,
+			final CreateProjectCallback callback)
+	{
 		if (engineFolder == null || !engineFolder.exists()) {
+			if (callback != null) callback.run(CreateProjectResult.UNABLE);
 			return CreateProjectResult.UNABLE;
 		} else if (projectFolder == null) {
+			if (callback != null) callback.run(CreateProjectResult.UNABLE);
 			return CreateProjectResult.UNABLE;			
 		} else if (new File(projectFolder, "res").exists()) {
+			if (callback != null) callback.run(CreateProjectResult.EXISTS);
 			return CreateProjectResult.EXISTS;
 		}
 		
 		if (!askCreateProject(projectFolder)) {
+			if (callback != null) callback.run(CreateProjectResult.REFUSED);
 			return CreateProjectResult.REFUSED;
 		}
 		
 		final File src = engineFolder, dst = projectFolder;
-		final long srcSize = FileUtil.getSize(new File(src, "res")) + FileUtil.getSize(new File(src, "build-res"));
+		File srcRes = new File(src, "res"), srcBuildRes = new File(src, "build-res");
+		final long batchTotal = FileUtil.getRecursiveSize(srcRes) + FileUtil.getRecursiveSize(srcBuildRes);
 		final ProgressDialog dialog = new ProgressDialog();
 		dialog.setMessage(String.format("Copying %s, please wait...",
-				StringUtil.formatMemoryAmount(srcSize)));
-		dialog.setProgress(25);
+			StringUtil.formatMemoryAmount(batchTotal)));
 		
 		SwingWorker<File, ?> worker = new SwingWorker<File, Void>() {
 			protected File doInBackground() throws Exception {
-				Build.createEmptyProject(src, dst);
-				
+				Build.createEmptyProject(src, dst, new DefaultFileCopyListener() {
+					private long batchWritten;
+					private long progress;
+					
+					@Override
+					public void onProgress(File file, long written, long total) {
+						if (batchTotal > 0) {
+							progress = batchWritten + written;
+							setProgress(Math.max(0, Math.min(100, Math.round(100 * progress / batchTotal))));
+						}
+					}
+					
+					@Override
+					public void onEnd(File file) {
+						super.onEnd(file);
+						batchWritten += file.length();
+					}
+				});
 				return dst;
 			}
 			protected void done() {
 				dialog.dispose();
+				if (callback != null) callback.run(CreateProjectResult.CREATED);
 				super.done();
 			}
 		};
-		
 		dialog.setTask(worker);
 		worker.execute();
 		dialog.setVisible(true);
 		
-		try {
-			if (worker.get().exists()) {
-				return CreateProjectResult.CREATED;
-			}
-		} catch (InterruptedException e) {
-			//Return an error
-		} catch (ExecutionException e) {
-			if (e.getCause() instanceof IOException) {
-				throw (IOException)e.getCause();
-			} else if (e.getCause() instanceof RuntimeException) {
-				throw (RuntimeException)e.getCause();
-			}
-		}
-		return CreateProjectResult.ERROR;
+		return null;
 	}
 	
 	protected void createBuild(File engineFolder, File projectFolder) {
@@ -214,59 +220,69 @@ public class BuildGUI extends LogoPanel {
 			}
 		}
 		
-		CreateProjectResult cpr = CreateProjectResult.ERROR;
-		try {
-			if (getParent() == null || engineFolder == null || projectFolder == null) {
-				return;
-			}
-			
-			cpr = tryCreateProject(engineFolder, projectFolder);
-			if (cpr != CreateProjectResult.EXISTS && cpr != CreateProjectResult.CREATED) {
-				return;
-			}
-			
-			build = new Build(engineFolder, projectFolder);
-			projectProperties.setPropertyDefinitions(build.getBuildDefs(),
-					build.getGameDefs(), build.getPrefsDefaultDefs(),
-					build.getInstallerConfigDefs());
-			projectProperties.setBuild(build);
-			projectProperties.update();
-			buildCommandPanel.setBuild(build);
-		} catch (RuntimeException re) {
-			re.printStackTrace();
-			AwtUtil.showError(re.getMessage());
-		} catch (IOException e) {
-			e.printStackTrace();
-			AwtUtil.showError(e.getMessage());
-		} catch (LinkageError e) {
-			e.printStackTrace();
-			AwtUtil.showError(e.getMessage());
-		} finally {
+		if (engineFolder != null && engineBrowseField != null) {
 			engineBrowseField.setFile(engineFolder);
-			projectBrowseField.setFile(projectFolder);			
-		}		
-		
-		//Trigger an automatic rebuild after creating a new project
-		if (cpr == CreateProjectResult.CREATED) {
-			buildCommandPanel.rebuild();
 		}
+		if (projectFolder != null && projectBrowseField != null) {
+			projectBrowseField.setFile(projectFolder);
+		}
+		
+		if (getParent() == null || engineFolder == null || projectFolder == null) {
+			return;
+		}
+
+		final File engineF = engineFolder;
+		final File projectF = projectFolder;
+		
+		tryCreateProject(engineFolder, projectFolder, new CreateProjectCallback() {
+			@Override
+			public void run(CreateProjectResult cpr) {
+				if (cpr != CreateProjectResult.EXISTS && cpr != CreateProjectResult.CREATED) {
+					return;
+				}
+				
+				try {						
+					build = new Build(engineF, projectF);
+					projectProperties.setPropertyDefinitions(build.getBuildDefs(),
+							build.getGameDefs(), build.getPrefsDefaultDefs(),
+							build.getInstallerConfigDefs());
+					projectProperties.setBuild(build);
+					projectProperties.update();
+					buildCommandPanel.setBuild(build);
+				} catch (RuntimeException re) {
+					re.printStackTrace();
+					AwtUtil.showError(re.getMessage());
+				} catch (LinkageError e) {
+					e.printStackTrace();
+					AwtUtil.showError(e.getMessage());
+				} finally {
+					engineBrowseField.setFile(engineF);
+					projectBrowseField.setFile(projectF);			
+				}		
+				
+				//Trigger an automatic rebuild after creating a new project
+				if (cpr == CreateProjectResult.CREATED) {
+					buildCommandPanel.rebuild();
+				}
+			}
+		});
 	}
 		
 	protected void loadSettings() throws IOException {
-		ini.read(new File("build.ini"));
-		if (ini.containsKey("engineFolder")) {
-			setEngineFolder(new File(ini.getString("engineFolder", "")));
+		iniFile.read(new File("build.ini"));
+		if (iniFile.containsKey("engineFolder")) {
+			setEngineFolder(new File(iniFile.getString("engineFolder", "")));
 		}
-		if (ini.containsKey("projectFolder")) {
-			setProjectFolder(new File(ini.getString("projectFolder", "")));
+		if (iniFile.containsKey("projectFolder")) {
+			setProjectFolder(new File(iniFile.getString("projectFolder", "")));
 		}
 	}
 	protected void saveSettings() throws IOException {
 		if (build != null) {
-			ini.put("engineFolder", build.getEngineFolder().toString());
-			ini.put("projectFolder", build.getProjectFolder().toString());
+			iniFile.put("engineFolder", build.getEngineFolder().toString());
+			iniFile.put("projectFolder", build.getProjectFolder().toString());
 		}
-		ini.write(new File("build.ini"));
+		iniFile.write(new File("build.ini"));
 	}
 			
 	//Getters
@@ -282,18 +298,25 @@ public class BuildGUI extends LogoPanel {
 	public void setEngineFolder(File folder) {
 		if (folder == null) return;
 		
-		System.out.println("Engine folder: \"" + folder + "\"");
+		//System.out.println("Engine folder: \"" + folder + "\"");
 		if (build == null || !build.getEngineFolder().equals(folder)) {
 			createBuild(folder, projectBrowseField.getFile());
 		}
 	}
 	public void setProjectFolder(File folder) {
-		if (folder == null) return;
-		
-		System.out.println("Project folder: \"" + folder + "\"");
-		if (build == null || !build.getProjectFolder().equals(folder)) {
-			createBuild(engineBrowseField.getFile(), folder);
+		if (folder == null) {
+			build = null;
+		} else {		
+			//System.out.println("Project folder: \"" + folder + "\"");
+			if (build == null || !build.getProjectFolder().equals(folder)) {
+				createBuild(engineBrowseField.getFile(), folder);
+			}
 		}
+	}
+	
+	//Inner Classes
+	private static interface CreateProjectCallback {
+		public void run(CreateProjectResult cpr);
 	}
 		
 }
