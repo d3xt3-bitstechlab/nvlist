@@ -163,7 +163,7 @@ public class Build {
 		File[] buildResContents = buildResF.listFiles();
 		if (buildResContents != null) {
 			Set<String> nonCopy = new HashSet<String>(Arrays.asList(
-				"jre.lzma", "jre.lzma2", "jre.zip", "jre-installer.exe",
+				"jre.lzma", "jre.lzma2", "jre.xz", "jre.zip", "jre-installer.exe",
 				"android-template.zip"
 			));
 			
