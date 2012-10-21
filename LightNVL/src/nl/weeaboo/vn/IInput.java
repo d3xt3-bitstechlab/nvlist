@@ -61,6 +61,8 @@ public interface IInput {
 	public boolean isRightHeld();
 	public boolean isQuickRead();
 	public boolean isQuickReadAlt();
+	public boolean isConfirmHeld();
+	public boolean isCancelHeld();
 	
 	/**
 	 * @return <code>true</code> If the user hasn't performed any type of input

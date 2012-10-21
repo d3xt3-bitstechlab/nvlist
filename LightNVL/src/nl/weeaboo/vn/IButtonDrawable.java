@@ -15,6 +15,7 @@ public interface IButtonDrawable extends IDrawable {
 	public boolean isEnabled();
 	public boolean isSelected();
 	public boolean isToggle();
+	public boolean isKeyboardFocus();
 	public double getPadding();
 	public Collection<Integer> getActivationKeys();
 	public ITexture getNormalTexture();
@@ -35,5 +36,6 @@ public interface IButtonDrawable extends IDrawable {
 	public void setPadding(double p);
 	public void setSelected(boolean s);
 	public void setToggle(boolean t);
+	public void setKeyboardFocus(boolean f);
 	
 }

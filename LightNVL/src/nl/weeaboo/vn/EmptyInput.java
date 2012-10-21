@@ -172,6 +172,16 @@ public class EmptyInput implements IInput {
 	}
 	
 	@Override
+	public boolean isConfirmHeld() {
+		return false;
+	}
+
+	@Override
+	public boolean isCancelHeld() {
+		return false;
+	}
+	
+	@Override
 	public int getMouseScroll() {
 		return 0;
 	}

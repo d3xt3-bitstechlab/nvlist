@@ -516,7 +516,7 @@ function TextLogScreen:run()
 	viewport:scrollTo(1)
 		
 	--User interaction loop
-	while not input:consumeCancel() and not input:consumeKey(Keys.DOWN) do
+	while not input:consumeCancel() and not input:consumeDown() do
 		if returnButton:consumePress() then
 			break
 		end
@@ -622,6 +622,7 @@ function ChoiceScreen:fadeButtons(visible, speed)
 end
 
 function ChoiceScreen:run()
+	self.selected = -1
 	self:layout()
 
 	self:fadeButtons(false, 1)
@@ -631,6 +632,8 @@ function ChoiceScreen:run()
 	local selected = -1
 	local len = #self.options
 	while selected < 0 and len > 0 do
+		local oldb = self.buttons[focusIndex]
+		
 		if input:consumeUp() then
 			focusIndex = math.max(1, focusIndex - 1)
 		end
@@ -638,15 +641,16 @@ function ChoiceScreen:run()
 			focusIndex = math.min(#self.buttons, focusIndex + 1)
 		end
 
+		local newb = self.buttons[focusIndex]
+		if oldb ~= newb then
+			if oldb ~= nil then oldb.button:setKeyboardFocus(false) end
+			if newb ~= nil then newb.button:setKeyboardFocus(true) end
+		end
+
 		if input:consumeCancel() then
 			self:fadeButtons(false)
 			self:cancel()
 			return --We must return immediately after calling cancel
-		end
-		if input:consumeConfirm() then
-			self:onButtonPressed(focusIndex)
-			selected = focusIndex - 1
-			break
 		end
 
 		for i,b in ipairs(self.buttons) do
@@ -671,9 +675,7 @@ end
 
 function ChoiceScreen:cancel()
 	self.cancelled = true
-	for i,b in ipairs(self.buttons) do
-		b:destroy()
-	end
+	destroyValues(self.buttons)
 	self.buttons = {}
 end
 

@@ -24,6 +24,7 @@ public abstract class BaseButtonDrawable extends BaseImageDrawable implements IB
 	private boolean enabled;	
 	private boolean selected;
 	private boolean toggle;
+	private boolean keyboardFocus;
 	private int pressEvents;
 	private double padding;
 	private Set<Integer> activationKeys;
@@ -54,7 +55,9 @@ public abstract class BaseButtonDrawable extends BaseImageDrawable implements IB
 	@Override
 	public void removeActivationKeys(int... keys) {
 		for (int key : keys) {
-			activationKeys.remove(key);
+			if (activationKeys.remove(key)) {
+				keyArmed = false;
+			}
 		}
 	}
 	
@@ -86,23 +89,24 @@ public abstract class BaseButtonDrawable extends BaseImageDrawable implements IB
 			markChanged();
 		}
 
-		boolean visibleEnough = getAlpha() >= alphaEnableThreshold;
+		boolean visibleEnough = (getAlpha() >= alphaEnableThreshold);
 		
 		double x = input.getMouseX();
 		double y = input.getMouseY();
 				
-		boolean r = layer.contains(x, y) && contains(x, y) && visibleEnough;
-		
+		boolean inputHeld = isInputHeld(input);
+		boolean contains = layer.contains(x, y) && contains(x, y) && visibleEnough;
+		boolean r = contains && (mouseArmed || keyArmed || !inputHeld);
 		if (rollover != r) {
 			rollover = r;
 			markChanged();
 		}
 		
 		if (isEnabled() && visibleEnough) {
-			consumeInput(input);
+			consumeInput(input, contains);
 			
-			if ((mouseArmed || keyArmed) && !isInputHeld(input)) {
-				if ((mouseArmed && rollover) || keyArmed) {
+			if ((mouseArmed || keyArmed) && !inputHeld) {
+				if ((mouseArmed && contains) || keyArmed) {
 					onPressed();
 				}
 				mouseArmed = keyArmed = false;
@@ -155,10 +159,16 @@ public abstract class BaseButtonDrawable extends BaseImageDrawable implements IB
 		return consumed;
 	}
 	
-	protected void consumeInput(IInput input) {
-		if (rollover && input.consumeMouse()) {			
+	protected void consumeInput(IInput input, boolean mouseContains) {
+		if (mouseContains && input.consumeMouse()) {			
 			mouseArmed = true;
 			keyArmed = false;
+			markChanged();
+			return;
+		}
+		if (keyboardFocus && input.consumeConfirm()) {
+			mouseArmed = false;
+			keyArmed = true;
 			markChanged();
 			return;
 		}
@@ -174,6 +184,9 @@ public abstract class BaseButtonDrawable extends BaseImageDrawable implements IB
 	
 	protected boolean isInputHeld(IInput input) {
 		if (input.isMouseHeld()) {
+			return true;
+		}
+		if (keyboardFocus && input.isConfirmHeld()) {
 			return true;
 		}
 		for (Integer key : activationKeys) {
@@ -192,7 +205,7 @@ public abstract class BaseButtonDrawable extends BaseImageDrawable implements IB
 
 	@Override
 	public boolean isPressed() {
-		return keyArmed || mouseArmed;
+		return keyArmed || (rollover && mouseArmed);
 	}
 	
 	@Override
@@ -258,6 +271,11 @@ public abstract class BaseButtonDrawable extends BaseImageDrawable implements IB
 	@Override
 	public boolean isToggle() {
 		return toggle;
+	}
+	
+	@Override
+	public boolean isKeyboardFocus() {
+		return keyboardFocus;
 	}
 	
 	//Setters	
@@ -343,6 +361,17 @@ public abstract class BaseButtonDrawable extends BaseImageDrawable implements IB
 	public void setToggle(boolean t) {
 		if (toggle != t) {
 			toggle = t;
+			markChanged();
+		}
+	}
+	
+	@Override
+	public void setKeyboardFocus(boolean f) {
+		if (keyboardFocus != f) {
+			keyboardFocus = f;
+			if (!keyboardFocus) {
+				keyArmed = false;
+			}
 			markChanged();
 		}
 	}

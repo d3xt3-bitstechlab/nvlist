@@ -498,13 +498,13 @@ function choice2(uniqueChoiceId, ...)
 		while not c:isCancelled() and c:getSelected() < 0 do
 			yield(2)
 		end
+		selected = c:getSelected()
 		
 		if thread ~= nil then
 			thread:destroy()
 			thread = nil
 		end
 		
-		selected = c:getSelected()
 		if not c:isCancelled() then
 			c:cancel()
 		end

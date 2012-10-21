@@ -353,9 +353,17 @@ function Viewport:layout(scrollOnly)
 		local bottomY = newY + c:getHeight()
 		c:setPos(newX, newY)
 		if bottomY < 0 or newY > h then
-			c:setVisible(false)
+			if c.setVisible ~= nil then
+				c:setVisible(false)
+			else
+				c:setAlpha(0)
+			end
 		else
-			c:setVisible(true)
+			if c.setVisible ~= nil then
+				c:setVisible(true)
+			else
+				c:setAlpha(1)
+			end
 		end		
 	end
 
