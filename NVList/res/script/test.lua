@@ -138,4 +138,45 @@ require("gui/gallery")
 imageGallery("cg")
 ]]
 
+--[[ Viewports demo
+local viewports = {}
+for i=1,4 do
+    local viewport = Viewport.new{x=50 + 200 * i, y=50, w=150, h=225}
+    viewport:openLayer()
+
+    local cs = {
+        img("white", {y=0, size={100, 100}}),
+        img("white", {y=125, size={100, 100}, colorRGB=0xFF0000}),
+        img("white", {y=250, size={100, 100}, colorRGB=0x00FF00}),
+        img("white", {y=375, size={100, 100}, colorRGB=0xFFFF00})
+    }
+    for j=i+1,4 do
+        rm(cs[j])
+        cs[j] = nil
+    end
+    
+    viewport:closeLayer(cs)
+    table.insert(viewports, viewport)
+end
+
+while true do
+    for _,viewport in ipairs(viewports) do
+        viewport:update()
+    end
+    yield()
+end
+destroyValues(viewports)
+]]
+
+--[[ ParallelAnimator/FunctorAnimator loop test
+local i = img("white")
+
+local anim1 = Anim.createTween(i, "pos", {0, 0}, {screenWidth, 0}, 120)
+local anim2 = Anim.createTween(i, "color", {1, 1, 1}, {1, 0, 0}, 60)
+local anim3 = Anim.fromFunction(function(f) print("F: " .. f) end, 60)
+local anim = Anim.par(anim1, anim2, anim3):run(3)
+
+text("Done")
+]]
+
 return titlescreen()

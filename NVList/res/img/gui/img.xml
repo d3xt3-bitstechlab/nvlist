@@ -67,16 +67,30 @@
     <subrect id="quit-disabled"  rect="257,449,254,62" />
   </image>
 
-  <image filename="textlog.png" width="512" height="512">
+  <image filename="textlog.png" width="256" height="320">
     <subrect id="return-normal"   rect="  1,  1,254, 62" />
     <subrect id="return-rollover" rect="  1, 65,254, 62" />
     <subrect id="return-pressed"  rect="  1,129,254, 62" />
     <subrect id="return-disabled" rect="  1,193,254, 62" />
-    <subrect id="vfade"           rect="  0,256, 16,256" />
-    <subrect id="edge-top"        rect="129,257, 62, 62" />
-    <subrect id="edge-bottom"     rect="193,257, 62, 62" />
+    <subrect id="edge-top"        rect="  1,257, 62, 62" />
+    <subrect id="edge-bottom"     rect=" 65,257, 62, 62" />
+  </image>
+  
+  <image filename="components.png" width="256" height="512">
+    <subrect id="button-normal"   rect="  1,  1,254, 62" />
+    <subrect id="button-rollover" rect="  1, 65,254, 62" />
+    <subrect id="button-pressed"  rect="  1,129,254, 62" />
+    <subrect id="button-disabled" rect="  1,193,254, 62" />
+    <subrect id="fade-up"         rect="  1,256, 14,255" />
+    <subrect id="fade-down"       rect=" 33,257, 14,255" />
     <subrect id="scroll-thumb"    rect=" 64,256, 16, 64" />
     <subrect id="scroll-bg"       rect=" 96,256, 16,256" />
+    <subrect id="button-small-normal"   rect="128,256, 63, 63" />
+    <subrect id="button-small-rollover" rect="128,320, 63, 63" />
+    <subrect id="button-small-pressed"  rect="128,384, 63, 63" />
+    <subrect id="button-small-disabled" rect="128,448, 63, 63" />
+    <subrect id="edge-top"        rect="193,257, 62, 62" />
+    <subrect id="edge-bottom"     rect="193,321, 62, 62" />
   </image>
   
   <image filename="test-button.png" width="254" height="244">

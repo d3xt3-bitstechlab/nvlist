@@ -250,12 +250,6 @@
 
   <!-- Prepare the dist folder for library distribution -->
   <target name="dist-lib" depends="dist-src">
-    <!-- ZIP source code -->
-    <zip basedir="src" destfile="${dist.dir}/lib/${library.name}-src.zip" />
-    <delete includeemptydirs="true">
-      <fileset dir="${dist.dir}/src" includes="**/*" />
-    </delete>
-
     <!-- Copy extra-dist-files to the main folder -->
     <copy todir="${dist.dir}">
       <fileset dir="${build-res.dir}/extra-dist-files" />

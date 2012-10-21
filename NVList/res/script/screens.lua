@@ -8,6 +8,9 @@
 --  Save/Load Screen
 -- ----------------------------------------------------------------------------
 
+local KEY_SAVE_LAST = "vn.save.lastSaved" --Property value gets set in onSave()
+local KEY_SAVE_PAGE = "vn.save.lastPage"
+
 local SaveSlot = {
 	slot=1,
 	button=nil,
@@ -154,7 +157,7 @@ end
 
 local SaveLoadScreen = {
 	isSave=false,
-	page=1,
+	page=nil,
 	pages=10,
 	selected=0,
 	metaData=nil, --Meta data Lua table added to the save data.
@@ -187,6 +190,7 @@ local SaveLoadScreen = {
 function SaveLoadScreen.new(self)
 	self = extend(SaveLoadScreen, self)
 				
+	self.page = self.page or getSharedGlobal(KEY_SAVE_PAGE) or 1
 	self.pad = self.pad or math.min(self.w, self.h) / 100
 				
 	self.saves = {}
@@ -299,7 +303,7 @@ function SaveLoadScreen:initQSaves()
 			end
 			
 			local ss = self.newSaveSlot{slot=slot, label=label, empty=empty,
-				isSave=self.isSave, new=new, compact=true}
+				isSave=self.isSave, new=false, compact=true}
 			table.insert(self.qsaves, ss)
 		end
 	end
@@ -404,6 +408,8 @@ function SaveLoadScreen:run()
 		yield()
 	end
 	
+	setSharedGlobal(KEY_SAVE_PAGE, self:getPage())
+	
 	return self.selected, self.metaData
 end
 
@@ -412,30 +418,23 @@ end
 -- ----------------------------------------------------------------------------
 
 local TextLogScreen = {
-	textLayer=nil
+	viewport=nil,
 }
 
 function TextLogScreen.new(self)
 	self = extend(TextLogScreen, self)
 	
-	self.textLayer = createLayer("textLog")
-	
 	return self
 end
 
 function TextLogScreen:destroy()
-	if self.textLayer ~= nil then
-		self.textLayer:destroy()
-		self.textLayer = nil
+	if self.viewport ~= nil then
+		self.viewport:destroy()
+		self.viewport = nil
 	end
 end
 
-function TextLogScreen:run()
-	local delay = 1
-	if System.isLowEnd() then
-		delay = 2
-	end
-	
+function TextLogScreen:run()	
     local pathPrefix = "gui/textlog#"
     if android then
         pathPrefix = "android/textlog#"
@@ -451,25 +450,22 @@ function TextLogScreen:run()
     local w = screenWidth
     local h = screenHeight
 	local sz = math.min(w, h)
-	local layerPad = sz / 32
-	local bh       = 0.15 * sz
-	local opad     = 0.05 * sz
-	local snapbackSpeed = 10 / delay
-	local inertia = math.pow(.80, delay)
+	local vpad  = 0.03 * sz
+	local bh    = 0.15 * sz
 	local tl = textState:getTextLog()
 	local pages = tl:getPageCount()
 	if System.isLowEnd() then
 		pages = math.min(pages, 25) --Limit number of pages
 	end
 	local page = pages-1
-	local lw = w-layerPad*2-opad
-	local lh = h-bh-layerPad*2
+	local lw = w
+	local lh = h-bh-vpad*2
     
     --Create edge images
     if not android then
-		local topEdge = timg("edge-top", {bounds={0, 0, w, layerPad}, z=10})
+		local topEdge = timg("edge-top", {bounds={0, 0, w, vpad}, z=10})
 	end
-	local bottomEdge = timg("edge-bottom", {bounds={0, h-bh-layerPad+1, w, bh+layerPad}, z=10})
+	local bottomEdge = timg("edge-bottom", {bounds={0, h-bh-vpad+1, w, bh+vpad}, z=10})
     
 	--Create controls
 	local returnButton = tbutton("return-")
@@ -480,54 +476,33 @@ function TextLogScreen:run()
 	end
 	returnButton:addActivationKeys(Keys.RIGHT, Keys.DOWN)
     
-	local buttonBarLayout = GridLayout.new{y=h-bh-layerPad, w=w, h=bh+layerPad, pad=bh/4, pack=5, children={returnButton}}
+	local buttonBarLayout = GridLayout.new{y=h-bh-vpad, w=w, h=bh+vpad, pad=bh/4, pack=5, children={returnButton}}
 	buttonBarLayout:layout()    
 
-	--Create scroll indicator    
-    local scrollOffset = layerPad + opad
-    if android then
-    	scrollOffset = scrollOffset + opad --Make extra room for
-    end
-
-	local scrollThumb = timg("scroll-thumb")    
-	local scrollThumbScale = .5 * layerPad / scrollThumb:getUnscaledWidth()
-	scrollThumb:setScale(scrollThumbScale, scrollThumbScale)
-	scrollThumb:setPos(w-scrollThumb:getWidth()-opad, scrollOffset)
-
-	local scrollRangeEx = lh - (scrollOffset-layerPad) - opad
-    local scrollRange = scrollRangeEx - scrollThumb:getHeight()
+	--Create viewport and fill with text pages
+	viewport = Viewport.new{pad=vpad, scrollBarPad=vpad}
+	viewport:setBounds(0, vpad, lw, lh)
 	
-    local scrollBar = timg("scroll-bg")
-    scrollBar:setPos(scrollThumb:getX(), scrollOffset)
-    scrollBar:setScale(scrollThumbScale, scrollRangeEx / scrollBar:getUnscaledHeight())
-
-    local scrollComponents = {scrollBar, scrollThumb}
-    for i,v in ipairs(scrollComponents) do
-        v:setZ(-i)
-    end
-    
-	--Create layer
-	self.textLayer:setBounds(layerPad, layerPad, lw, lh)
-	setImageLayer(self.textLayer)
-
-	--Create TextDrawables for the pages
 	local pd = {}
-	local yoffset = {}
+	local x = 0
 	local y = 0
     local defaultStyle = prefs.textLogStyle or createStyle{color=0xFFFFFF80}
+    local iw = viewport:getInnerWidth()
+    
+    viewport:openLayer()
 	for p=pages,1,-1 do
-		local t = textimg()		
-		t:setSize(lw, 999999)
+		local t = textimg()
+		t:setPos(x, y)
+		t:setSize(iw, 999999)
 		t:setDefaultStyle(defaultStyle)
 		t:setText(tl:getPage(-p))
-		t:setSize(lw, t:getTextHeight())
+		t:setSize(iw, t:getTextHeight())
 		
 		if System.isLowEnd() then
 			t:setBlendMode(BlendMode.OPAQUE)
 		end
 		
 		pd[p] = t
-		yoffset[p] = y
 		y = y + t:getTextHeight()
 		if p > 1 then
 			--Not the final page, add spacing equal to
@@ -537,107 +512,15 @@ function TextLogScreen:run()
 			end
 		end
 	end
-
-	--Create fading edges    
-	local bottomFade = timg("vfade", {colorRGB=0, z=-100, size={lw, opad}})
-	bottomFade:setPos(0, lh-bottomFade:getHeight()+1)
-
-	local topFade = timg("vfade", {colorRGB=0, z=-100, size={lw, -opad}})
-	topFade:setPos(0, math.abs(topFade:getHeight()))
-
-	setImageLayer(nil)
-
-	--Scroll up so the last TextDrawable is aligned with the bottom of the screen
-	local minY = math.min(opad, lh - y - opad)
-	local maxY = math.max(opad, minY)
-	y = math.min(maxY, minY)
-	
+	viewport:closeLayer(pd)
+	viewport:scrollTo(1)
+		
 	--User interaction loop
-	if math.abs(minY - maxY) < 1 then
-        for _,v in pairs(scrollComponents) do
-            v:setAlpha(0)
-        end
-	end
-		
-	local dy = 0
-	local my = -1
-    local snap = snapbackSpeed
-	local layoutNeeded = true    
-	while not input:consumeCancel() and not input:consumeKey(Keys.DOWN) do				
-		--Calculate mouse drag
-		if input:isMouseHeld() then
-            snap = snapbackSpeed        
-            
-			local newMY = input:getMouseY()
-			if newMY >= 0 then
-				if my >= 0 then
-					dy = newMY - my
-				end
-				my = newMY
-			end
-		else
-			if dy ~= 0 then
-				dy = dy * inertia
-			end
-            
-            local mscroll = (lh/50) * -input:getMouseScroll()
-            if mscroll ~= 0 then
-                snap = 1
-                dy = mscroll
-            end
-            
-			my = -1
-		end
-		
-		--Handle button presses
+	while not input:consumeCancel() and not input:consumeDown() do
 		if returnButton:consumePress() then
 			break
 		end
-		
-		--Update and limit y
-		if dy > -1 and dy < 1 then
-			dy = 0
-		else
-			y = y + dy
-			layoutNeeded = true
-		end
-		
-		if not input:isMouseHeld() then
-			if y > maxY then
-				y = math.max(maxY, y + (maxY - y) / snap)
-				if math.abs(y-maxY) < 1 then
-					y = maxY
-				end
-				layoutNeeded = true
-			elseif y < minY then
-				y = math.min(minY, y + (minY - y) / snap)
-				if math.abs(y-minY) < 1 then
-					y = minY
-				end
-				layoutNeeded = true
-			end
-		end
-
-		--Layout components
-		if layoutNeeded then
-			for i,t in ipairs(pd) do
-				local newY = yoffset[i] + y
-				if newY + t:getHeight() < 0 or newY > lh then
-					t:setAlpha(0)
-				else
-					t:setPos(0, newY)
-					t:setAlpha(1)
-				end
-			end
-	
-			if scrollThumb:getAlpha() > 0 then		
-				scrollThumb:setPos(scrollThumb:getX(), scrollOffset + scrollRange
-					- scrollRange * math.max(0, math.min(1, (y-minY)/(maxY-minY))))
-			end
-			
-			layoutNeeded = false
-		end
-		
+		viewport:update()		
 		yield()
 	end	
 end
@@ -739,6 +622,7 @@ function ChoiceScreen:fadeButtons(visible, speed)
 end
 
 function ChoiceScreen:run()
+	self.selected = -1
 	self:layout()
 
 	self:fadeButtons(false, 1)
@@ -748,6 +632,8 @@ function ChoiceScreen:run()
 	local selected = -1
 	local len = #self.options
 	while selected < 0 and len > 0 do
+		local oldb = self.buttons[focusIndex]
+		
 		if input:consumeUp() then
 			focusIndex = math.max(1, focusIndex - 1)
 		end
@@ -755,15 +641,16 @@ function ChoiceScreen:run()
 			focusIndex = math.min(#self.buttons, focusIndex + 1)
 		end
 
+		local newb = self.buttons[focusIndex]
+		if oldb ~= newb then
+			if oldb ~= nil then oldb.button:setKeyboardFocus(false) end
+			if newb ~= nil then newb.button:setKeyboardFocus(true) end
+		end
+
 		if input:consumeCancel() then
 			self:fadeButtons(false)
 			self:cancel()
 			return --We must return immediately after calling cancel
-		end
-		if input:consumeConfirm() then
-			self:onButtonPressed(focusIndex)
-			selected = focusIndex - 1
-			break
 		end
 
 		for i,b in ipairs(self.buttons) do
@@ -788,9 +675,7 @@ end
 
 function ChoiceScreen:cancel()
 	self.cancelled = true
-	for i,b in ipairs(self.buttons) do
-		b:destroy()
-	end
+	destroyValues(self.buttons)
 	self.buttons = {}
 end
 

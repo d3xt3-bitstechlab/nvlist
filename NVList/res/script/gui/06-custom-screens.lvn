@@ -97,26 +97,302 @@ Click to show a customized version of the save screen.
 
 local oldSave = Screens.save
 
+local SaveSlot = {
+	slot=1,
+	button=nil,
+	image=nil,
+	label=nil,
+	isSave=false,
+	empty=true,
+	new=false,
+	newImage=nil,
+	compact=false,
+	backgroundImagePath="gui/savescreen#slotButton-"
+	}
+
+function SaveSlot.new(self)
+	self = GUIComponent.new(extend(SaveSlot, self))
+	
+	local buttonImagePath = "gui/savescreen#slotButton-"
+	if self.compact then
+		buttonImagePath = "gui/savescreen#quicksave-"
+	end
+	local b = button(buttonImagePath)
+	b:setToggle(true)
+	b:setEnabled(self.isSave or not self.empty)
+	
+	local l = textimg(self.label)
+	--l:setBackgroundColorARGB(0xA0000000)
+	l:setZ(b:getZ() - 10)
+	l:setPadding(8)
+	l:setAnchor(1)
+	
+	local i = nil	
+	local newI = nil
+	if not self.compact then
+		if self.screenshot ~= nil then
+			i = img(self.screenshot)
+		elseif not self.empty then
+			i = img("gui/savescreen#noImage")
+		end
+		if i ~= nil then
+			i:setZ(b:getZ() - b:getWidth()/2)	
+		end
+		
+		if self.new and not self.empty then
+			newI = img("gui/savescreen#newSave")
+			newI:setZ(i:getZ() - 1)
+		end
+	end
+
+	self.button = b
+	self.image = i
+	self.label = l
+	self.newImage = newI
+	
+    self:setSize(b:getWidth(), b:getHeight())
+
+	return self
+end
+
+function SaveSlot:destroy()
+    destroyValues(self.button, self.image, self.newImage, self.label)
+end
+
+function SaveSlot:layout()
+	local i = self.image
+	local b = self.button	
+	local newI = self.newImage
+	if newI ~= nil then
+		if i ~= nil then	
+			--Align with top-right of screenshot
+			newI:setPos(i:getX() + i:getWidth() - newI:getWidth(), i:getY())
+		else
+			--Align with top-right of button
+			newI:setPos(b:getX() + b:getWidth() - newI:getWidth(), b:getY())
+		end
+	end
+end
+
+function SaveSlot:setBounds(x, y, w, h)
+	local b = self.button
+	local l = self.label
+	local i = self.image
+	
+	local scale = math.min(w / b:getUnscaledWidth(), h / b:getUnscaledHeight())
+	b:setScale(scale, scale)
+	b:setPos(x + (w-b:getWidth())/2, y + (h-b:getHeight())/2)
+    
+    GUIComponent.setBounds(self, b:getX(), b:getY(), b:getWidth(), b:getHeight())
+
+	l:setPos(x, y + b:getHeight() - l:getHeight())
+	l:setDefaultStyle(createStyle{fontName="sans serif", anchor=5, fontSize=scale * 16, shadowDx=1, shadowDy=1})
+
+	if i ~= nil then	
+		local pad = (b:getWidth() - i:getWidth())/2
+		i:setPos(x + pad, y + pad)
+		local imgScale = scale * math.min(224 / i:getUnscaledWidth(), 126 / i:getUnscaledHeight())
+		i:setScale(imgScale, imgScale)
+		
+		l:setSize(b:getWidth(), b:getHeight()-i:getHeight())
+	else	
+		l:setSize(b:getWidth(), b:getHeight())
+	end	
+
+	self:layout()
+end
+
+function SaveSlot:update()
+end
+
+-- ----------------------------------------------------------------------------
+
 local SaveScreen = {
-    rows=2,
-    cols=2,
-    pages=5,
-    x=screenWidth/2,
-    w=screenWidth/2,
-    pad=2,
-    qcols=getAutoSaveSlots(), --Columns for quick/auto saves layout
-    qh=screenHeight/7,        --Quick/auto save height
-    qpack=5,
-}
+	isSave=false,
+	selected=0,
+    startSlot=1,
+    endSlot=25,
+	metaData=nil, --Meta data Lua table added to the save data.
+	newSaveSlot=SaveSlot.new,
+	x=0,
+	y=0,
+	w=screenWidth/2,
+	h=screenHeight,
+	pad=nil,
+	--GUI Components
+    viewport=nil,
+	saves=nil,
+	okButton=nil,
+	cancelButton=nil,
+	}
 
 function SaveScreen.new(self)
-    self = oldSave.new(extend(SaveScreen, self))
+	self = extend(SaveScreen, self)
+				
+	self.pad = self.pad or math.min(self.w, self.h) / 100
+				
+	self.saves = {}
+	self.qsaves = {}		
+	
+	local okText = "Load"
+	if self.isSave then
+		okText = "Save"
+	end
+	self.okButton = TextButton.new("gui/savescreen#button-", okText)
+	
+	self.cancelButton = TextButton.new("gui/savescreen#button-", "Cancel")
+	
+	local sz = self.okButton:getHeight() / 2.5	
+	local buttonStyle = createStyle{fontName="sans serif", fontStyle="bold", fontSize=sz, shadowColor=0}
+	self.okButton.text:setDefaultStyle(buttonStyle)
+	self.cancelButton.text:setDefaultStyle(buttonStyle)
     
-    --Hide top/bottom colored edges
-    self.topFade:setAlpha(0)
-    self.bottomFade:setAlpha(0)
+	self:initSaves()
+
+	return self
+end
+
+function SaveScreen:destroy()
+	destroyValues{self.okButton, self.cancelButton}
+    self:destroyViewport()
+end
+
+function SaveScreen:destroyViewport()
+	destroyValues(self.saves)
+	self.saves = {}
     
-    return self
+	if self.viewport ~= nil then
+		self.viewport:destroy()
+		self.viewport = nil
+	end
+end
+
+function SaveScreen:layout()
+	local x = self.x
+	local y = self.y
+	local w = self.w
+	local h = self.h	
+	local ipad = self.pad
+
+	local vpad = h / 7
+	local mainW = w-ipad*2
+	local mainH = h-ipad*2 - vpad 
+
+    local viewport = self.viewport    
+    viewport:setBounds(x+ipad, y+ipad, mainW, mainH)
+
+    local saveLayout = FlowLayout.new{w=viewport:getInnerWidth(true), cols=1, pad=ipad, children=self.saves, pack=8}
+	saveLayout:layout()
+    viewport:layoutVirtual()
+    viewport:layout()
+    
+	local buttonBarLayout = GridLayout.new{x=x, y=y+h-vpad, w=w, h=vpad, pad=ipad, pack=5,
+		children={self.okButton, self.cancelButton}}
+    buttonBarLayout:layout()
+end
+
+function SaveScreen:initSaves()
+    self:destroyViewport()
+
+    local viewport = Viewport.new{pad=screenHeight*.03, scrollBarPad=screenHeight*.03}
+    viewport:openLayer()
+    --local temp = img("white", {size={screenWidth, screenHeight}})
+	for pass=1,3 do
+		local defaultLabel = "autosave"
+		local startSlot = Save.getAutoSaveSlot(1)
+		local endSlot = startSlot + getAutoSaveSlots()
+        local compact = true
+        local sortFunc = function(x, y)
+        	return x:getTimestamp() > y:getTimestamp()
+        end
+		if pass == 2 then
+			startSlot = Save.getQuickSaveSlot(1)
+			endSlot = startSlot + 1
+			defaultLabel = "quicksave"
+        elseif pass == 3 then
+            startSlot = self.startSlot
+            endSlot = self.endSlot
+            compact = false
+            sortFunc = function(x, y)
+                return x:getSlot() > y:getSlot()
+            end
+            
+            if self.isSave then
+                local freeSlot = getFreeSaveSlot()
+                local ss = self.newSaveSlot{slot=freeSlot, label="New Save", screenshot=tex("gui/savescreen#newSlot"),
+                    empty=true, isSave=true, compact=false}
+                table.insert(self.saves, ss)
+            end
+		end
+
+		local saved = Save.getSaves(startSlot, endSlot)
+		local sorted = {}
+		for _,si in pairs(saved) do
+			table.insert(sorted, si)
+		end
+        table.sort(sorted, sortFunc)
+        
+		for i=1,endSlot-startSlot do
+			local slot = i
+			local label = "Empty\n" .. defaultLabel .. " " .. slot
+			local empty = true
+            local screenshot = nil
+            local new = false
+			
+			local si = sorted[i]
+			if si ~= nil then
+				slot = si:getSlot()
+				empty = false
+                if compact then
+				    label = defaultLabel .. " " .. i .. "\n" .. si:getDateString()
+                else
+                    label = si:getLabel()
+                    screenshot = si:getScreenshot()
+                    new = (getSharedGlobal("vn.save.lastSaved") == i)
+                end
+			
+			    local ss = self.newSaveSlot{slot=slot, label=label, screenshot=screenshot, empty=empty,
+				    isSave=self.isSave, new=new, compact=compact}
+			    table.insert(self.saves, ss)
+			end
+		end
+	end
+    viewport:closeLayer(self.saves)
+    self.viewport = viewport
+end
+
+function SaveScreen:setSelected(s)
+	self.selected = s
+	for _,save in ipairs(self.saves) do
+		save.button:setSelected(save.slot == s)
+	end
+end
+
+function SaveScreen:run()
+	self:layout()
+
+	while not input:consumeCancel() do
+		for _,save in ipairs(self.saves) do
+			save:update()
+			if save.button:consumePress() then
+				self:setSelected(save.slot)
+				break
+			end
+		end
+		
+		self.okButton.button:setEnabled(self.selected ~= 0)
+		if self.okButton.button:consumePress() then
+			break
+		elseif self.cancelButton.button:consumePress() then
+			self.selected = 0
+			break
+		end
+		
+        self.viewport:update()
+		yield()
+	end
+	
+	return self.selected, self.metaData
 end
 
 Screens.save = SaveScreen

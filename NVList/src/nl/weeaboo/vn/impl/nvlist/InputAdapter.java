@@ -102,10 +102,21 @@ public class InputAdapter extends EnvironmentSerializable implements IInput {
 	}
 	
 	@Override
+	public boolean isConfirmHeld() {
+		return isKeyHeld(VKey.BUTTON2.toKeyCode(1));
+	}
+	
+	@Override
 	public boolean consumeConfirm() {
 		return consumeKey(VKey.BUTTON2.toKeyCode(1));
 	}
 
+	@Override
+	public boolean isCancelHeld() {
+		return input.isMouseHeld(MouseEvent.BUTTON3)
+			|| isKeyHeld(VKey.BUTTON3.toKeyCode(1));
+	}
+	
 	@Override
 	public boolean consumeCancel() {
 		return input.consumeMouse(MouseEvent.BUTTON3)
