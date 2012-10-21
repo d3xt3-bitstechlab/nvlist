@@ -333,7 +333,6 @@ end
 
 function FilmstripAnimator:update()
 	if self.obj:isDestroyed() then
-		print("BOOM")
 		self:destroy()
 		return
 	end
@@ -385,6 +384,24 @@ end
 
 function FilmstripAnimator.setTexture(i, tex0, tex1, frac)
 	i:setTexture(tex0) --Don't fade or anything, just show the current tex until it's done
+end
+
+-- ----------------------------------------------------------------------------
+
+local FunctorAnimator = {
+	func=nil
+}
+
+function FunctorAnimator.new(self)
+	return extend(Animator, FunctorAnimator, self)
+end
+
+function FunctorAnimator:update()
+	local frac = 0
+	if self.duration > 0 then
+		frac = self.time / self.duration
+	end
+	self.func(frac)
 end
 
 -- ----------------------------------------------------------------------------
@@ -475,6 +492,19 @@ end
 -- @param duration The wait duration in frames
 function Anim.createWait(duration)
 	return WaitAnimator.new{
+		duration=duration
+		}
+end
+
+---Returns an Animator wrapping the given function. The Animator (once started)
+-- will call the function every frame with one argument:
+-- <code>time / duration</code>.
+-- @param func The function to call every frame
+-- @param duration The duration of the animation in frames (holding the skip key
+--        can cause the animation to advance multiple frames at once).
+function Anim.fromFunction(func, duration)
+	return FunctorAnimator.new{
+		func=func,
 		duration=duration
 		}
 end
