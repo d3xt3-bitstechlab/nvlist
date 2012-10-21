@@ -68,8 +68,8 @@ end
 
 ---Calls <code>start</code>, and waits for the background thread to finish.
 -- @see Animator:start
-function Animator:run()
-    self:start()
+function Animator:run(...)
+    self:start(...)
     Anim.waitFor(self)
 end
 
@@ -132,21 +132,40 @@ function ParallelAnimator:multicall(func, ...)
 end
 
 function ParallelAnimator:start(loops)
-	self:multicall("start", loops)
+	self.loops = loops or self.loops or 1
+	destroyAnimatorThread(self)
+		
+	self:multicall("start", 1)
+	
+    self.thread = newThread(function()
+        while not self.destroyed do
+        	local running = false
+			for _,anim in pairs(self.anims) do
+				if anim:isRunning() then
+					running = true
+					break
+				end
+			end
+        
+        	if not running then
+            	self:onLoopEnd()
+            	if self.loops == 0 then
+	                self:finish()
+	                return --Thread gets killed inside finish() anyway...
+	            else
+	            	self:multicall("start", 1)
+	            end
+	        end
+	        
+        	yield()
+        end
+    end)
+	
 	self:update()
 end
 
 function ParallelAnimator:update()
 	return self:multicall("update")
-end
-
-function ParallelAnimator:isRunning()
-	for _,anim in pairs(self.anims) do
-		if anim:isRunning() then
-			return true
-		end
-	end
-	return false
 end
 
 function ParallelAnimator:destroy()
