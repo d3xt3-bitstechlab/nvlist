@@ -85,13 +85,15 @@ final class LayerContents implements Externalizable {
 	
 	private void removeDestroyed() {
 		//Remove destroyed objects
-		for (Iterator<IDrawable> itr = drawables.iterator(); itr.hasNext(); ) {
-			IDrawable d = itr.next();
-			if (d == null || d.isDestroyed()) {
-				itr.remove();
-				invalidatePreSorted();
+		if (!drawables.isEmpty()) {
+			for (Iterator<IDrawable> itr = drawables.iterator(); itr.hasNext(); ) {
+				IDrawable d = itr.next();
+				if (d == null || d.isDestroyed()) {
+					itr.remove();
+					invalidatePreSorted();
+				}
 			}
-		}		
+		}
 	}
 	
 	protected void invalidatePreSorted() {

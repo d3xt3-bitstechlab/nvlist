@@ -122,14 +122,31 @@
   </section>
   
   <section title="Special" level="2">
-    <section title="Keys" level="3">
-      <p>Lua table storing the mapping from key names to key codes for use with <code>input</code>.</p>
-    </section>
     <section title="prefs" level="3">
       <p>Lua table storing the values of all preferences starting with &quot;vn.&quot;</p>
     </section>
+    <section title="Keys" level="3">
+      <p>Lua table storing the mapping from key names to key codes for use with <code>input</code>.</p>
+    </section>
     <section title="Interpolators" level="3">
       <p>Stores the static fields of <javadoc-link class="nl.weeaboo.vn.impl.base.Interpolators">Interpolators</javadoc-link> as key/value pairs. You can als convert a Lua function to an <javadoc-link class="nl.weeaboo.vn.IInterpolator">IInterpolator</javadoc-link> by calling: <code>Interpolators.get(f)</code> (where f is a function).</p>
+    </section>
+    <section title="Screens" level="3">
+      <p>Lua table storing references to user interface screens. To customize, replace the references with your own compatible implementations or simply change the screen definitions in <code>screens.lua</code>.</p>
+      <table>
+        <tr>
+          <th>Screens.save</th><td>Save screen</td>
+        </tr>
+        <tr>
+          <th>Screens.load</th><td>Load screen</td>
+        </tr>
+        <tr>
+          <th>Screens.choice</th><td>Screen shown when choice() is called</td>
+        </tr>
+        <tr>
+          <th>Screens.textLog</th><td>Screen showing previously read text</td>
+        </tr>
+      </table>
     </section>
   </section>
 

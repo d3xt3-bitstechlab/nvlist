@@ -67,4 +67,8 @@ Showing the text log
     <sourcecode lang="lvn"><![CDATA[Text style: ${prefs.textStyle}]]></sourcecode>
   </section>
   
+  <section title="Custom Special Screens" level="2">
+    <p>The save/load/choice/... screens are defined inside <code>res/script/screens.lua</code> and can be freely edited.</p>
+  </section>
+  
 </section>
