@@ -458,7 +458,7 @@ function TextLogScreen:run()
 		pages = math.min(pages, 25) --Limit number of pages
 	end
 	local page = pages-1
-	local lw = w
+	local lw = w-vpad
 	local lh = h-bh-vpad*2
     
     --Create edge images
@@ -513,7 +513,7 @@ function TextLogScreen:run()
 		end
 	end
 	viewport:closeLayer(pd)
-	viewport:scrollTo(1)
+	viewport:scrollTo(0, 1)
 		
 	--User interaction loop
 	while not input:consumeCancel() and not input:consumeDown() do

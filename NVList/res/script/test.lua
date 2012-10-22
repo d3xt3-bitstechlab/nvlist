@@ -147,7 +147,7 @@ for i=1,4 do
     local cs = {
         img("white", {y=0, size={100, 100}}),
         img("white", {y=125, size={100, 100}, colorRGB=0xFF0000}),
-        img("white", {y=250, size={100, 100}, colorRGB=0x00FF00}),
+        img("white", {x=75, y=250, size={100, 100}, colorRGB=0x00FF00}),
         img("white", {y=375, size={100, 100}, colorRGB=0xFFFF00})
     }
     for j=i+1,4 do

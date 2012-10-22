@@ -83,13 +83,15 @@
     <subrect id="button-disabled" rect="  1,193,254, 62" />
     <subrect id="fade-up"         rect="  1,256, 14,255" />
     <subrect id="fade-down"       rect=" 33,257, 14,255" />
-    <subrect id="scroll-thumb"    rect=" 64,256, 16, 64" />
-    <subrect id="scroll-bg"       rect=" 96,256, 16,256" />
+    <subrect id="scroll-thumb"    rect=" 65,257, 14, 62" />
+    <subrect id="scroll-bg"       rect=" 97,257, 14,126" />
+    <subrect id="scroll-thumb-h"  rect=" 65,449, 62, 14" />
+    <subrect id="scroll-bg-h"     rect=" 65,481,126, 14" />
     <subrect id="button-small-normal"   rect="128,256, 63, 63" />
     <subrect id="button-small-rollover" rect="128,320, 63, 63" />
-    <subrect id="button-small-pressed"  rect="128,384, 63, 63" />
-    <subrect id="button-small-disabled" rect="128,448, 63, 63" />
-    <subrect id="edge-top"        rect="193,257, 62, 62" />
+    <subrect id="button-small-pressed"  rect="192,256, 63, 63" />
+    <subrect id="button-small-disabled" rect="192,320, 63, 63" />
+    <subrect id="edge-top"        rect="129,321, 62, 62" />
     <subrect id="edge-bottom"     rect="193,321, 62, 62" />
   </image>
   

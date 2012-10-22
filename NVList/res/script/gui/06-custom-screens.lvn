@@ -294,7 +294,7 @@ end
 function SaveScreen:initSaves()
     self:destroyViewport()
 
-    local viewport = Viewport.new{pad=screenHeight*.03, scrollBarPad=screenHeight*.03}
+    local viewport = Viewport.new{pad=screenHeight*.03}
     viewport:openLayer()
     --local temp = img("white", {size={screenWidth, screenHeight}})
 	for pass=1,3 do

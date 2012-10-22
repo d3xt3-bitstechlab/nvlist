@@ -7,6 +7,24 @@
 module("vn.gui", package.seeall)
 
 -- ----------------------------------------------------------------------------
+--  Local functions
+-- ----------------------------------------------------------------------------
+
+local function setVisible(c, v)
+	if c == nil then
+		return
+	end
+	if c.setVisible ~= nil then
+		return c:setVisible(v)
+	end	
+	if v then
+		return c:setAlpha(1)
+	else
+		return c:setAlpha(0)
+	end
+end
+
+-- ----------------------------------------------------------------------------
 --  Classes
 -- ----------------------------------------------------------------------------
 
@@ -160,6 +178,101 @@ end
 
 -- ----------------------------------------------------------------------------
 
+local ScrollBar = {
+	w=10,
+	h=10,
+	horizontal=false,
+	bar=nil,
+	thumb=nil,
+	pad=0,
+	scrollFrac=-1,
+}
+
+function ScrollBar.new(self)
+	self = GUIComponent.new(extend(ScrollBar, self))
+
+	local sfx = ""
+	if self.horizontal then
+		sfx = "-h"
+	end
+	
+	if self.thumb == nil then	
+		local thumb = img("gui/components#scroll-thumb" .. sfx, {z=-1002})		
+		if self.horizontal then
+			local scale = self.h / thumb:getUnscaledHeight()
+			thumb:setScale(scale, scale)
+		else
+			local scale = self.w / thumb:getUnscaledWidth()
+			thumb:setScale(scale, scale)
+		end
+		self.thumb = thumb
+	end
+	
+	if self.bar == nil then
+	    local bar = img("gui/components#scroll-bg" .. sfx, {z=-1001})
+		self.bar = bar
+	end
+	
+	self:layout(false)
+	
+	return self
+end
+
+function ScrollBar:destroy()
+	destroyValues(self.thumb, self.bar)
+end
+
+function ScrollBar:layout(scrollOnly)
+	local bar = self.bar
+	local thumb = self.thumb
+	local x = self.x
+	local y = self.y
+	local w = self.w
+	local h = self.h
+	local pad = self.pad
+	local canScroll = (self.scrollFrac >= 0)
+
+	if bar ~= nil then
+		setVisible(bar, canScroll and self.visible)
+		if not scrollOnly then
+			if self.horizontal then
+				bar:setSize(w-pad*2, h)
+				bar:setPos(x+pad, y)
+			else
+				bar:setSize(w, h-pad*2)
+				bar:setPos(x, y+pad)
+			end
+		end
+	end
+	
+	if thumb ~= nil then
+		setVisible(thumb, canScroll and self.visible)
+
+		if self.horizontal then		
+			thumb:setPos(x + pad + self.scrollFrac * (w-pad*2-thumb:getWidth()), y + (h-thumb:getHeight())/2)
+		else
+			thumb:setPos(x + (w-thumb:getWidth())/2, y + pad + self.scrollFrac * (h-pad*2-thumb:getHeight()))
+		end
+	end
+end
+
+function ScrollBar:scrollTo(frac)
+	self.scrollFrac = frac
+	self:layout(true)
+end
+
+function ScrollBar:setVisible(v)
+	self.visible = v
+	self:layout(false)
+end
+
+function ScrollBar:setBounds(x, y, w, h)
+	GUIComponent.setBounds(self, x, y, w, h)	
+	self:layout(false)
+end
+
+-- ----------------------------------------------------------------------------
+
 -- Declares a button/text drawable hybrid
 Viewport = {
 	w=100,
@@ -178,16 +291,14 @@ Viewport = {
 	topEdge=nil,
 	bottomEdge=nil,
 	fadeEdgeLength=screenHeight*.03,
-	scrollBar=nil,
-	scrollThumb=nil,
+	scrollBarX=nil,
+	scrollBarY=nil,
 	scrollBarWidth=screenHeight*.02,
-	scrollBarPad=0,
 	--Internal use
-	lastMouseY=-1,
-	scrollY=0,
-	scrollYMin=0,
-	scrollYMax=0,
-	scrollSpeedY=0,
+	lastMouseX=nil,
+	lastMouseY=nil,
+	scrollX=nil,
+	scrollY=nil,
 	snap=0,
 }
 
@@ -200,6 +311,9 @@ function Viewport.new(self)
 		
 	self.children = self.children or {}
 	self.basePositions = self.basePositions or {}
+	
+	self.scrollX = self.scrollX or {pos=0, min=0, max=0, spd=0}
+	self.scrollY = self.scrollY or {pos=0, min=0, max=0, spd=0}
 	
 	if self.mouseSnap == nil then
 		if System.isLowEnd() then
@@ -216,7 +330,7 @@ function Viewport.new(self)
 end
 
 function Viewport:destroy()
-	destroyValues(self.scrollThumb, self.topEdge, self.bottomEdge)
+	destroyValues(self.scrollBarX, self.scrollBarY, self.topEdge, self.bottomEdge)
 	destroyValues(self.children)	
 	self.children = {}
 	
@@ -237,85 +351,119 @@ end
 function Viewport:getInnerWidth(ignoreScrollBar)
 	local iw = self:getWidth() - self.pad*2
 	if not ignoreScrollBar then
-		iw = iw - self.scrollBarPad*2 - self.scrollBarWidth
+		if self.scrollBarY ~= nil then
+			iw = iw - self.scrollBarY:getWidth()
+		else
+			iw = iw - self.scrollBarWidth
+		end
 	end
 	return iw
 end
 
+function Viewport:getInnerHeight(ignoreScrollBar)
+	local ih = self:getHeight() - self.pad*2
+	if not ignoreScrollBar then
+		if self.scrollBarX ~= nil then
+			ih = ih - self.scrollBarX:getHeight()
+		else
+			ih = ih - self.scrollBarWidth
+		end
+	end
+	return ih
+end
+
 function Viewport:update()
 	local snap = self.snap
+	local mx = self.lastMouseX
 	local my = self.lastMouseY
 
-	local y = self.scrollY
-	local dy = self.scrollSpeedY
-	local minY = self.scrollYMin
-	local maxY = self.scrollYMax
-	local canScroll = (maxY > minY)
-
-	local layoutNeeded = false
+	local scx = self.scrollX
+	local oldxpos = scx.pos
+	local scy = self.scrollY
+	local oldypos = scy.pos
 	
 	local mouseX = input:getMouseX()
 	local mouseY = input:getMouseY()
 	local mouseContained = self.layer:contains(mouseX, mouseY)
 
 	--Calculate mouse drag
-	local dragging = input:isMouseHeld() and (my >= 0 or (mouseContained and input:consumeMouse()))
-	if dragging and canScroll then
+	local dragging = input:isMouseHeld() and (mx ~= nil or my ~= nil or (mouseContained and input:consumeMouse()))
+	if dragging then
 	    snap = self.mouseSnap        
 	    
-		if mouseY >= 0 then
-			if my >= 0 then
-				dy = my - mouseY
-			end
-			my = mouseY
+	    if scy.min < scy.max and my ~= nil then
+			scy.spd = my - mouseY
+		else
+			scy.spd = 0
 		end
+		
+		if scx.min < scx.max and mx ~= nil then
+			scx.spd = mx - mouseX
+		else
+			scx.spd = 0
+		end
+		
+		mx = mouseX
+		my = mouseY
 	else
-		if dy ~= 0 then
-			dy = dy * self.snapInertia
-		end
+		scx.spd = scx.spd * self.snapInertia
+		scy.spd = scy.spd * self.snapInertia
 	    
 	    if mouseContained then
 		    local mscroll = self.scrollWheelSpeed * input:getMouseScroll()
 		    if mscroll ~= 0 then
 		        snap = 1
-		        dy = mscroll
+		        scy.spd = mscroll
 		    end
 		end
-			    
-		my = -1
+		
+		mx = nil
+		my = nil
 	end	
 	
-	--Update and limit y
-	if dy > -1 and dy < 1 then
-		dy = 0
+	--Limit speed and update pos
+	if scx.spd > -1 and scx.spd < 1 then
+		scx.spd = 0
 	else
-		y = y + dy
-		layoutNeeded = true
+		scx.pos = scx.pos + scx.spd
 	end
-	
-	if not dragging or not canScroll then
-		if y < minY then
-			y = math.min(minY, y + (minY - y) * snap)
-			if math.abs(y-minY) < 1 then
-				y = minY
+	if scy.spd > -1 and scy.spd < 1 then
+		scy.spd = 0
+	else
+		scy.pos = scy.pos + scy.spd
+	end
+
+	--Snapback
+	for axis=1,2 do
+		local s = scx
+		if axis == 2 then
+			s = scy
+		end
+		
+		if not dragging then
+			if s.pos < s.min then
+				local dist = s.min - s.pos
+				if math.abs(dist) < 1 then
+					s.pos = s.min
+				else
+					s.pos = math.min(s.min, s.pos + dist * snap)				
+				end
+			elseif s.pos > s.max then
+				local dist = s.max - s.pos
+				if math.abs(dist) < 1 then
+					s.pos = s.max
+				else
+					s.pos = math.max(s.max, s.pos + dist * snap)
+				end
 			end
-			layoutNeeded = true
-		elseif y > maxY then
-			y = math.max(maxY, y + (maxY - y) * snap)
-			if math.abs(y-maxY) < 1 then
-				y = maxY
-			end
-			layoutNeeded = true
 		end
 	end
 		
 	self.snap = snap
+	self.lastMouseX = mx
 	self.lastMouseY = my
 	
-	self.scrollY = y
-	self.scrollSpeedY = dy
-	
-	if layoutNeeded then
+	if scy.pos ~= oldypos or scx.pos ~= oldxpos then
 		self:layout(true)
 	end
 end
@@ -327,79 +475,88 @@ function Viewport:layout(scrollOnly)
 	local h = self:getHeight()
 	self.layer:setBounds(x, y, w, h)
 
-	local minY = 0
-	local maxY = math.max(minY, self.vh - h)
-	local scrollY = self.scrollY
-	local scrollBarWidth = self.scrollBarWidth
-	local scrollBarPad = self.scrollBarPad
-	local canScroll = (maxY > minY)
-
+	local barXH = 0
+	if self.scrollBarX ~= nil and self.scrollBarX:getVisible() then
+		barXH = self.scrollBarX:getHeight()
+	end
+	local barYW = 0
+	if self.scrollBarY ~= nil and self.scrollBarY:getVisible() then
+		barYW = self.scrollBarY:getWidth()
+	end
+	
+	local scx = self.scrollX
+	scx.min = 0
+	scx.max = math.max(scx.min, self.vw - w + barYW)
+	
+	local scy = self.scrollY
+	scy.min = 0
+	scy.max = math.max(scy.min, self.vh - h + barXH)
+	
 	if not scrollOnly then		
+		self:layoutScrollBars()
 		self:layoutChildren()
 	end
 	
+	for axis=1,2 do
+		local s = scx
+		local bar = self.scrollBarX
+		if axis == 2 then
+			s = scy
+			bar = self.scrollBarY
+		end
+		
+		local scrollFrac = -1
+		if s.max > s.min then
+			scrollFrac = math.max(0, math.min(1, (s.pos-s.min) / math.abs(s.max-s.min)))
+			bar:scrollTo(scrollFrac)
+			setVisible(bar, true)
+		else
+			setVisible(bar, false)
+		end
+	end
+	
 	if self.topEdge ~= nil then
-		local fl = math.min(self.fadeEdgeLength, scrollY-minY)
+		local fl = math.min(self.fadeEdgeLength, scy.pos-scy.min)
 		self.topEdge:setBounds(0, 0, w, fl)
 	end
 	if self.bottomEdge ~= nil then
-		local fl = math.min(self.fadeEdgeLength, maxY-scrollY)
-		self.bottomEdge:setBounds(0, h-fl+1, w, fl)
+		local fl = math.min(self.fadeEdgeLength, scy.max-scy.pos)
+		local bottomY = h
+		if self.scrollBarX ~= nil and self.scrollBarX:getVisible() then
+			bottomY = self.scrollBarX:getY()
+		end
+		self.bottomEdge:setBounds(0, bottomY-fl+1, w, fl)
 	end
 	
 	for i,c in ipairs(self.children) do
-		local newX = self.basePositions[i].x
-		local newY = self.basePositions[i].y - scrollY
+		local newX = self.basePositions[i].x - scx.pos
+		local newY = self.basePositions[i].y - scy.pos
+		local rightX = newX + c:getWidth()
 		local bottomY = newY + c:getHeight()
-		c:setPos(newX, newY)
-		if bottomY < 0 or newY > h then
-			if c.setVisible ~= nil then
-				c:setVisible(false)
-			else
-				c:setAlpha(0)
-			end
-		else
-			if c.setVisible ~= nil then
-				c:setVisible(true)
-			else
-				c:setAlpha(1)
-			end
-		end		
-	end
-
-	local scrollBar = self.scrollBar
-	local scrollThumb = self.scrollThumb
-	
-	if not scrollOnly and scrollBar ~= nil then
-		if canScroll then
-			scrollBar:setAlpha(1)		
-			scrollBar:setSize(scrollBarWidth, h-scrollBarPad*2)
-			scrollBar:setPos(w-scrollBarPad-scrollBarWidth, scrollBarPad)	
-		else
-			scrollBar:setAlpha(0)
-		end
-	end
-	
-	if scrollThumb ~= nil then
-		if canScroll then
-			scrollThumb:setAlpha(1)		
-		else
-			scrollThumb:setAlpha(0)
-		end
-		local scrollFrac = math.max(0, math.min(1, (scrollY-minY)/math.abs(maxY-minY)))
-		local stx = scrollBar:getX() + (scrollBar:getWidth()-scrollThumb:getWidth())/2
-		local sty = scrollBar:getY() + (scrollBar:getHeight()-scrollThumb:getHeight()) * scrollFrac
-		scrollThumb:setPos(stx, sty)
-	end
 		
-	self.scrollYMin = minY
-	self.scrollYMax = maxY
+		c:setPos(newX, newY)
+		setVisible(c, bottomY >= 0 and newY <= h and rightX >= 0 and newX <= w)
+	end
 end
 
 function Viewport:layoutChildren()
 	local basepos = self.basePositions
 	for i,c in ipairs(self.children) do	
 		c:setPos(basepos[i].x, basepos[i].y)
+	end	
+end
+
+function Viewport:layoutScrollBars()
+	local barY = self.scrollBarY
+	local barYW = 0
+	if barY ~= nil then
+		barYW = barY:getWidth()
+		barY:setBounds(self.w-barYW, 0, barYW, self.h)		
+	end
+	
+	local barX = self.scrollBarX
+	if barX ~= nil then
+		barX:setBounds(0, self.h-barX:getHeight(), self.w-barYW, barX:getHeight())
 	end
 end
 
@@ -425,27 +582,11 @@ function Viewport:closeLayer(components, edgeInfo, scrollInfo)
 			extend({z=-999, colorRGB=0}, edgeInfo.bottomExtra))
 	end
 	
-	destroyValues(self.scrollBar, self.scrollThumb)
+	destroyValues(self.scrollBarX, self.scrollBarY)
 	scrollInfo = scrollInfo or {}
-	local scrollBarWidth = scrollInfo.scrollBarWidth or self.scrollBarWidth
-	local scrollBarPad = scrollInfo.scrollBarPad or self.scrollBarPad
-	local scrollThumbWidth = scrollInfo.scrollThumbWidth or scrollBarWidth
-	if scrollInfo == false then
-		self.scrollBar = nil
-		self.scrollThumb = nil
-	else	
-		local scrollThumb = img(scrollInfo.thumb or pathPrefix .. "scroll-thumb",
-			extend({z=-1002}, scrollInfo.thumbExtra))    
-		local scrollThumbScale = scrollThumbWidth / scrollThumb:getUnscaledWidth()
-		scrollThumb:setScale(scrollThumbScale, scrollThumbScale)
-		self.scrollThumb = scrollThumb
-		
-	    local scrollBar = img(scrollInfo.bar or pathPrefix .. "scroll-bg",
-	    	extend({z=-1001}, scrollInfo.barExtra))
-		self.scrollBar = scrollBar		
-	end
-	self.scrollBarWidth = scrollBarWidth
-	self.scrollBarPad = scrollBarPad
+	self.scrollBarWidth = scrollInfo.scrollBarWidth or self.scrollBarWidth
+	self.scrollBarX = ScrollBar.new{h=self.scrollBarWidth, pad=self.scrollBarPad, horizontal=true}
+	self.scrollBarY = ScrollBar.new{w=self.scrollBarWidth, pad=self.scrollBarPad}
 	
 	setImageLayer(nil)
 	
@@ -472,8 +613,15 @@ function Viewport:layoutVirtual()
 	self.vh = vh
 end
 
-function Viewport:scrollTo(frac)
-	self.scrollY = self.scrollYMin + frac * (self.scrollYMax - self.scrollYMin)	
+function Viewport:scrollTo(xfrac, yfrac)
+	if xfrac ~= nil then
+		local scx = self.scrollX
+		scx.pos = scx.min + xfrac * (scx.max - scx.min)
+	end	
+	if yfrac ~= nil then
+		local scy = self.scrollY
+		scy.pos = scy.min + yfrac * (scy.max - scy.min)
+	end	
 	self:layout(true)
 end
 
@@ -588,7 +736,8 @@ end
 FlowLayout = {
 	pack=7,
 	pad=0,
-	cols=-1
+	cols=-1,
+	w=-1
 }
 
 ---Creates a new flow layout object, layouts its components in a line.
@@ -609,14 +758,18 @@ function FlowLayout:layoutLine(components, x, y, pack, pad, width)
 		lw = lw + c:getWidth()
 		lh = math.max(lh, c:getHeight())
 	end
+	self.w = math.max(self.w, lw)
 	
 	--Layout components
-	x = x + alignAnchorX(width, lw, pack)
+	if width >= 0 then
+		x = x + alignAnchorX(width, lw, pack)
+	end
+	
 	for _,c in ipairs(components) do
 		c:setPos(x, y + alignAnchorY(lh, c:getHeight(), pack))		
 		x = x + pad + c:getWidth()
 	end	
-	
+		
 	return lh
 end
 
@@ -629,9 +782,10 @@ function FlowLayout:layout()
 	local lineComponents = {}
 	local lineSize = 0
 	local maxLineSize = self.w - pad*2
+	
 	for _,c in ipairs(self.children) do
 		local size = c:getWidth()
-		if lineSize + pad + size > maxLineSize or (cols > 0 and #lineComponents >= cols) then
+		if (maxLineSize >= 0 and lineSize + pad + size > maxLineSize) or (cols > 0 and #lineComponents >= cols) then
 			if #lineComponents > 0 then
 				y = y + pad + self:layoutLine(lineComponents, x, y, self.pack, pad, maxLineSize)
 				lineComponents = {}
