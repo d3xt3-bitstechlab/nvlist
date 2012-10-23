@@ -23,6 +23,7 @@ public class BaseImageState implements IImageState {
 	private static final long serialVersionUID = BaseImpl.serialVersionUID;
 	
 	public static final String DEFAULT_LAYER_ID = "default";
+	public static final String OVERLAY_LAYER_ID = "overlay";
 	
 	private final int width, height;
 	private List<State> sstack;
@@ -55,7 +56,19 @@ public class BaseImageState implements IImageState {
 			State state = sstack.remove(sstack.size()-1);
 			state.clear();
 		}
-		sstack.add(new State());		
+		sstack.add(newState());
+		markChanged();
+	}
+	
+	private State newState() {
+		State state = new State();
+		
+		createLayer(state, DEFAULT_LAYER_ID);
+		
+		ILayer overlay = createLayer(state, OVERLAY_LAYER_ID);
+		overlay.setZ((short)(-30000));
+		
+		return state;
 	}
 	
 	@Override
@@ -69,15 +82,20 @@ public class BaseImageState implements IImageState {
 	public ILayer createLayer(String id) {
 		if (id == null) id = DEFAULT_LAYER_ID;
 		
-		ILayer layer = getState().getLayer(id);
+		State state = getState();
+		ILayer layer = state.getLayer(id);
 		if (layer != null && !layer.isDestroyed()) {
 			return null;
 		}
 		
-		layer = new Layer(getWidth(), getHeight());
-		getState().setLayer(id, layer);
+		return createLayer(state, id);
+	}
+	
+	protected ILayer createLayer(State state, String id) {
+		ILayer layer = new Layer(width, height);
+		state.setLayer(id, layer);
 		markChanged();
-		return layer;
+		return layer;		
 	}
 	
 	@Override
@@ -126,7 +144,7 @@ public class BaseImageState implements IImageState {
 		
 	@Override
 	public void push() {
-		sstack.add(new State());
+		sstack.add(newState());
 		markChanged();
 	}
 	
@@ -141,7 +159,7 @@ public class BaseImageState implements IImageState {
 		markChanged();
 	}
 	
-	protected void markChanged() {
+	protected final void markChanged() {
 		changed = true;
 	}
 	

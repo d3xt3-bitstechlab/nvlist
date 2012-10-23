@@ -299,6 +299,11 @@ function setImageLayer(l)
 	setImageStateAttribute("layer", l)
 end
 
+---Returns the <code>overlay</code> layer which is usually the topmost layer.
+function getOverlayLayer()
+	return imageState:getLayer("overlay")
+end
+
 ---Saves the current images onto a stack to be restored later with
 -- <code>popLayerState</code>. Completely clears the <code>layer</code>
 -- of all images.
